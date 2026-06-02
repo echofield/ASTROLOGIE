@@ -192,3 +192,24 @@ h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .tab.on .l::after{width:14px}
 
 .linkish{background:none;border:none;color:var(--ink-faint);font-family:var(--mono);font-size:10px;letter-spacing:.08em;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+/* DIALOGUE */
+#dialogue{padding-bottom:96px}
+.convo{padding-top:8px}
+.msg{margin-top:22px;max-width:84%;animation:fadeUp .5s both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg.g{margin-right:auto}
+.msg.u{margin-left:auto;text-align:right}
+.msg.g .who{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin-bottom:6px}
+.msg.g .bubble{font-family:var(--display);font-weight:300;font-style:italic;font-size:18px;line-height:1.55;color:#2c241a}
+.msg.u .bubble{font-family:var(--hand);font-size:23px;line-height:1.3;color:var(--lapis)}
+.msg .bubble em{color:var(--lapis);font-style:normal}
+.typing{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--ink-faint);margin-top:22px}
+.dialogue-in{position:absolute;left:0;right:0;bottom:0;padding:14px 22px calc(18px + env(safe-area-inset-bottom));
+  background:linear-gradient(transparent,var(--paper) 32%);display:flex;align-items:center;gap:12px;z-index:20}
+.dialogue-in input{flex:1;border:1px solid var(--line-2);border-radius:99px;padding:13px 20px;
+  font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink);background:rgba(239,231,214,.7);outline:none}
+.dialogue-in input:focus{border-color:var(--brass)}
+.dialogue-in .send{width:44px;height:44px;flex:none;border-radius:50%;background:var(--lapis);color:var(--paper);
+  display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;border:none}
+.dialogue-in .send:disabled{opacity:.4;cursor:not-allowed}

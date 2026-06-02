@@ -9,6 +9,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./storage";
 import type { SealedStar } from "./star";
+import type { ChatMessage } from "./llm/types";
 
 let client: SupabaseClient | null | undefined;
 
@@ -96,10 +97,42 @@ export async function wipe(): Promise<void> {
     const uid = await userId();
     if (!uid) return;
     await Promise.all([
+      c.from("astrolabe_messages").delete().eq("user_id", uid),
       c.from("astrolabe_stars").delete().eq("user_id", uid),
       c.from("astrolabe_profiles").delete().eq("user_id", uid),
     ]);
   } catch {
     /* ignore */
+  }
+}
+
+/** Conversation memory. Returns null when unconfigured (caller uses local). */
+export async function pullMessages(limit = 50): Promise<ChatMessage[] | null> {
+  const c = getClient();
+  if (!c) return null;
+  try {
+    const uid = await userId();
+    if (!uid) return null;
+    const { data } = await c
+      .from("astrolabe_messages")
+      .select("role, content")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    return (data as ChatMessage[]) ?? [];
+  } catch {
+    return null;
+  }
+}
+
+export async function pushMessage(m: ChatMessage): Promise<void> {
+  const c = getClient();
+  if (!c) return;
+  try {
+    const uid = await userId();
+    if (!uid) return;
+    await c.from("astrolabe_messages").insert({ user_id: uid, role: m.role, content: m.content });
+  } catch {
+    /* stay local-only */
   }
 }

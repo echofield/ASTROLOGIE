@@ -3,18 +3,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Genius from "@/components/Genius";
 import Wheel from "@/components/Wheel";
-import { natalChart, lonLabel } from "@/lib/sky";
+import { natalChart, lonLabel, SIGN_NAMES, signIndex } from "@/lib/sky";
 import { makeStar, reachOf, type SealedStar } from "@/lib/star";
 import { archetypeForStar, geniusLine, geniusPhase } from "@/lib/archetypes";
 import { fetchGeniusLine } from "@/lib/voice";
+import { loadMessages, appendMessage, askGenius } from "@/lib/dialogue";
+import type { ChatMessage } from "@/lib/llm/types";
 import {
   getProfile, saveProfile, getStar, saveStar, resetAll, type Profile,
 } from "@/lib/storage";
 import { pull as cloudPull, push as cloudPush, wipe as cloudWipe } from "@/lib/cloud";
 import type { PlanetName } from "@/lib/types";
 
-type View = "threshold" | "birth" | "theme" | "northstar" | "star" | "genius" | "home";
+type View = "threshold" | "birth" | "theme" | "northstar" | "star" | "genius" | "home" | "dialogue";
 const PRE_SEAL: Record<string, boolean> = { threshold: true, birth: true, theme: true, northstar: true };
+
+const FALLBACK_REPLIES = [
+  "I am here, watching. Say more, and I will listen against the sky.",
+  "The heavens are quiet on this — tell me what moves in you, and I will read it.",
+  "I hold your star in view. Go on.",
+];
 
 const MEANING: Record<PlanetName, string> = {
   Sun: "Where you shine — what only you can author.",
@@ -47,6 +55,12 @@ export default function Page() {
   const [rmust, setRmust] = useState("");
   const [rname, setRname] = useState("");
   const [geniusWake, setGeniusWake] = useState(false);
+
+  // dialogue
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [msgsLoaded, setMsgsLoaded] = useState(false);
 
   useEffect(() => {
     const p = getProfile();
@@ -102,6 +116,42 @@ export default function Page() {
     return () => { live = false; };
   }, [star, phase, fulfilled]);
   const says = claudeSays || saysTemplate;
+
+  // dialogue context + memory
+  const natalSummary = useMemo(() => {
+    if (!profile) return "";
+    const p = profile.natal.positions;
+    return `Sun in ${SIGN_NAMES[signIndex(p.Sun)]}, Moon in ${SIGN_NAMES[signIndex(p.Moon)]}, Venus in ${SIGN_NAMES[signIndex(p.Venus)]}`;
+  }, [profile]);
+
+  useEffect(() => {
+    if (!ready || !star || msgsLoaded) return;
+    setMsgsLoaded(true);
+    loadMessages().then(setMessages);
+  }, [ready, star, msgsLoaded]);
+
+  const send = useCallback(async () => {
+    const text = input.trim();
+    if (!text || sending) return;
+    const um: ChatMessage = { role: "user", content: text };
+    const next = [...messages, um];
+    setMessages(next);
+    setInput("");
+    appendMessage(um);
+    setSending(true);
+    const ctx = {
+      star: star ? { name: star.name, must: star.must, ruler: star.ruler } : undefined,
+      archetype: arch ? { name: arch.name, essence: arch.essence } : undefined,
+      natal: natalSummary,
+      reach: reach ? { gap: reach.gap, days: reach.days, phase } : undefined,
+    };
+    const reply = await askGenius(next, ctx);
+    const line = reply ?? FALLBACK_REPLIES[next.length % FALLBACK_REPLIES.length];
+    const am: ChatMessage = { role: "assistant", content: line };
+    setMessages((m) => [...m, am]);
+    appendMessage(am);
+    setSending(false);
+  }, [input, sending, messages, star, arch, natalSummary, reach, phase]);
 
   const fulfill = useCallback(() => {
     if (!star) return;
@@ -292,6 +342,45 @@ export default function Page() {
               <div className="line">
                 {star ? says : "It will form when you seal a star."}
               </div>
+              {star && (
+                <button className="btn center" style={{ marginTop: 26 }} onClick={() => setView("dialogue")}>
+                  Speak to it
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* DIALOGUE */}
+          <section className={`screen${view === "dialogue" ? " active" : ""}`} id="dialogue">
+            <div className="scr-head">
+              <button className="back" onClick={() => setView("genius")}>←</button>
+              <span className="ttl">Dialogue</span><span style={{ width: 18 }} />
+            </div>
+            <div className="convo">
+              {messages.length === 0 && (
+                <div className="msg g">
+                  <div className="who">Your Genius</div>
+                  <div className="bubble">
+                    {star ? `I am awake, and I hold ${star.name} in view. What moves in you tonight?` : "Seal a star, and I will wake."}
+                  </div>
+                </div>
+              )}
+              {messages.map((m, i) => (
+                <div key={i} className={`msg ${m.role === "assistant" ? "g" : "u"}`}>
+                  {m.role === "assistant" && <div className="who">Your Genius</div>}
+                  <div className="bubble">{m.content}</div>
+                </div>
+              ))}
+              {sending && <div className="typing">listening…</div>}
+            </div>
+            <div className="dialogue-in">
+              <input
+                value={input}
+                placeholder="write to your Genius…"
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+              />
+              <button className="send" onClick={send} disabled={sending || !input.trim()}>↑</button>
             </div>
           </section>
 
@@ -389,6 +478,9 @@ export default function Page() {
             </button>
             <button className={`tab${view === "genius" ? " on" : ""}`} onClick={() => setView("genius")}>
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="10" /></svg><span className="l">Genius</span>
+            </button>
+            <button className={`tab${view === "dialogue" ? " on" : ""}`} onClick={() => setView("dialogue")}>
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z" /></svg><span className="l">Speak</span>
             </button>
             <button className={`tab${view === "theme" ? " on" : ""}`} onClick={() => setView("theme")}>
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3" /></svg><span className="l">Theme</span>

@@ -1,11 +1,11 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
+import { getProvider } from "@/lib/llm";
 
 export const runtime = "nodejs";
 
-// The Genius's standing instruction. Cached across calls (prompt caching) so the
-// persona is cheap and fast. The instrument's native temperament is Witness +
-// Oracle — it observes the sky without distortion and senses what is coming.
+// The one-line oracle voice. A single completion (not an agent) — fast, cheap,
+// shown instantly. Provider-agnostic via getProvider(); dormant (returns null)
+// until a model is configured, so the client keeps its templated line.
 const PERSONA = `You are the Genius of Astrolabe — the intelligence of a personal celestial instrument that watches the moving sky travel toward a star a person has sealed.
 
 Your native temperament is the Witness and the Oracle: you observe without distortion and you sense what is coming. When the moment is near or arrived, you borrow the voice of the archetype that governs the star.
@@ -29,8 +29,8 @@ function moment(phase: string, reach: { gap: number; days: number }): string {
 }
 
 export async function POST(req: Request) {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return NextResponse.json({ line: null }); // dormant until a key is set
+  const provider = getProvider();
+  if (!provider) return NextResponse.json({ line: null }); // dormant
 
   try {
     const { star, archetype, phase, reach } = await req.json();
@@ -39,36 +39,31 @@ export async function POST(req: Request) {
       ? `Speak in the voice of the ${archetype?.name} (${archetype?.essence}).`
       : `Speak in your own watching, sensing voice.`;
 
-    const anthropic = new Anthropic({ apiKey: key });
-    const msg = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 80,
-      temperature: 0.85,
-      system: [{ type: "text", text: PERSONA, cache_control: { type: "ephemeral" } }],
-      messages: [
-        {
-          role: "user",
-          content:
-            `A person sealed a star.\n` +
-            `Star name: ${star?.name}\n` +
-            `What must happen: "${star?.must}"\n` +
-            `Governed by: the ${archetype?.name} — ${archetype?.essence}.\n` +
-            `The Moon is ${moment(phase, reach)}.\n` +
-            `${voice}\n` +
-            `Give the person one sentence about this star and this moment.`,
-        },
-      ],
-    });
-
-    const line = msg.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join(" ")
+    const line = (
+      await provider.complete({
+        system: PERSONA,
+        maxTokens: 80,
+        temperature: 0.85,
+        messages: [
+          {
+            role: "user",
+            content:
+              `A person sealed a star.\n` +
+              `Star name: ${star?.name}\n` +
+              `What must happen: "${star?.must}"\n` +
+              `Governed by: the ${archetype?.name} — ${archetype?.essence}.\n` +
+              `The Moon is ${moment(phase, reach)}.\n` +
+              `${voice}\n` +
+              `Give the person one sentence about this star and this moment.`,
+          },
+        ],
+      })
+    )
       .trim()
       .replace(/^["']|["']$/g, "");
 
     return NextResponse.json({ line: line || null });
   } catch {
-    return NextResponse.json({ line: null }); // fall back to the templated voice
+    return NextResponse.json({ line: null });
   }
 }
