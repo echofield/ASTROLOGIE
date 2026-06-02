@@ -1,324 +1,315 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Stars from "@/components/Stars";
-import Onboarding from "@/components/Onboarding";
-import AstrolabeWheel from "@/components/AstrolabeWheel";
-import TimeScrubber from "@/components/TimeScrubber";
-import Constellation from "@/components/Constellation";
-import { paletteAt } from "@/lib/palette";
-import { ASPECTS, contact, liveSky, lonOf, nextWindow } from "@/lib/sky";
-import { stageForSealed, toNextStage } from "@/lib/stage";
-import { DOMAIN_BY_ID } from "@/lib/domains";
-import type { NorthStar, Passage, Profile } from "@/lib/types";
+import Genius from "@/components/Genius";
+import Wheel from "@/components/Wheel";
+import { natalChart, lonLabel } from "@/lib/sky";
+import { makeStar, reachOf, type SealedStar } from "@/lib/star";
 import {
-  addPassage,
-  getActiveNorthStar,
-  getPassages,
-  getProfile,
-  resetAll,
-  saveNorthStar,
-  saveProfile,
-  uid,
+  getProfile, saveProfile, getStar, saveStar, resetAll, type Profile,
 } from "@/lib/storage";
+import type { PlanetName } from "@/lib/types";
 
-const MAX_HOURS = 48;
+type View = "threshold" | "birth" | "theme" | "northstar" | "star" | "genius" | "home";
+const PRE_SEAL: Record<string, boolean> = { threshold: true, birth: true, theme: true, northstar: true };
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-/** Smallest distance from the Moon to an exact *harmonious* aspect with the anchor. */
-function harmoniousOrb(sep: number): number {
-  let best = Infinity;
-  for (const a of ASPECTS) {
-    if (a.tone !== "harmony") continue;
-    best = Math.min(best, Math.abs(sep - a.angle));
-  }
-  return best;
-}
+const MEANING: Record<PlanetName, string> = {
+  Sun: "Where you shine — what only you can author.",
+  Moon: "What you feel deeply, without always showing it.",
+  Mercury: "Your thought: how you reason, learn, and say it.",
+  Venus: "What you love, and want to last.",
+  Mars: "Your drive — the move that takes nerve.",
+  Jupiter: "Where you grow, reach, and say yes.",
+  Saturn: "Your discipline — the vow you keep.",
+};
 
 export default function Page() {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [star, setStar] = useState<NorthStar | null>(null);
-  const [passages, setPassages] = useState<Passage[]>([]);
-  const [view, setView] = useState<"sky" | "map">("sky");
-
+  const [star, setStar] = useState<SealedStar | null>(null);
+  const [view, setView] = useState<View>("threshold");
   const [baseDate, setBaseDate] = useState<Date>(() => new Date());
-  const [offset, setOffset] = useState(0); // hours into the future
-  const [justSealed, setJustSealed] = useState<Passage | null>(null);
 
-  // load persisted state after mount (client only)
+  // birth inputs
+  const [bday, setBday] = useState("");
+  const [btime, setBtime] = useState("");
+  const [bplace, setBplace] = useState("");
+
+  // theme detail
+  const [selPlanet, setSelPlanet] = useState<PlanetName>("Moon");
+
+  // ritual
+  const [ritualOn, setRitualOn] = useState(false);
+  const [rstep, setRstep] = useState(0);
+  const [rmust, setRmust] = useState("");
+  const [rname, setRname] = useState("");
+  const [geniusWake, setGeniusWake] = useState(false);
+
   useEffect(() => {
-    setProfile(getProfile());
-    setStar(getActiveNorthStar());
-    setPassages(getPassages());
+    const p = getProfile();
+    const s = getStar();
+    setProfile(p);
+    setStar(s);
+    setView(!p ? "threshold" : s ? "home" : "northstar");
     setReady(true);
   }, []);
 
-  // keep "now" honest — refresh every 60s
+  // keep the reach live
   useEffect(() => {
     const id = setInterval(() => setBaseDate(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  const currentDate = useMemo(
-    () => new Date(baseDate.getTime() + offset * 3_600_000),
-    [baseDate, offset],
+  const reach = useMemo(
+    () => (star ? reachOf(star, baseDate) : null),
+    [star, baseDate],
   );
 
-  const frame = useMemo(
-    () => paletteAt(currentDate.getHours() + currentDate.getMinutes() / 60),
-    [currentDate],
-  );
+  const showBar = ready && !!star && !PRE_SEAL[view] && !ritualOn;
 
-  // apply diurnal palette to the whole document
-  useEffect(() => {
-    const root = document.documentElement.style;
-    for (const [k, v] of Object.entries(frame.vars)) root.setProperty(k, v);
-  }, [frame]);
-
-  const anchor = star?.anchor ?? 0;
-  const transit = useMemo(() => liveSky(currentDate), [currentDate]);
-  const moonStart = useMemo(() => lonOf("Moon", baseDate), [baseDate]);
-  const viewed = useMemo(() => contact(transit.Moon, anchor), [transit, anchor]);
-  const live = useMemo(
-    () => contact(lonOf("Moon", baseDate), anchor),
-    [baseDate, anchor],
-  );
-  const upcoming = useMemo(
-    () => (star && !live.open ? nextWindow(anchor, baseDate) : null),
-    [star, live.open, anchor, baseDate],
-  );
-
-  const isNow = offset < 0.75;
-  const canSeal = isNow && live.open && !justSealed;
-
-  // when the live window closes, allow sealing again next time
-  useEffect(() => {
-    if (!live.open && justSealed) setJustSealed(null);
-  }, [live.open, justSealed]);
-
-  const stage = stageForSealed(passages.length);
-  const next = toNextStage(passages.length);
-
-  const seal = useCallback(() => {
-    if (!star) return;
-    const p: Passage = {
-      id: uid(),
-      northStarId: star.id,
-      intention: star.intention,
-      domain: star.domain,
-      sealedAt: new Date().toISOString(),
-      moonLon: lonOf("Moon", new Date()),
-      aspect: live.nearest.name,
+  const castSky = useCallback(() => {
+    if (!bday) return;
+    const birthISO = `${bday}T${btime || "12:00"}`;
+    const natal = natalChart(new Date(birthISO), birthISO);
+    const p: Profile = {
+      birthISO, place: bplace.trim(), natal, createdAt: new Date().toISOString(),
     };
-    addPassage(p);
-    setPassages((prev) => [...prev, p]);
-    setJustSealed(p);
-  }, [star, live.nearest.name]);
-
-  const onComplete = useCallback((p: Profile, s: NorthStar) => {
     saveProfile(p);
-    saveNorthStar(s);
     setProfile(p);
-    setStar(s);
+    setView("theme");
+  }, [bday, btime, bplace]);
+
+  const openRitual = useCallback(() => {
+    setRmust(""); setRname(""); setRstep(1); setRitualOn(true);
   }, []);
 
-  // ---- pre-mount / onboarding shells -----------------------------------------
+  const sealNow = useCallback(() => {
+    const s = makeStar(rmust, rname);
+    saveStar(s);
+    setStar(s);
+    setRstep(4);
+    setTimeout(() => {
+      setRitualOn(false);
+      setView("genius");
+      setGeniusWake(true);
+      setTimeout(() => setGeniusWake(false), 1900);
+    }, 2600);
+  }, [rmust, rname]);
+
   if (!ready) {
-    return (
-      <>
-        <div className="deskbg" />
-        <div className="app"><Stars /></div>
-      </>
-    );
-  }
-  if (!profile || !star) {
-    return (
-      <>
-        <div className="deskbg" />
-        <div className="app">
-          <Stars />
-          <Onboarding onComplete={onComplete} />
-        </div>
-      </>
-    );
+    return (<><div className="desk" /><div className="app" /></>);
   }
 
-  // ---- labels ----------------------------------------------------------------
-  const hh = pad(((currentDate.getHours() % 24) + 24) % 24);
-  const dayDelta = Math.floor((baseDate.getHours() + offset) / 24);
-  const dayWord = ["today", "tomorrow", "in 2 days"][dayDelta] || `+${dayDelta}d`;
-  const whenLabel = isNow
-    ? `now · ${pad(baseDate.getHours())}h`
-    : `+${Math.round(offset)}h · ${dayWord} ${hh}h`;
-  const shortClock = isNow ? "now" : `+${Math.round(offset)}h`;
-
-  const hOrb = harmoniousOrb(viewed.separation);
-  const dom = DOMAIN_BY_ID[star.domain];
-
-  let stat: string;
-  let statGo = false;
-  if (justSealed && isNow) {
-    stat = "The passage is sealed. The sky witnessed it.";
-    statGo = true;
-  } else if (viewed.open) {
-    stat = isNow
-      ? "Aligned. The Moon is touching your star — the threshold is open."
-      : "The threshold is open at this hour — return when it arrives to seal.";
-    statGo = true;
-  } else if (viewed.forming) {
-    stat = `The threshold is opening — ${Math.ceil(hOrb)}° until the Moon reaches your star.`;
-  } else {
-    stat = `The sky isn't ready yet — ${Math.round(hOrb)}° still separate the Moon from your star.`;
-  }
-
-  const form = viewed.open
-    ? "The Moon touches your star."
-    : viewed.forming
-      ? `The Moon approaches · ${Math.ceil(hOrb)}°`
-      : `Travelling toward your star · ${Math.round(hOrb)}°`;
-
-  const nsClass = `ns${justSealed ? " sealed" : viewed.open ? " lit" : ""}`;
+  const coord = profile
+    ? `${(bday || profile.birthISO.split("T")[0]).toUpperCase()}${profile.place ? " · " + profile.place.toUpperCase() : ""}`
+    : "";
 
   return (
     <>
-      <div className="deskbg" />
+      <div className="desk" />
       <div className="app">
-        <Stars />
         <div className="status">
-          <span>{pad(baseDate.getHours())}:{pad(baseDate.getMinutes())}</span>
-          <span>{dom.glyph} anchored to {dom.planet}</span>
+          <span>{String(baseDate.getHours()).padStart(2, "0")}:{String(baseDate.getMinutes()).padStart(2, "0")}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span className="dot" /> Astrolabe
+          </span>
         </div>
 
-        <div className="content">
-          <div className="head">
-            <button className="back" onClick={() => setView("sky")} aria-label="Home">
-              {view === "map" ? "←" : "✶"}
-            </button>
-            <span className="t">{view === "map" ? "Your constellation" : "The sky, now"}</span>
-            <span className="clock">{view === "map" ? `${passages.length}★` : shortClock}</span>
-          </div>
-
-          {/* stage bar */}
-          <div className="stagebar">
-            <div className="lvl">
-              <b>Stage {stage.index} · {stage.title}</b>
-              {stage.motto}
+        <div className="screens">
+          {/* THRESHOLD */}
+          <section className={`screen nobar${view === "threshold" ? " active" : ""}`} id="threshold">
+            <div className="col">
+              <div className="eyebrow">The cabinet is closed</div>
+              <div style={{ marginTop: 26 }}><Genius ticks={4} /></div>
+              <h1>Astrolabe</h1>
+              <div className="tag">An instrument cast on the day you began.</div>
+              <button className="enter" onClick={() => setView("birth")}>Enter</button>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div className="pips">
-                {[1, 2, 3].map((i) => (
-                  <i key={i} className={stage.index >= i ? "on" : ""} />
-                ))}
-              </div>
-              {next && (
-                <div className="nxt">
-                  {next.remaining} more to {next.next.title}
-                </div>
-              )}
+          </section>
+
+          {/* BIRTH */}
+          <section className={`screen nobar${view === "birth" ? " active" : ""}`} id="birth">
+            <div className="col">
+              <div className="eyebrow">Your fixed sky</div>
+              <div className="q" style={{ marginTop: 18 }}>When did you begin?</div>
+              <input className="field" type="date" value={bday} onChange={(e) => setBday(e.target.value)} />
+              <input className="field" type="time" value={btime} onChange={(e) => setBtime(e.target.value)} style={{ marginTop: 18, fontSize: 20 }} />
+              <input className="field" type="text" value={bplace} placeholder="Paris" onChange={(e) => setBplace(e.target.value)} style={{ marginTop: 18, fontSize: 20 }} />
+              <button className="btn" disabled={!bday} onClick={castSky}>Cast the sky</button>
             </div>
-          </div>
+          </section>
 
-          <div className="tabs">
-            <button className={view === "sky" ? "on" : ""} onClick={() => setView("sky")}>
-              The sky
-            </button>
-            <button className={view === "map" ? "on" : ""} onClick={() => setView("map")}>
-              Constellation
-            </button>
-          </div>
-
-          {view === "map" ? (
-            <Constellation passages={passages} colors={frame.colors} />
-          ) : (
-            <>
-              {/* NORTH STAR */}
-              <div className={nsClass}>
-                <div className="beacon"><b>✶</b></div>
-                <div className="k">Your North Star</div>
-                <div className="aim">{star.intention}</div>
-                <div className={`stat${statGo ? " go" : ""}`}>{stat}</div>
-
-                {justSealed ? (
-                  <div className="wax">
-                    <div className="s">✦</div>
-                    <div className="lbl">
-                      Passage sealed
-                      <b>
-                        {new Date(justSealed.sealedAt).toLocaleString(undefined, {
-                          month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                        })}
-                      </b>
-                    </div>
+          {/* THEME */}
+          <section className={`screen nobar${view === "theme" ? " active" : ""}`} id="theme">
+            <div className="scr-head">
+              <button className="back" onClick={() => setView("birth")}>←</button>
+              <span className="ttl">Your theme</span><span style={{ width: 18 }} />
+            </div>
+            {profile && (
+              <>
+                <div className="chart-wrap">
+                  <Wheel natal={profile.natal.positions} onSelectPlanet={setSelPlanet} />
+                </div>
+                <div className="chart-cap"><span className="coord">{coord}</span></div>
+                <div className="planet-detail">
+                  <div className="h">
+                    <span className="g">{({Sun:"☉",Moon:"☽",Mercury:"☿",Venus:"♀",Mars:"♂",Jupiter:"♃",Saturn:"♄"} as Record<PlanetName,string>)[selPlanet]}</span>
+                    <span className="n">{selPlanet} · {lonLabel(profile.natal.positions[selPlanet])}</span>
                   </div>
-                ) : canSeal ? (
-                  <button className="seal-btn" onClick={seal}>
-                    Seal this passage
-                  </button>
-                ) : upcoming && isNow ? (
-                  <div className="stat" style={{ marginTop: 8 }}>
-                    Next window opens in {Math.round(upcoming.hoursAway)}h — drag the
-                    timeline to see it.
+                  <div className="body">{MEANING[selPlanet]}</div>
+                </div>
+                <div className="hint">Touch a planet on the wheel</div>
+                <div className="midline">this is the sky you were born under.</div>
+                <button className="btn center" style={{ marginTop: 26 }} onClick={() => setView("northstar")}>Continue</button>
+              </>
+            )}
+          </section>
+
+          {/* NORTH STAR — silence */}
+          <section className={`screen nobar${view === "northstar" ? " active" : ""}`} id="northstar">
+            <div className="col">
+              <div className="eyebrow">Your North Star</div>
+              <div className="verse">A star may be named.<br />Not today.<br />Not tomorrow.<br />Only when something<br />becomes necessary.</div>
+              <button className="seal-star" onClick={openRitual}>Seal a Star</button>
+            </div>
+          </section>
+
+          {/* THE STAR */}
+          <section className={`screen${view === "star" ? " active" : ""}`} id="star">
+            <div className="scr-head">
+              <button className="back" onClick={() => setView("home")}>←</button>
+              <span className="ttl">Your star</span><span style={{ width: 18 }} />
+            </div>
+            {star && reach && profile && (
+              <>
+                <div className="reach">
+                  <div className="deg">in <b>{reach.headline}</b></div>
+                  <div className="lbl">the Moon will reach <b>{star.name}</b></div>
+                </div>
+                <div className="chart-wrap">
+                  <Wheel natal={profile.natal.positions} star={star} moonLon={reach.moonLon} />
+                </div>
+                <div className="starcard">
+                  <div className="mark">{star.glyph}</div>
+                  <div className="k">A sealed star</div>
+                  <div className="nm">{star.name}</div>
+                  <div className="must">“{star.must}”</div>
+                  <div className="res">{star.resonance}</div>
+                  <div className="meta">
+                    <span>RULER <b>{star.rulerGlyph} {star.ruler}</b></span>
+                    <span>HOUSE <b>{star.house}</b></span>
+                    <span>SEALED <b>{new Date(star.sealedAt).toLocaleDateString("en", { month: "short", day: "numeric" })}</b></span>
                   </div>
-                ) : null}
-              </div>
-
-              {/* WHEEL */}
-              <div className="wheel">
-                <AstrolabeWheel
-                  natal={profile.natal.positions}
-                  transit={transit}
-                  moonStart={moonStart}
-                  anchor={anchor}
-                  contact={viewed}
-                  colors={frame.colors}
-                />
-              </div>
-              <div className="legend">
-                <span><i style={{ background: "var(--planet)" }} />Natal · your fixed sky</span>
-                <span><i style={{ background: "var(--accent)" }} />Transit · the moving sky</span>
-                <span><i style={{ background: "var(--harm)" }} />Harmony</span>
-                <span><i style={{ background: "var(--hard)" }} />Tension</span>
-              </div>
-
-              {/* SCRUBBER */}
-              <div className="scrub">
-                <div className="top">
-                  <span className="lab">The sky, hour by hour</span>
-                  <span className="phase">{frame.phase}</span>
                 </div>
-                <TimeScrubber offset={offset} max={MAX_HOURS} glyph={frame.glyph} onChange={setOffset} />
-                <div className="marks">
-                  <span>now</span><span>+12h</span><span>+24h</span><span>+36h</span><span>+48h</span>
-                </div>
-                <div className="readout">
-                  <span className="when">{whenLabel}</span>
-                  <span className="form">{form}</span>
-                </div>
-              </div>
-              <div className="hint">⟷ drag to move through time</div>
+              </>
+            )}
+          </section>
 
-              <div style={{ textAlign: "center", marginTop: 18 }}>
-                <button
-                  className="linkish"
-                  onClick={() => {
-                    if (confirm("Reset Lodestar? This clears your sky and all sealed passages.")) {
-                      resetAll();
-                      setProfile(null);
-                      setStar(null);
-                      setPassages([]);
-                    }
-                  }}
-                >
-                  reset
+          {/* GENIUS */}
+          <section className={`screen${view === "genius" ? " active" : ""}`} id="genius">
+            <div className="scr-head">
+              <button className="back" onClick={() => setView("home")}>←</button>
+              <span className="ttl">Your Genius</span><span style={{ width: 18 }} />
+            </div>
+            <Genius ticks={6} dormant={!star} wake={geniusWake} />
+            <div className="nature">
+              <h2>{star ? "It has formed." : "Not yet."}</h2>
+              <div className="born">
+                Born of <b>your fixed sky</b><br />
+                the <b>moving heavens</b><br />
+                and what you found <b>necessary</b>
+              </div>
+              <div className="line">
+                {star
+                  ? "It watches the sky move toward your star, and speaks only when something changes."
+                  : "It will form when you seal a star."}
+              </div>
+            </div>
+          </section>
+
+          {/* HOME / CABINET */}
+          <section className={`screen${view === "home" ? " active" : ""}`} id="home">
+            <div className="greet">
+              <div className="hand">Good evening.</div>
+              <div className="sub">The sky has moved since yesterday.</div>
+            </div>
+            <Genius ticks={5} onClick={() => setView("genius")} />
+            {star && reach && (
+              <div className="reach">
+                <div className="deg">in <b>{reach.headline}</b></div>
+                <div className="lbl">the Moon nears <b>{star.name}</b></div>
+              </div>
+            )}
+            <div className="items">
+              {star && (
+                <button className="item" onClick={() => setView("star")}>
+                  <div className="mark seal glyph">{star.glyph}</div>
+                  <div><div className="t">Your star</div><div className="d">“{star.must}”</div></div>
+                  <div className="arr">→</div>
                 </button>
-              </div>
-            </>
-          )}
+              )}
+              <button className="item" onClick={() => setView("theme")}>
+                <div className="mark glyph">☉</div>
+                <div><div className="t">Your theme</div><div className="d">The sky you were born under</div></div>
+                <div className="arr">→</div>
+              </button>
+            </div>
+            <div style={{ textAlign: "center", marginTop: 28 }}>
+              <button className="linkish" onClick={() => {
+                if (confirm("Close the cabinet? This clears your sky and your sealed star.")) {
+                  resetAll(); setProfile(null); setStar(null); setView("threshold");
+                }
+              }}>close the cabinet</button>
+            </div>
+          </section>
         </div>
+
+        {/* RITUAL overlay */}
+        <div className={`ritual${ritualOn ? " on" : ""}`}>
+          <div className={`rstep${rstep === 1 ? " on" : ""}`}>
+            <div className="eyebrow">One question</div>
+            <div className="q" style={{ marginTop: 18 }}>What must happen?</div>
+            <input className="field" value={rmust} placeholder="Launch Symione."
+              onChange={(e) => setRmust(e.target.value)} />
+            <button className="btn" disabled={!rmust.trim()} onClick={() => setRstep(2)}>Continue</button>
+          </div>
+          <div className={`rstep${rstep === 2 ? " on" : ""}`}>
+            <div className="eyebrow">Name it</div>
+            <input className="field" value={rname} placeholder="SYMIONE"
+              onChange={(e) => setRname(e.target.value)}
+              style={{ marginTop: 30, fontSize: 30, textTransform: "uppercase", letterSpacing: ".04em" }} />
+            <button className="btn" disabled={!rname.trim()} onClick={() => setRstep(3)}>Continue</button>
+          </div>
+          <div className={`rstep${rstep === 3 ? " on" : ""}`} style={{ textAlign: "center" }}>
+            <div className="eyebrow" style={{ display: "block", letterSpacing: ".4em" }}>This cannot be undone tonight</div>
+            <div className="q" style={{ marginTop: 22 }}>“{rname.trim().toUpperCase()}”</div>
+            <button className="btn center" onClick={sealNow}
+              style={{ marginTop: 44, borderColor: "var(--oxblood)", color: "var(--oxblood)" }}>Seal it</button>
+          </div>
+          <div className={`rstep sealing${rstep === 4 ? " on" : ""}`}>
+            <div className="wax glyph">{star?.glyph ?? "✶"}</div>
+            <div className="said">{rname.trim().toUpperCase()}</div>
+            <div className="cap">a star now stands in your sky</div>
+          </div>
+        </div>
+
+        {/* TABBAR */}
+        {showBar && (
+          <nav className="tabbar">
+            <button className={`tab${view === "home" ? " on" : ""}`} onClick={() => setView("home")}>
+              <svg viewBox="0 0 24 24"><path d="M4 11l8-6 8 6" /><path d="M6 10v9h12v-9" /></svg><span className="l">Cabinet</span>
+            </button>
+            <button className={`tab${view === "star" ? " on" : ""}`} onClick={() => setView("star")}>
+              <svg viewBox="0 0 24 24"><path d="M12 3l2.5 6 6 .5-4.5 4 1.5 6L12 16l-5 3.5 1.5-6L4 9.5l6-.5z" /></svg><span className="l">Star</span>
+            </button>
+            <button className={`tab${view === "genius" ? " on" : ""}`} onClick={() => setView("genius")}>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="10" /></svg><span className="l">Genius</span>
+            </button>
+            <button className={`tab${view === "theme" ? " on" : ""}`} onClick={() => setView("theme")}>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3" /></svg><span className="l">Theme</span>
+            </button>
+          </nav>
+        )}
       </div>
     </>
   );

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Astrolabe — Phase 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400;1,9..144,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&family=Caveat:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#e8dec9; --paper-2:#e1d5bd; --paper-deep:#d6c8a9; --paper-card:#efe7d6;
+  --ink:#241d15; --ink-soft:#5e5140; --ink-faint:#8c7d65;
+  --brass:#a8852f; --brass-l:#caa55b; --lapis:#26315c; --lapis-d:#19224a;
+  --oxblood:#6f2a20; --terra:#a8542f; --coral:#c2613a;
+  --line:rgba(36,29,21,.15); --line-2:rgba(36,29,21,.28);
+  --display:"Fraunces",Georgia,serif; --serif:"EB Garamond",Georgia,serif;
+  --mono:"JetBrains Mono",monospace; --hand:"Caveat",cursive;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--serif);background:#1a1611;color:var(--ink);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.desk{position:fixed;inset:0;background:radial-gradient(70% 55% at 50% 38%, #3a3024 0%, #221c14 60%, #14100b 100%)}
+.desk::after{content:"";position:absolute;inset:0;opacity:.06;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.app{position:relative;width:min(402px,100vw);height:min(872px,100svh);
+  background:var(--paper);overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 40px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.5)}
+@media(min-width:480px){.app{border-radius:44px;box-shadow:0 50px 110px rgba(0,0,0,.7),0 0 0 10px #0c0a07,0 0 0 11px rgba(180,150,90,.12)}}
+.app::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:60;opacity:.5;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='.4'/%3E%3C/svg%3E")}
+.app::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:55;
+  background:radial-gradient(120% 80% at 50% 22%, rgba(255,244,220,.28), transparent 42%),
+             radial-gradient(140% 120% at 50% 60%, transparent 55%, rgba(28,21,12,.42) 100%)}
+
+.status{position:relative;z-index:40;display:flex;justify-content:space-between;align-items:center;
+  padding:14px 26px 4px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-soft)}
+.status .dot{width:6px;height:6px;border-radius:50%;background:var(--brass);box-shadow:0 0 6px var(--brass-l)}
+
+.screens{position:relative;flex:1;overflow:hidden;z-index:30}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:8px 26px 110px;
+  opacity:0;pointer-events:none;transform:translateY(10px);
+  transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1);-webkit-overflow-scrolling:touch}
+.screen::-webkit-scrollbar{display:none}
+.screen.active{opacity:1;pointer-events:auto;transform:none}
+.screen.nobar{padding-bottom:40px}
+
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--brass)}
+.hand{font-family:var(--hand);color:var(--oxblood)}
+.glyph{font-family:var(--display)}
+.hairline{height:1px;background:var(--line);border:0;margin:18px 0}
+.muted{color:var(--ink-soft)}
+.coord{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-faint)}
+h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
+.cap{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+
+/* the Genius — the living seal */
+.genius{position:relative;width:var(--g,150px);aspect-ratio:1;margin:0 auto;animation:breath 6.5s ease-in-out infinite}
+.genius .shadow{position:absolute;left:50%;bottom:-8%;transform:translateX(-50%);width:74%;height:14%;border-radius:50%;background:rgba(28,21,12,.32);filter:blur(9px)}
+.genius .body{position:absolute;inset:8%;border-radius:50%;
+  background:radial-gradient(58% 56% at 38% 32%, #f6eeda 0%, var(--coral) 24%, var(--brass) 50%, var(--oxblood) 76%, var(--lapis) 100%);
+  box-shadow:0 0 46px rgba(194,97,58,.34), inset -10px -14px 34px rgba(25,34,74,.62), inset 9px 9px 22px rgba(246,238,218,.42)}
+.genius .ring{position:absolute;inset:-2%;border-radius:50%;border:1px solid var(--line-2);animation:spin 80s linear infinite}
+.genius .ring i{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--brass);top:-2.5px;left:50%;transform:translateX(-50%);box-shadow:0 0 7px var(--brass-l)}
+.genius .ring2{position:absolute;inset:7%;border-radius:50%;border:1px dashed var(--line);animation:spin 120s linear infinite reverse}
+.genius .ticks{position:absolute;inset:-2%;animation:spin 80s linear infinite}
+.genius .ticks i{position:absolute;top:50%;left:50%;width:1px;height:50%;transform-origin:top;background:linear-gradient(var(--line-2),transparent 60%)}
+.genius.dormant{animation:none;filter:grayscale(.7) brightness(.82) contrast(.9);opacity:.5}
+.genius.dormant .ring,.genius.dormant .ring2,.genius.dormant .ticks{animation:none}
+.genius.wake .body{animation:wake 1.8s cubic-bezier(.2,.9,.2,1)}
+@keyframes wake{0%{filter:brightness(.6)}60%{filter:brightness(1.25)}100%{filter:brightness(1)}}
+@keyframes breath{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* THRESHOLD */
+#threshold{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#threshold .genius{--g:178px;opacity:.95}
+#threshold h1{font-size:52px;font-weight:300;font-style:italic;margin:40px 0 8px}
+#threshold .tag{font-size:16px;font-style:italic;color:var(--ink-soft);max-width:22ch}
+#threshold .enter{margin-top:54px;font-family:var(--mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--ink);border:1px solid var(--line-2);padding:15px 32px;border-radius:99px;cursor:pointer;transition:.4s;background:rgba(239,231,214,.4)}
+#threshold .enter:hover{background:var(--lapis);color:var(--paper);border-color:var(--lapis)}
+
+/* generic centred ritual column */
+.col{min-height:100%;display:flex;flex-direction:column;justify-content:center}
+.q{font-family:var(--display);font-style:italic;font-weight:300;font-size:34px;line-height:1.2;color:var(--ink)}
+.qsub{font-size:15px;font-style:italic;color:var(--ink-soft);margin-top:14px;max-width:26ch}
+.field{width:100%;margin-top:34px;background:transparent;border:0;border-bottom:1px solid var(--line-2);
+  font-family:var(--display);font-style:italic;font-size:24px;color:var(--ink);padding:8px 2px;outline:none}
+.field::placeholder{color:var(--ink-faint);opacity:.7}
+.field:focus{border-color:var(--brass)}
+.btn{margin-top:40px;align-self:flex-start;font-family:var(--mono);font-size:12px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--ink);border:1px solid var(--line-2);padding:14px 30px;border-radius:99px;cursor:pointer;background:transparent;transition:.4s}
+.btn:hover{background:var(--lapis);color:var(--paper);border-color:var(--lapis)}
+.btn[disabled]{opacity:.3;pointer-events:none}
+.btn.center{align-self:center}
+
+/* SILENCE — north star invitation */
+#northstar .col{text-align:center;align-items:center}
+#northstar .eyebrow{letter-spacing:.4em}
+#northstar .verse{font-family:var(--display);font-style:italic;font-weight:300;font-size:22px;line-height:1.9;color:var(--ink-soft);margin-top:60px}
+#northstar .seal-star{margin-top:64px;font-family:var(--mono);font-size:12px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--ink);border:1px solid var(--line-2);padding:16px 34px;border-radius:99px;cursor:pointer;transition:.4s;background:rgba(239,231,214,.4)}
+#northstar .seal-star:hover{background:var(--oxblood);color:var(--paper);border-color:var(--oxblood)}
+
+/* RITUAL overlay */
+.ritual{position:absolute;inset:0;z-index:70;background:var(--paper);
+  display:flex;flex-direction:column;justify-content:center;padding:0 30px;
+  opacity:0;pointer-events:none;transition:opacity .7s ease}
+.ritual.on{opacity:1;pointer-events:auto}
+.ritual::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(130% 90% at 50% 30%, rgba(255,244,220,.3), transparent 50%)}
+.rstep{position:absolute;left:30px;right:30px;opacity:0;transform:translateY(14px);
+  transition:opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+.rstep.on{opacity:1;transform:none;pointer-events:auto;position:relative}
+
+/* SEALING animation */
+.sealing{display:flex;flex-direction:column;align-items:center;text-align:center}
+.sealing .wax{width:96px;height:96px;border-radius:50%;
+  background:radial-gradient(circle at 36% 32%, #f6eeda 0%, var(--terra) 30%, var(--oxblood) 78%, var(--lapis) 100%);
+  display:flex;align-items:center;justify-content:center;color:#f3e6d8;font-family:var(--display);font-size:40px;
+  box-shadow:0 0 40px rgba(111,42,32,.5);animation:stamp .7s cubic-bezier(.2,1.5,.4,1)}
+@keyframes stamp{0%{transform:scale(2.6);opacity:0}55%{transform:scale(.9)}100%{transform:scale(1);opacity:1}}
+.sealing .said{font-family:var(--display);font-style:italic;font-size:24px;margin-top:28px;color:var(--ink)}
+.sealing .cap{margin-top:14px}
+
+/* THE STAR — object permanence */
+.scr-head{display:flex;align-items:center;justify-content:space-between;padding-top:18px}
+.scr-head .back{font-family:var(--mono);font-size:18px;color:var(--ink-soft);cursor:pointer;padding:6px}
+.scr-head .ttl{font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-soft)}
+.reach{text-align:center;margin-top:18px}
+.reach .deg{font-family:var(--display);font-weight:300;font-style:italic;font-size:46px;color:var(--ink);line-height:1}
+.reach .deg b{color:var(--oxblood);font-style:normal;font-weight:400}
+.reach .lbl{font-family:var(--display);font-style:italic;font-size:17px;color:var(--ink-soft);margin-top:10px}
+.chart-wrap{position:relative;margin-top:10px}
+.chart-wrap svg{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 24px rgba(28,21,12,.18))}
+.starcard{margin-top:18px;padding:22px 22px 20px;background:var(--paper-card);position:relative;
+  box-shadow:0 12px 30px rgba(28,21,12,.12);border:1px solid rgba(168,133,47,.22)}
+.starcard .mark{position:absolute;top:18px;right:20px;font-family:var(--display);font-size:30px;color:var(--oxblood);
+  filter:drop-shadow(0 0 8px rgba(168,133,47,.4))}
+.starcard .k{font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--brass)}
+.starcard .nm{font-family:var(--display);font-style:italic;font-size:28px;margin:4px 0 2px;padding-right:40px}
+.starcard .must{font-family:var(--display);font-style:italic;font-size:15px;color:var(--ink-soft)}
+.starcard .res{font-family:var(--display);font-weight:300;font-size:15px;line-height:1.55;color:#332a1f;margin-top:16px;
+  padding-top:16px;border-top:1px solid var(--line)}
+.starcard .meta{display:flex;gap:18px;margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-faint)}
+.starcard .meta b{color:var(--lapis);font-weight:500}
+
+/* THEME */
+.chart-cap{text-align:center;margin-top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;margin-top:20px}
+.legend span{font-family:var(--mono);font-size:11px;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+.legend i{width:14px;height:2px;border-radius:2px;display:inline-block}
+.planet-detail{margin-top:22px;padding:20px;background:var(--paper-card);border:1px solid rgba(168,133,47,.2);
+  box-shadow:0 8px 22px rgba(28,21,12,.1);min-height:92px;transition:.4s}
+.planet-detail .h{display:flex;align-items:baseline;gap:10px}
+.planet-detail .h .g{font-family:var(--display);font-size:26px;color:var(--lapis)}
+.planet-detail .h .n{font-family:var(--display);font-style:italic;font-size:18px}
+.planet-detail .h .pos{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-left:auto}
+.planet-detail .body{font-family:var(--display);font-weight:300;font-size:15px;line-height:1.55;color:#332a1f;margin-top:10px}
+.hint{text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin-top:14px}
+
+/* GENIUS emergence */
+#genius .genius{--g:172px;margin-top:34px}
+#genius .nature{text-align:center;margin-top:30px}
+#genius .nature h2{font-size:25px;font-style:italic}
+#genius .born{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink-faint);margin-top:12px;line-height:1.9}
+#genius .born b{color:var(--brass);font-weight:500}
+#genius .line{font-family:var(--display);font-style:italic;font-size:17px;line-height:1.5;color:var(--ink);max-width:28ch;margin:22px auto 0;text-align:center}
+
+/* HOME / BUREAU */
+.greet{padding-top:20px}
+.greet .hand{font-size:30px;line-height:1}
+.greet .sub{font-style:italic;color:var(--ink-soft);font-size:15px;margin-top:4px}
+#home .genius{--g:150px;margin-top:30px;cursor:pointer}
+#home .reach{margin-top:26px}
+#home .items{margin-top:34px}
+.item{display:flex;align-items:center;gap:16px;padding:18px 4px;border-top:1px solid var(--line);cursor:pointer;transition:.3s}
+.item:active{opacity:.6}
+.item .mark{width:38px;height:38px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--line-2);color:var(--brass);font-size:17px}
+.item .mark.seal{background:radial-gradient(circle at 38% 34%,var(--terra),var(--oxblood));color:#f0e2d4;border:none}
+.item .t{font-family:var(--display);font-size:18px;font-style:italic}
+.item .d{font-size:13px;color:var(--ink-soft);margin-top:1px}
+.item .arr{color:var(--ink-faint);font-family:var(--mono);font-size:14px;margin-left:auto}
+
+/* TABBAR */
+.tabbar{position:relative;z-index:50;display:flex;justify-content:space-around;align-items:center;
+  padding:12px 12px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(var(--paper-2),var(--paper-deep));border-top:1px solid var(--line-2)}
+.tabbar.hide{display:none}
+.tab{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;color:var(--ink-faint);transition:.3s;padding:4px 8px;flex:1}
+.tab svg{width:21px;height:21px;stroke:currentColor;stroke-width:1.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.tab .l{font-family:var(--display);font-style:italic;font-size:11px}
+.tab.on{color:var(--lapis)}
+.tab .l::after{content:"";display:block;width:0;height:2px;background:var(--brass);margin:2px auto 0;transition:.3s;border-radius:2px}
+.tab.on .l::after{width:14px}
+.locked{opacity:.4;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="desk"></div>
+
+<div class="app">
+  <div class="status">
+    <span id="clock">22:14</span>
+    <span style="display:flex;align-items:center;gap:7px"><span class="dot"></span> Astrolabe</span>
+  </div>
+
+  <div class="screens">
+
+    <!-- THRESHOLD -->
+    <section class="screen active nobar" id="threshold">
+      <div class="col" style="align-items:center;text-align:center">
+        <div class="eyebrow">The cabinet is closed</div>
+        <div class="genius" style="margin-top:30px"><div class="shadow"></div><div class="ticks"><i style="transform:rotate(0)"></i><i style="transform:rotate(90deg)"></i><i style="transform:rotate(180deg)"></i><i style="transform:rotate(270deg)"></i></div><div class="ring"><i></i></div><div class="ring2"></div><div class="body"></div></div>
+        <h1>Astrolabe</h1>
+        <div class="tag">An instrument cast on the day you began.</div>
+        <div class="enter" onclick="go('birth')">Enter</div>
+      </div>
+    </section>
+
+    <!-- BIRTH -->
+    <section class="screen nobar" id="birth">
+      <div class="col">
+        <div class="eyebrow">Your fixed sky</div>
+        <div class="q" style="margin-top:18px">When did you begin?</div>
+        <input class="field" id="bday" type="text" placeholder="2 June 1991 · 22:14" />
+        <input class="field" id="bcity" type="text" placeholder="Paris" style="margin-top:18px;font-size:20px" />
+        <div class="btn" onclick="castSky()">Cast the sky</div>
+      </div>
+    </section>
+
+    <!-- THEME (natal) -->
+    <section class="screen nobar" id="theme">
+      <div class="scr-head"><span class="back" onclick="go('birth')">←</span><span class="ttl">Your theme</span><span style="width:18px"></span></div>
+      <div class="chart-wrap"><svg id="natal" viewBox="0 0 400 400"></svg></div>
+      <div class="chart-cap"><span class="coord" id="themecoord">2 JUN · 22:14 · PARIS</span></div>
+      <div class="hand" style="text-align:center;font-size:22px;margin-top:16px;transform:rotate(-2deg)">this is the sky you were born under.</div>
+      <div class="btn center" style="margin-top:30px" onclick="go('northstar')">Continue</div>
+    </section>
+
+    <!-- NORTH STAR — silence -->
+    <section class="screen nobar" id="northstar">
+      <div class="col">
+        <div class="eyebrow">Your North Star</div>
+        <div class="verse">A star may be named.<br>Not today.<br>Not tomorrow.<br>Only when something<br>becomes necessary.</div>
+        <div class="seal-star" onclick="openRitual()">Seal a Star</div>
+      </div>
+    </section>
+
+    <!-- THE STAR — object permanence -->
+    <section class="screen" id="star">
+      <div class="scr-head"><span class="back" onclick="go('home')">←</span><span class="ttl">Your star</span><span style="width:18px"></span></div>
+      <div class="reach">
+        <div class="deg">in <b id="reachdeg">17°</b></div>
+        <div class="lbl">the Moon will reach <span id="reachname" style="font-style:normal;color:var(--oxblood)">your star</span></div>
+      </div>
+      <div class="chart-wrap"><svg id="skystar" viewBox="0 0 400 400"></svg></div>
+      <div class="starcard">
+        <div class="mark" id="scmark">✶</div>
+        <div class="k">A sealed star</div>
+        <div class="nm" id="scname">—</div>
+        <div class="must" id="scmust">—</div>
+        <div class="res" id="scres">—</div>
+        <div class="meta">
+          <span>RULER <b id="scruler">—</b></span>
+          <span>HOUSE <b id="schouse">—</b></span>
+          <span>SEALED <b id="scdate">—</b></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- GENIUS — emerges after the star -->
+    <section class="screen" id="genius">
+      <div class="scr-head"><span class="back" onclick="go('home')">←</span><span class="ttl">Your Genius</span><span style="width:18px"></span></div>
+      <div class="genius" id="geniusorb"><div class="shadow"></div><div class="ticks"><i style="transform:rotate(0)"></i><i style="transform:rotate(60deg)"></i><i style="transform:rotate(120deg)"></i><i style="transform:rotate(180deg)"></i><i style="transform:rotate(240deg)"></i><i style="transform:rotate(300deg)"></i></div><div class="ring"><i></i></div><div class="ring2"></div><div class="body"></div></div>
+      <div class="nature">
+        <h2>It has formed.</h2>
+        <div class="born">Born of <b>your fixed sky</b><br>the <b>moving heavens</b><br>and what you found <b>necessary</b></div>
+        <div class="line">It watches the sky move toward your star, and tells you only when something changes.</div>
+      </div>
+    </section>
+
+    <!-- HOME / BUREAU -->
+    <section class="screen" id="home">
+      <div class="greet">
+        <div class="hand">Good evening.</div>
+        <div class="sub">The sky has moved since yesterday.</div>
+      </div>
+      <div class="genius" onclick="go('genius')"><div class="shadow"></div><div class="ticks"><i style="transform:rotate(0)"></i><i style="transform:rotate(72deg)"></i><i style="transform:rotate(144deg)"></i><i style="transform:rotate(216deg)"></i><i style="transform:rotate(288deg)"></i></div><div class="ring"><i></i></div><div class="ring2"></div><div class="body"></div></div>
+      <div class="reach">
+        <div class="deg">in <b id="homedeg">17°</b></div>
+        <div class="lbl">the Moon nears <span id="homename" style="font-style:normal;color:var(--oxblood)">your star</span></div>
+      </div>
+      <div class="items">
+        <div class="item" onclick="go('star')"><div class="mark seal glyph" id="homemark">✶</div><div><div class="t">Your star</div><div class="d" id="homemust">—</div></div><div class="arr">→</div></div>
+        <div class="item" onclick="go('theme')"><div class="mark glyph">☉</div><div><div class="t">Your theme</div><div class="d">The sky you were born under</div></div><div class="arr">→</div></div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- RITUAL overlay -->
+  <div class="ritual" id="ritual">
+    <div class="rstep" id="r1">
+      <div class="eyebrow">One question</div>
+      <div class="q" style="margin-top:18px">What must happen?</div>
+      <input class="field" id="rmust" type="text" placeholder="Launch Symione." />
+      <div class="btn" id="r1btn" onclick="ritualNext(2)">Continue</div>
+    </div>
+    <div class="rstep" id="r2">
+      <div class="eyebrow">Name it</div>
+      <input class="field" id="rname" type="text" placeholder="SYMIONE" style="margin-top:30px;font-size:30px;text-transform:uppercase;letter-spacing:.04em" />
+      <div class="btn" id="r2btn" onclick="ritualNext(3)">Continue</div>
+    </div>
+    <div class="rstep" id="r3" style="text-align:center">
+      <div class="eyebrow" style="display:block;text-align:center;letter-spacing:.4em">This cannot be undone tonight</div>
+      <div class="q" style="margin-top:22px" id="r3name">—</div>
+      <div class="btn center" onclick="sealNow()" style="margin-top:44px;border-color:var(--oxblood);color:var(--oxblood)">Seal it</div>
+    </div>
+    <div class="rstep sealing" id="r4">
+      <div class="wax glyph" id="waxmark">✶</div>
+      <div class="said" id="saidname">—</div>
+      <div class="cap">a star now stands in your sky</div>
+    </div>
+  </div>
+
+  <!-- TABBAR -->
+  <nav class="tabbar hide" id="tabbar">
+    <div class="tab" data-s="home" onclick="go('home')"><svg viewBox="0 0 24 24"><path d="M4 11l8-6 8 6"/><path d="M6 10v9h12v-9"/></svg><span class="l">Cabinet</span></div>
+    <div class="tab" data-s="star" onclick="go('star')"><svg viewBox="0 0 24 24"><path d="M12 3l2.5 6 6 .5-4.5 4 1.5 6L12 16l-5 3.5 1.5-6L4 9.5l6-.5z"/></svg><span class="l">Star</span></div>
+    <div class="tab" data-s="genius" onclick="go('genius')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10"/></svg><span class="l">Genius</span></div>
+    <div class="tab" data-s="theme" onclick="go('theme')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg><span class="l">Theme</span></div>
+  </nav>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function tick(){const d=new Date();$('clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+tick();setInterval(tick,30000);
+
+const STATE={ sealed:false, star:null };
+const tabFor={home:'home',star:'star',genius:'genius',theme:'theme'};
+const BARELESS={threshold:1,birth:1,theme:1,northstar:1}; // pre-seal: no tabbar
+
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=$(id); el.classList.add('active'); el.scrollTop=0;
+  const bar=$('tabbar');
+  // tabbar only after a star is sealed, and not on pre-seal screens
+  if(STATE.sealed && !BARELESS[id]) bar.classList.remove('hide'); else bar.classList.add('hide');
+  document.querySelectorAll('.tab').forEach(tb=>tb.classList.toggle('on',tb.dataset.s===tabFor[id]));
+  if(id==='genius') wakeGenius();
+}
+$('birth')&&null;
+
+// ---------- the sky ----------
+const NS='http://www.w3.org/2000/svg', cx=200, cy=200;
+const ink='#241d15', brass='#a8852f', lapis='#26315c', ox='#6f2a20', faint='rgba(36,29,21,.45)';
+const signs=['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'];
+function pt(L,r){const a=(180+L)*Math.PI/180;return [cx+r*Math.cos(a), cy-r*Math.sin(a)];}
+function E(svg,tag,at,txt){const e=document.createElementNS(NS,tag);for(const k in at)e.setAttribute(k,at[k]);if(txt!=null)e.textContent=txt;svg.appendChild(e);return e;}
+
+// natal planets (fixed demo theme)
+const P={Sun:[72,'☉','Gemini','12°','House X','Where you shine — quick mind, the word, curiosity.'],
+         Moon:[223,'☽','Scorpio','13°','House VIII','What you feel deeply, without showing. The sky touches it tonight.'],
+         Mercury:[64,'☿','Gemini','4°','House X','Your thought: fast, mobile, at ease between ideas.'],
+         Venus:[47,'♀','Taurus','27°','House IX','What you love for a long time.'],
+         Mars:[15,'♂','Aries','15°','House VIII','Your drive: direct, frontal, best with a clear heading.'],
+         Jupiter:[96,'♃','Cancer','6°','House XI','You grow through care, home, chosen bonds.'],
+         Saturn:[345,'♄','Pisces','15°','House VI','Your discipline: you act when the structure is clear.']};
+const MOON_LON=223; // tonight's Moon (demo)
+
+function drawNatal(svg, withStar){
+  svg.innerHTML='';
+  E(svg,'circle',{cx,cy,r:191,fill:'none',stroke:brass,'stroke-width':1});
+  E(svg,'circle',{cx,cy,r:158,fill:'none',stroke:faint,'stroke-width':1});
+  E(svg,'circle',{cx,cy,r:128,fill:'none',stroke:faint,'stroke-width':.8});
+  E(svg,'circle',{cx,cy,r:100,fill:'rgba(38,49,92,.04)',stroke:faint,'stroke-width':.8});
+  for(let i=0;i<12;i++){const a=i*30;const [x1,y1]=pt(a,158),[x2,y2]=pt(a,191);
+    E(svg,'line',{x1,y1,x2,y2,stroke:faint,'stroke-width':.8});
+    const [gx,gy]=pt(a+15,174);E(svg,'text',{x:gx,y:gy+5,'text-anchor':'middle','font-family':'Fraunces, serif','font-size':15,fill:ink},signs[i]);}
+  const aspects=[['Sun','Venus',lapis],['Moon','Venus',lapis],['Sun','Saturn',ox],['Mars','Jupiter',lapis]];
+  aspects.forEach(([a,b,c])=>{const [x1,y1]=pt(P[a][0],100),[x2,y2]=pt(P[b][0],100);E(svg,'line',{x1,y1,x2,y2,stroke:c,'stroke-width':1,opacity:.5});});
+  const detail=$('pdetail');
+  function show(k){if(!detail)return;const p=P[k];detail.innerHTML='<div class="h"><span class="g">'+p[1]+'</span><span class="n">'+k+' in '+p[2]+'</span><span class="pos">'+p[3]+' · '+p[4]+'</span></div><div class="body">'+p[5]+'</div>';}
+  for(const k in P){const p=P[k];const [x,y]=pt(p[0],128);const [tx,ty]=pt(p[0],108),[ix,iy]=pt(p[0],100);
+    E(svg,'line',{x1:tx,y1:ty,x2:ix,y2:iy,stroke:brass,'stroke-width':.8,opacity:.6});
+    const g=E(svg,'text',{x,y:y+5,'text-anchor':'middle','font-family':'Fraunces, serif','font-size':16,fill:lapis,style:'cursor:pointer'},p[1]);
+    E(svg,'circle',{cx:x,cy:y-4,r:13,fill:'transparent',style:'cursor:pointer'}).addEventListener('click',()=>show(k));g.addEventListener('click',()=>show(k));}
+
+  if(withStar && STATE.star){
+    const sL=STATE.star.lon;
+    // the sealed star — a real object on the rim, with a ray inward
+    const [bx,by]=pt(sL,191),[ix,iy]=pt(sL,100);
+    E(svg,'line',{x1:ix,y1:iy,x2:bx,y2:by,stroke:ox,'stroke-width':1.4,opacity:.6,'stroke-dasharray':'2 3'});
+    const st=E(svg,'text',{x:bx,y:by+6,'text-anchor':'middle','font-family':'Fraunces, serif','font-size':22,fill:ox},STATE.star.glyph);
+    st.setAttribute('filter','drop-shadow(0 0 6px '+brass+')');
+    // the Moon, and the arc it must still travel to the star
+    const [mx,my]=pt(MOON_LON,150);
+    E(svg,'text',{x:mx,y:my+6,'text-anchor':'middle','font-family':'Fraunces, serif','font-size':18,fill:lapis},'☽');
+    const [ex,ey]=pt(sL,150);const delta=((sL-MOON_LON)%360+360)%360;const big=delta>180?1:0;
+    E(svg,'path',{d:`M ${mx} ${my} A 150 150 0 ${big} 0 ${ex} ${ey}`,fill:'none',stroke:ox,'stroke-width':2,opacity:.4,'stroke-linecap':'round'});
+    // line moon -> star
+    E(svg,'line',{x1:mx,y1:my,x2:ix,y2:iy,stroke:ox,'stroke-width':1,opacity:.35});
+  }
+}
+
+// ---------- star generation ----------
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+const GLYPHS=['✶','✷','✦','❋','✸','✹','❂','✺','✱','⁂'];
+const RULERS=[['☉','Sun','What only you can author.'],['☽','Moon','What you carry, made visible.'],
+  ['☿','Mercury','The word that must move.'],['♀','Venus','What you love, made durable.'],
+  ['♂','Mars','The move that takes nerve.'],['♃','Jupiter','The leap toward more.'],
+  ['♄','Saturn','The long vow you keep.']];
+const HOUSES=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+function makeStar(must,name){
+  const h=hash(must.trim().toLowerCase()+'·'+name.trim().toLowerCase());
+  const ruler=RULERS[h%7];
+  return {
+    must:must.trim(), name:name.trim(),
+    lon:(h>>2)%360,
+    glyph:GLYPHS[(h>>5)%GLYPHS.length],
+    ruler:ruler[1], rulerGlyph:ruler[0], resonance:ruler[2],
+    house:HOUSES[(h>>9)%12],
+    sealedAt:new Date()
+  };
+}
+function sep(a,b){let d=Math.abs((a-b)%360);return d>180?360-d:d;}
+
+// ---------- ritual ----------
+function openRitual(){
+  $('ritual').classList.add('on');
+  ['r1','r2','r3','r4'].forEach(s=>$(s).classList.remove('on'));
+  $('rmust').value='';$('rname').value='';
+  setTimeout(()=>{$('r1').classList.add('on');$('rmust').focus();},220);
+}
+function ritualNext(n){
+  if(n===2){ if(!$('rmust').value.trim())return; $('r1').classList.remove('on'); setTimeout(()=>{$('r2').classList.add('on');$('rname').focus();},520); }
+  if(n===3){ if(!$('rname').value.trim())return; $('r2').classList.remove('on');
+    $('r3name').textContent='“'+$('rname').value.trim().toUpperCase()+'”';
+    setTimeout(()=>$('r3').classList.add('on'),520); }
+}
+function sealNow(){
+  const star=makeStar($('rmust').value, $('rname').value);
+  STATE.star=star; STATE.sealed=true;
+  $('r3').classList.remove('on');
+  $('waxmark').textContent=star.glyph;
+  $('saidname').textContent=star.name.toUpperCase();
+  setTimeout(()=>$('r4').classList.add('on'),520);
+  paintStar();
+  // close overlay → Genius emerges
+  setTimeout(()=>{ $('ritual').classList.remove('on'); go('genius'); },2600);
+}
+
+function paintStar(){
+  const s=STATE.star; if(!s)return;
+  const d=Math.round(sep(MOON_LON,s.lon));
+  $('reachdeg').textContent=d+'°'; $('homedeg').textContent=d+'°';
+  $('reachname').textContent=s.name; $('homename').textContent=s.name;
+  $('scmark').textContent=s.glyph; $('homemark').textContent=s.glyph;
+  $('scname').textContent=s.name; $('scmust').textContent='“'+s.must+'”';
+  $('homemust').textContent='“'+s.must+'”';
+  $('scres').textContent=s.resonance;
+  $('scruler').textContent=s.rulerGlyph+' '+s.ruler;
+  $('schouse').textContent=s.house;
+  $('scdate').textContent=s.sealedAt.toLocaleDateString('en',{month:'short',day:'numeric'});
+  drawNatal($('skystar'), true);
+}
+
+function castSky(){
+  const day=$('bday').value.trim(); const city=$('bcity').value.trim();
+  $('themecoord').textContent=((day||'2 JUN · 22:14')+' · '+(city||'PARIS')).toUpperCase();
+  drawNatal($('natal'), false);
+  go('theme');
+}
+
+function wakeGenius(){
+  if(!STATE.sealed)return;
+  const orb=$('geniusorb'); orb.classList.remove('dormant'); orb.classList.add('wake');
+  setTimeout(()=>orb.classList.remove('wake'),1900);
+}
+
+// init genius dormant until sealed
+$('geniusorb').classList.add('dormant');
+</script>
+</body>
+</html>

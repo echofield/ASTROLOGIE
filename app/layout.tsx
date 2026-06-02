@@ -30,9 +30,9 @@ const hand = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "Lodestar — the living sky",
+  title: "Astrolabe",
   description:
-    "A living instrument of the sky. Name a North Star, wait for the moment the heavens open, and seal what you set out to do.",
+    "A personal celestial instrument. Cast your sky, seal a star, and watch the moving heavens travel toward it.",
 };
 
 export const viewport: Viewport = {
@@ -40,7 +40,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#10163a",
+  themeColor: "#e8dec9",
 };
 
 export default function RootLayout({
