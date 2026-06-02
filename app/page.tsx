@@ -10,6 +10,7 @@ import { fetchGeniusLine } from "@/lib/voice";
 import {
   getProfile, saveProfile, getStar, saveStar, resetAll, type Profile,
 } from "@/lib/storage";
+import { pull as cloudPull, push as cloudPush, wipe as cloudWipe } from "@/lib/cloud";
 import type { PlanetName } from "@/lib/types";
 
 type View = "threshold" | "birth" | "theme" | "northstar" | "star" | "genius" | "home";
@@ -54,6 +55,17 @@ export default function Page() {
     setStar(s);
     setView(!p ? "threshold" : s ? "home" : "northstar");
     setReady(true);
+    // cloud restore (when configured) for a device that has nothing local yet
+    if (!p || !s) {
+      cloudPull().then((remote) => {
+        if (!remote) return;
+        if (!p && remote.profile) { saveProfile(remote.profile); setProfile(remote.profile); }
+        if (!s && remote.star) { saveStar(remote.star); setStar(remote.star); }
+        const np = p ?? remote.profile;
+        const ns = s ?? remote.star;
+        if (np) setView(ns ? "home" : "northstar");
+      });
+    }
   }, []);
 
   // keep the reach live
@@ -97,7 +109,8 @@ export default function Page() {
     const updated = { ...star, fulfilledAt: new Date().toISOString() };
     saveStar(updated);
     setStar(updated);
-  }, [star]);
+    cloudPush(profile, updated);
+  }, [star, profile]);
 
   const showBar = ready && !!star && !PRE_SEAL[view] && !ritualOn;
 
@@ -110,6 +123,7 @@ export default function Page() {
     };
     saveProfile(p);
     setProfile(p);
+    cloudPush(p, null);
     setView("theme");
   }, [bday, btime, bplace]);
 
@@ -121,6 +135,7 @@ export default function Page() {
     const s = makeStar(rmust, rname);
     saveStar(s);
     setStar(s);
+    cloudPush(profile, s);
     setRstep(4);
     setTimeout(() => {
       setRitualOn(false);
@@ -128,7 +143,7 @@ export default function Page() {
       setGeniusWake(true);
       setTimeout(() => setGeniusWake(false), 1900);
     }, 2600);
-  }, [rmust, rname]);
+  }, [rmust, rname, profile]);
 
   if (!ready) {
     return (<><div className="desk" /><div className="app" /></>);
@@ -327,7 +342,7 @@ export default function Page() {
             <div style={{ textAlign: "center", marginTop: 28 }}>
               <button className="linkish" onClick={() => {
                 if (confirm("Close the cabinet? This clears your sky and your sealed star.")) {
-                  resetAll(); setProfile(null); setStar(null); setView("threshold");
+                  resetAll(); cloudWipe(); setProfile(null); setStar(null); setView("threshold");
                 }
               }}>close the cabinet</button>
             </div>
