@@ -6,6 +6,7 @@ import Wheel from "@/components/Wheel";
 import { natalChart, lonLabel } from "@/lib/sky";
 import { makeStar, reachOf, type SealedStar } from "@/lib/star";
 import { archetypeForStar, geniusLine, geniusPhase } from "@/lib/archetypes";
+import { fetchGeniusLine } from "@/lib/voice";
 import {
   getProfile, saveProfile, getStar, saveStar, resetAll, type Profile,
 } from "@/lib/storage";
@@ -68,9 +69,27 @@ export default function Page() {
 
   const fulfilled = !!star?.fulfilledAt;
   const phase = star && reach ? geniusPhase(reach, fulfilled) : "far";
-  const says = star && reach ? geniusLine(star, reach, fulfilled) : "";
+  const saysTemplate = star && reach ? geniusLine(star, reach, fulfilled) : "";
   const arch = star ? archetypeForStar(star) : null;
   const arrived = phase === "arrived";
+
+  // The Genius's voice: templated instantly, upgraded by Claude when a key is
+  // live. Keyed on the moment (star · phase · fulfilled) so it doesn't refetch
+  // on every minute-tick; falls back silently to the template otherwise.
+  const [claudeSays, setClaudeSays] = useState("");
+  useEffect(() => {
+    setClaudeSays("");
+    if (!star) return;
+    const r = reachOf(star, new Date());
+    const ph = geniusPhase(r, !!star.fulfilledAt);
+    const t = geniusLine(star, r, !!star.fulfilledAt);
+    let live = true;
+    fetchGeniusLine(star, archetypeForStar(star), ph, r, t).then((line) => {
+      if (live && line && line !== t) setClaudeSays(line);
+    });
+    return () => { live = false; };
+  }, [star, phase, fulfilled]);
+  const says = claudeSays || saysTemplate;
 
   const fulfill = useCallback(() => {
     if (!star) return;
