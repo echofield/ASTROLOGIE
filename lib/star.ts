@@ -16,6 +16,7 @@ export interface SealedStar {
   resonance: string;
   house: string;
   sealedAt: string; // ISO
+  fulfilledAt?: string; // ISO — set when the user lets the star "rise"
 }
 
 const GLYPHS = ["✶", "✷", "✦", "❋", "✸", "✹", "❂", "✺", "✱", "⁂"];

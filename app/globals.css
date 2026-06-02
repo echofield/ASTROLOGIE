@@ -61,6 +61,8 @@ h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .genius.dormant .ring,.genius.dormant .ring2,.genius.dormant .ticks{animation:none}
 .genius.wake .body{animation:wake 1.8s cubic-bezier(.2,.9,.2,1)}
 @keyframes wake{0%{filter:brightness(.6)}60%{filter:brightness(1.25)}100%{filter:brightness(1)}}
+.genius.pulse .body{animation:pulseglow 3.4s ease-in-out infinite}
+@keyframes pulseglow{0%,100%{box-shadow:0 0 46px rgba(194,97,58,.34), inset -10px -14px 34px rgba(25,34,74,.62), inset 9px 9px 22px rgba(246,238,218,.42)}50%{box-shadow:0 0 72px rgba(202,165,91,.7), inset -10px -14px 34px rgba(25,34,74,.62), inset 9px 9px 22px rgba(246,238,218,.55)}}
 @keyframes breath{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -121,6 +123,14 @@ h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.01em}
 .reach .deg b{color:var(--oxblood);font-style:normal;font-weight:400}
 .reach .lbl{font-family:var(--display);font-style:italic;font-size:17px;color:var(--ink-soft);margin-top:10px}
 .reach .lbl b{font-style:normal;color:var(--oxblood);font-weight:400}
+.reach.arrived .deg{color:var(--oxblood)}
+.reach.arrived .deg b{color:var(--oxblood);animation:reachglow 3s ease-in-out infinite}
+@keyframes reachglow{0%,100%{text-shadow:none}50%{text-shadow:0 0 16px rgba(168,133,47,.6)}}
+
+/* the Genius's voice */
+.genius-says{font-family:var(--display);font-style:italic;font-weight:300;font-size:18px;line-height:1.5;
+  color:#2c241a;text-align:center;max-width:30ch;margin:18px auto 0}
+.held{font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--brass);margin-top:16px}
 .chart-wrap{position:relative;margin-top:10px}
 .chart-wrap svg{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 24px rgba(28,21,12,.18))}
 .starcard{margin-top:18px;padding:22px 22px 20px;background:var(--paper-card);position:relative;

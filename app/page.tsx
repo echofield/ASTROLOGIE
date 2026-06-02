@@ -5,6 +5,7 @@ import Genius from "@/components/Genius";
 import Wheel from "@/components/Wheel";
 import { natalChart, lonLabel } from "@/lib/sky";
 import { makeStar, reachOf, type SealedStar } from "@/lib/star";
+import { archetypeForStar, geniusLine, geniusPhase } from "@/lib/archetypes";
 import {
   getProfile, saveProfile, getStar, saveStar, resetAll, type Profile,
 } from "@/lib/storage";
@@ -64,6 +65,20 @@ export default function Page() {
     () => (star ? reachOf(star, baseDate) : null),
     [star, baseDate],
   );
+
+  const fulfilled = !!star?.fulfilledAt;
+  const phase = star && reach ? geniusPhase(reach, fulfilled) : "far";
+  const says = star && reach ? geniusLine(star, reach, fulfilled) : "";
+  const arch = star ? archetypeForStar(star) : null;
+  const arrived = phase === "arrived";
+
+  const fulfill = useCallback(() => {
+    if (!star) return;
+    if (!confirm(`Let "${star.name}" rise? It becomes a kept star — the countdown ends.`)) return;
+    const updated = { ...star, fulfilledAt: new Date().toISOString() };
+    saveStar(updated);
+    setStar(updated);
+  }, [star]);
 
   const showBar = ready && !!star && !PRE_SEAL[view] && !ritualOn;
 
@@ -182,16 +197,31 @@ export default function Page() {
             </div>
             {star && reach && profile && (
               <>
-                <div className="reach">
-                  <div className="deg">in <b>{reach.headline}</b></div>
-                  <div className="lbl">the Moon will reach <b>{star.name}</b></div>
+                <div className={`reach${arrived ? " arrived" : ""}`}>
+                  {fulfilled ? (
+                    <>
+                      <div className="deg"><b>risen</b></div>
+                      <div className="lbl">{star.name} · kept since {new Date(star.fulfilledAt!).toLocaleDateString("en", { month: "short", day: "numeric" })}</div>
+                    </>
+                  ) : arrived ? (
+                    <>
+                      <div className="deg"><b>now</b></div>
+                      <div className="lbl">the Moon stands on <b>{star.name}</b></div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="deg">in <b>{reach.headline}</b></div>
+                      <div className="lbl">the Moon will reach <b>{star.name}</b></div>
+                    </>
+                  )}
                 </div>
+                <div className="genius-says">{says}</div>
                 <div className="chart-wrap">
                   <Wheel natal={profile.natal.positions} star={star} moonLon={reach.moonLon} />
                 </div>
                 <div className="starcard">
                   <div className="mark">{star.glyph}</div>
-                  <div className="k">A sealed star</div>
+                  <div className="k">{fulfilled ? "A risen star" : "A sealed star"}</div>
                   <div className="nm">{star.name}</div>
                   <div className="must">“{star.must}”</div>
                   <div className="res">{star.resonance}</div>
@@ -201,6 +231,11 @@ export default function Page() {
                     <span>SEALED <b>{new Date(star.sealedAt).toLocaleDateString("en", { month: "short", day: "numeric" })}</b></span>
                   </div>
                 </div>
+                {!fulfilled && (
+                  <div style={{ textAlign: "center", marginTop: 18 }}>
+                    <button className="linkish" onClick={fulfill}>let it rise — it has happened</button>
+                  </div>
+                )}
               </>
             )}
           </section>
@@ -211,7 +246,7 @@ export default function Page() {
               <button className="back" onClick={() => setView("home")}>←</button>
               <span className="ttl">Your Genius</span><span style={{ width: 18 }} />
             </div>
-            <Genius ticks={6} dormant={!star} wake={geniusWake} />
+            <Genius ticks={6} dormant={!star} wake={geniusWake} pulse={arrived} />
             <div className="nature">
               <h2>{star ? "It has formed." : "Not yet."}</h2>
               <div className="born">
@@ -219,10 +254,9 @@ export default function Page() {
                 the <b>moving heavens</b><br />
                 and what you found <b>necessary</b>
               </div>
+              {star && arch && <div className="held">held by the {arch.name}</div>}
               <div className="line">
-                {star
-                  ? "It watches the sky move toward your star, and speaks only when something changes."
-                  : "It will form when you seal a star."}
+                {star ? says : "It will form when you seal a star."}
               </div>
             </div>
           </section>
@@ -233,12 +267,29 @@ export default function Page() {
               <div className="hand">Good evening.</div>
               <div className="sub">The sky has moved since yesterday.</div>
             </div>
-            <Genius ticks={5} onClick={() => setView("genius")} />
+            <Genius ticks={5} pulse={arrived} onClick={() => setView("genius")} />
             {star && reach && (
-              <div className="reach">
-                <div className="deg">in <b>{reach.headline}</b></div>
-                <div className="lbl">the Moon nears <b>{star.name}</b></div>
-              </div>
+              <>
+                <div className={`reach${arrived ? " arrived" : ""}`}>
+                  {fulfilled ? (
+                    <>
+                      <div className="deg"><b>risen</b></div>
+                      <div className="lbl">{star.name} · kept</div>
+                    </>
+                  ) : arrived ? (
+                    <>
+                      <div className="deg"><b>now</b></div>
+                      <div className="lbl">the Moon stands on <b>{star.name}</b></div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="deg">in <b>{reach.headline}</b></div>
+                      <div className="lbl">the Moon nears <b>{star.name}</b></div>
+                    </>
+                  )}
+                </div>
+                <div className="genius-says">{says}</div>
+              </>
             )}
             <div className="items">
               {star && (
