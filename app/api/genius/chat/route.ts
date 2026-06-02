@@ -28,9 +28,13 @@ interface Body {
   reach?: { gap: number; days: number; phase: string };
 }
 
+const dev = process.env.NODE_ENV !== "production";
+
 export async function POST(req: Request) {
   const provider = getProvider();
-  if (!provider) return NextResponse.json({ reply: null }); // dormant
+  if (!provider) {
+    return NextResponse.json({ reply: null, ...(dev && { reason: "no model configured — set ANTHROPIC_API_KEY and restart the server" }) });
+  }
 
   try {
     const { history, star, archetype, natal, reach }: Body = await req.json();
@@ -55,7 +59,8 @@ export async function POST(req: Request) {
     ).trim();
 
     return NextResponse.json({ reply: reply || null });
-  } catch {
-    return NextResponse.json({ reply: null });
+  } catch (e) {
+    console.error("[genius/chat] model call failed:", e);
+    return NextResponse.json({ reply: null, ...(dev && { reason: String((e as Error)?.message ?? e) }) });
   }
 }

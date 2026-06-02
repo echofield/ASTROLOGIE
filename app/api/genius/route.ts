@@ -28,9 +28,13 @@ function moment(phase: string, reach: { gap: number; days: number }): string {
   return `still far — roughly ${Math.max(1, Math.round(reach.days))} days from the star`;
 }
 
+const dev = process.env.NODE_ENV !== "production";
+
 export async function POST(req: Request) {
   const provider = getProvider();
-  if (!provider) return NextResponse.json({ line: null }); // dormant
+  if (!provider) {
+    return NextResponse.json({ line: null, ...(dev && { reason: "no model configured — set ANTHROPIC_API_KEY and restart the server" }) });
+  }
 
   try {
     const { star, archetype, phase, reach } = await req.json();
@@ -63,7 +67,8 @@ export async function POST(req: Request) {
       .replace(/^["']|["']$/g, "");
 
     return NextResponse.json({ line: line || null });
-  } catch {
-    return NextResponse.json({ line: null });
+  } catch (e) {
+    console.error("[genius] model call failed:", e);
+    return NextResponse.json({ line: null, ...(dev && { reason: String((e as Error)?.message ?? e) }) });
   }
 }
