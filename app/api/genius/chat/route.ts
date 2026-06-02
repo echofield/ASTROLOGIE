@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { getProvider } from "@/lib/llm";
 import type { ChatMessage } from "@/lib/llm/types";
+import { rateLimit, clientKey } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
+
+const MAX_MSG_CHARS = 2000;
+const MAX_HISTORY = 40;
 
 // The conversational Genius. Unlike the one-line voice, this holds a dialogue —
 // it is given the person's sky (sealed star, natal context, the governing
@@ -31,6 +35,14 @@ interface Body {
 const dev = process.env.NODE_ENV !== "production";
 
 export async function POST(req: Request) {
+  const { ok, retryAfter } = rateLimit(`chat:${clientKey(req)}`, 20, 60_000);
+  if (!ok) {
+    return NextResponse.json(
+      { reply: null, ...(dev && { reason: `rate limited — retry in ${retryAfter}s` }) },
+      { status: 429, headers: { "retry-after": String(retryAfter) } },
+    );
+  }
+
   const provider = getProvider();
   if (!provider) {
     return NextResponse.json({ reply: null, ...(dev && { reason: "no model configured — set ANTHROPIC_API_KEY and restart the server" }) });
@@ -41,6 +53,10 @@ export async function POST(req: Request) {
     if (!Array.isArray(history) || history.length === 0) {
       return NextResponse.json({ reply: null });
     }
+    // input-size guard — cap spend per call
+    const trimmed = history
+      .slice(-MAX_HISTORY)
+      .map((m) => ({ role: m.role, content: String(m.content ?? "").slice(0, MAX_MSG_CHARS) }));
 
     const context =
       `What you know of this person right now:\n` +
@@ -54,7 +70,7 @@ export async function POST(req: Request) {
         system: `${PERSONA}\n\n${context}`,
         maxTokens: 300,
         temperature: 0.85,
-        messages: history.slice(-16), // recent turns
+        messages: trimmed.slice(-16), // recent turns
       })
     ).trim();
 

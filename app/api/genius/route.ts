@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProvider } from "@/lib/llm";
+import { rateLimit, clientKey } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,14 @@ function moment(phase: string, reach: { gap: number; days: number }): string {
 const dev = process.env.NODE_ENV !== "production";
 
 export async function POST(req: Request) {
+  const { ok, retryAfter } = rateLimit(`voice:${clientKey(req)}`, 40, 60_000);
+  if (!ok) {
+    return NextResponse.json(
+      { line: null, ...(dev && { reason: `rate limited — retry in ${retryAfter}s` }) },
+      { status: 429, headers: { "retry-after": String(retryAfter) } },
+    );
+  }
+
   const provider = getProvider();
   if (!provider) {
     return NextResponse.json({ line: null, ...(dev && { reason: "no model configured — set ANTHROPIC_API_KEY and restart the server" }) });
