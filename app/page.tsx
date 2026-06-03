@@ -15,7 +15,7 @@ import {
 import { pull as cloudPull, push as cloudPush, wipe as cloudWipe } from "@/lib/cloud";
 import type { PlanetName } from "@/lib/types";
 
-type View = "threshold" | "birth" | "theme" | "northstar" | "star" | "genius" | "home" | "dialogue";
+type View = "threshold" | "birth" | "theme" | "northstar" | "star" | "genius" | "home";
 const PRE_SEAL: Record<string, boolean> = { threshold: true, birth: true, theme: true, northstar: true };
 
 const FALLBACK_REPLIES = [
@@ -186,14 +186,15 @@ export default function Page() {
     saveStar(s);
     setStar(s);
     cloudPush(profile, s);
-    setRstep(4);
-    setTimeout(() => {
-      setRitualOn(false);
-      setView("genius");
-      setGeniusWake(true);
-      setTimeout(() => setGeniusWake(false), 1900);
-    }, 2600);
+    setRstep(4); // hold on the event — the user steps through it deliberately
   }, [rmust, rname, profile]);
+
+  const enterAfterSeal = useCallback(() => {
+    setRitualOn(false);
+    setView("genius");
+    setGeniusWake(true);
+    setTimeout(() => setGeniusWake(false), 1900);
+  }, []);
 
   if (!ready) {
     return (<><div className="desk" /><div className="app" /></>);
@@ -325,43 +326,24 @@ export default function Page() {
           </section>
 
           {/* GENIUS */}
+          {/* GENIUS — identity + dialogue, merged */}
           <section className={`screen${view === "genius" ? " active" : ""}`} id="genius">
             <div className="scr-head">
               <button className="back" onClick={() => setView("home")}>←</button>
               <span className="ttl">Your Genius</span><span style={{ width: 18 }} />
             </div>
-            <Genius ticks={6} dormant={!star} wake={geniusWake} pulse={arrived} />
-            <div className="nature">
-              <h2>{star ? "It has formed." : "Not yet."}</h2>
-              <div className="born">
-                Born of <b>your fixed sky</b><br />
-                the <b>moving heavens</b><br />
-                and what you found <b>necessary</b>
-              </div>
+            <div className="genius-id">
+              <Genius ticks={6} dormant={!star} wake={geniusWake} pulse={arrived} />
               {star && arch && <div className="held">held by the {arch.name}</div>}
-              <div className="line">
-                {star ? says : "It will form when you seal a star."}
-              </div>
-              {star && (
-                <button className="btn center" style={{ marginTop: 26 }} onClick={() => setView("dialogue")}>
-                  Speak to it
-                </button>
-              )}
-            </div>
-          </section>
-
-          {/* DIALOGUE */}
-          <section className={`screen${view === "dialogue" ? " active" : ""}`} id="dialogue">
-            <div className="scr-head">
-              <button className="back" onClick={() => setView("genius")}>←</button>
-              <span className="ttl">Dialogue</span><span style={{ width: 18 }} />
             </div>
             <div className="convo">
               {messages.length === 0 && (
                 <div className="msg g">
                   <div className="who">Your Genius</div>
                   <div className="bubble">
-                    {star ? `I am awake, and I hold ${star.name} in view. What moves in you tonight?` : "Seal a star, and I will wake."}
+                    {star
+                      ? `Born of your fixed sky, the moving heavens, and what you found necessary. I hold ${star.name} in view — what moves in you tonight?`
+                      : "Seal a star, and I will wake."}
                   </div>
                 </div>
               )}
@@ -373,15 +355,17 @@ export default function Page() {
               ))}
               {sending && <div className="typing">listening…</div>}
             </div>
-            <div className="dialogue-in">
-              <input
-                value={input}
-                placeholder="write to your Genius…"
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-              />
-              <button className="send" onClick={send} disabled={sending || !input.trim()}>↑</button>
-            </div>
+            {star && (
+              <div className="dialogue-in">
+                <input
+                  value={input}
+                  placeholder="write to your Genius…"
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+                />
+                <button className="send" onClick={send} disabled={sending || !input.trim()}>↑</button>
+              </div>
+            )}
           </section>
 
           {/* HOME / CABINET */}
@@ -461,9 +445,15 @@ export default function Page() {
               style={{ marginTop: 44, borderColor: "var(--oxblood)", color: "var(--oxblood)" }}>Seal it</button>
           </div>
           <div className={`rstep sealing${rstep === 4 ? " on" : ""}`}>
+            <div className="cap" style={{ marginBottom: 22 }}>a star now stands in your sky</div>
             <div className="wax glyph">{star?.glyph ?? "✶"}</div>
-            <div className="said">{rname.trim().toUpperCase()}</div>
-            <div className="cap">a star now stands in your sky</div>
+            <div className="said">{(star?.name ?? rname).trim().toUpperCase()}</div>
+            {star && (
+              <div className="sealed-place">
+                {SIGN_NAMES[signIndex(star.lon)]} · {star.rulerGlyph} {star.ruler} · House {star.house}
+              </div>
+            )}
+            <button className="btn center" onClick={enterAfterSeal} style={{ marginTop: 40 }}>Enter</button>
           </div>
         </div>
 
@@ -473,17 +463,14 @@ export default function Page() {
             <button className={`tab${view === "home" ? " on" : ""}`} onClick={() => setView("home")}>
               <svg viewBox="0 0 24 24"><path d="M4 11l8-6 8 6" /><path d="M6 10v9h12v-9" /></svg><span className="l">Cabinet</span>
             </button>
+            <button className={`tab${view === "theme" ? " on" : ""}`} onClick={() => setView("theme")}>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3" /></svg><span className="l">Theme</span>
+            </button>
             <button className={`tab${view === "star" ? " on" : ""}`} onClick={() => setView("star")}>
               <svg viewBox="0 0 24 24"><path d="M12 3l2.5 6 6 .5-4.5 4 1.5 6L12 16l-5 3.5 1.5-6L4 9.5l6-.5z" /></svg><span className="l">Star</span>
             </button>
             <button className={`tab${view === "genius" ? " on" : ""}`} onClick={() => setView("genius")}>
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="10" /></svg><span className="l">Genius</span>
-            </button>
-            <button className={`tab${view === "dialogue" ? " on" : ""}`} onClick={() => setView("dialogue")}>
-              <svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z" /></svg><span className="l">Speak</span>
-            </button>
-            <button className={`tab${view === "theme" ? " on" : ""}`} onClick={() => setView("theme")}>
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3" /></svg><span className="l">Theme</span>
             </button>
           </nav>
         )}
