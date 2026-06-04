@@ -1,31 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, EB_Garamond, JetBrains_Mono, Caveat } from "next/font/google";
+import { Cormorant_Garamond, Spectral } from "next/font/google";
 import "./globals.css";
 
-const display = Fraunces({
+const display = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
   variable: "--font-display",
   display: "swap",
 });
-const serif = EB_Garamond({
+const text = Spectral({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
-  variable: "--font-serif",
-  display: "swap",
-});
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
-  variable: "--font-mono",
-  display: "swap",
-});
-const hand = Caveat({
-  subsets: ["latin"],
-  weight: ["500"],
-  variable: "--font-hand",
+  variable: "--font-text",
   display: "swap",
 });
 
@@ -40,7 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#e8dec9",
+  themeColor: "#0A0D1C",
 };
 
 export default function RootLayout({
@@ -48,11 +36,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body
-        className={`${display.variable} ${serif.variable} ${mono.variable} ${hand.variable}`}
-      >
-        {children}
-      </body>
+      <head>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className={`${display.variable} ${text.variable}`}>{children}</body>
     </html>
   );
 }
