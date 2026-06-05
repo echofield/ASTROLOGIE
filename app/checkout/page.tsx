@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DISCLAIMER, LANG_LABEL, LEGAL_LINKS, PRODUCT_DOMAIN, PRODUCT_NAME, type Lang } from "@/lib/brand";
+import { DISCLAIMER, LANG_LABEL, LEGAL_LINKS, PAYMENT_LINK, PRICING, PRODUCT_DOMAIN, PRODUCT_NAME, type Lang } from "@/lib/brand";
 import { FD, FN, FT, NIGHT } from "@/lib/theme";
 
 const COPY = {
@@ -73,6 +73,21 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           <h1 style={{ fontFamily: FD, fontStyle: "italic", fontSize: 48, lineHeight: 1, margin: "14px 0 12px", fontWeight: 500 }}>{t.title}</h1>
           <p style={{ color: pal.inkSoft, fontSize: 16, lineHeight: 1.55, maxWidth: 720, margin: 0 }}>{t.intro}</p>
           <p style={{ color: pal.accent, fontSize: 14, lineHeight: 1.45, maxWidth: 720, margin: "16px 0 0" }}>{t.disclaimer}</p>
+        </section>
+
+        {/* Founding Pass — anchored offer (89 → 59) */}
+        <section style={{ background: pal.panel, border: `1px solid ${pal.accent}55`, borderRadius: 6, padding: "26px 24px", marginBottom: 22, textAlign: "center" }}>
+          <div style={{ fontFamily: FT, letterSpacing: 3, textTransform: "uppercase", fontSize: 11, color: pal.accent }}>{PRICING.badge[lang]}</div>
+          <h2 style={{ fontFamily: FD, fontStyle: "italic", fontSize: 32, lineHeight: 1.05, margin: "10px 0 14px", fontWeight: 500 }}>{PRICING.name[lang]}</h2>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 14 }}>
+            <span style={{ fontFamily: FD, fontSize: 30, color: pal.inkSoft, textDecoration: "line-through", textDecorationColor: pal.accent }}>{PRICING.full}{PRICING.currency}</span>
+            <span style={{ fontFamily: FD, fontWeight: 600, fontSize: 52, color: pal.accent, lineHeight: 1 }}>{PRICING.offer}{PRICING.currency}</span>
+          </div>
+          <p style={{ color: pal.inkSoft, fontSize: 14, lineHeight: 1.5, margin: "14px auto 0", maxWidth: 420 }}>{PRICING.note[lang]}</p>
+          <a href={PAYMENT_LINK} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginTop: 22,
+            padding: "14px 38px", borderRadius: 30, background: pal.accent, color: pal.btnInk, textDecoration: "none",
+            fontFamily: FT, fontWeight: 500, letterSpacing: 3, textTransform: "uppercase", fontSize: 12,
+            boxShadow: `0 0 26px ${pal.accent}55` }}>{PRICING.cta[lang]}</a>
         </section>
 
         <div style={{ display: "grid", gap: 18 }}>
