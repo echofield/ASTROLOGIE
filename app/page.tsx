@@ -884,12 +884,24 @@ export default function Page() {
           <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 28, color: pal.ink }}>{t.cabinet.todaySky}</div>
           <div style={{ fontFamily: FT, fontSize: 14.5, color: pal.inkSoft, marginTop: 4, lineHeight: 1.45 }}>{transit}</div>
         </div>
+        {!read && (
         <div style={panel}>
           <Cap pal={pal}>{t.cabinet.checkoutTitle}</Cap>
-          <div style={{ fontFamily: FT, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.45, marginTop: 8 }}>{t.cabinet.checkoutBody}</div>
-          <div style={{ fontFamily: FT, fontSize: 13, color: pal.accent, lineHeight: 1.45, marginTop: 8 }}>{DISCLAIMER[lang]}</div>
-          <Link href={`/checkout?lang=${lang}`} style={{ display: "inline-flex", marginTop: 10, color: pal.brass, fontFamily: FN, fontSize: 11, textDecoration: "none" }}>{t.cabinet.checkoutLink}</Link>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: FD, fontSize: 16, color: pal.inkSoft, textDecoration: "line-through", textDecorationColor: pal.accent }}>{PRICING.full}{PRICING.currency}</span>
+            <span style={{ fontFamily: FD, fontWeight: 600, fontSize: 30, color: pal.accent, lineHeight: 1 }}>{PRICING.offer}{PRICING.currency}</span>
+            <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 15, color: pal.ink }}>· {PRICING.name[lang]}</span>
+          </div>
+          <div style={{ fontFamily: FT, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.45, marginTop: 8 }}>{PRICING.note[lang]}</div>
+          <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <Link href={`/checkout?lang=${lang}`} style={{ display: "inline-flex", alignItems: "center", padding: "11px 24px", borderRadius: 26, background: pal.accent, color: pal.btnInk, textDecoration: "none", fontFamily: FT, fontWeight: 500, letterSpacing: 2.5, textTransform: "uppercase", fontSize: 11 }}>{PRICING.cta[lang]}</Link>
+            {process.env.NEXT_PUBLIC_READ_OPEN === "true" && star && (
+              <Btn pal={pal} onClick={() => setIntakeOpen(true)}>{lang === "fr" ? "Générer (test)" : "Generate (test)"}</Btn>
+            )}
+          </div>
+          <div style={{ fontFamily: FT, fontSize: 12, color: pal.accent, lineHeight: 1.45, marginTop: 10 }}>{DISCLAIMER[lang]}</div>
         </div>
+        )}
         <div style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
             <Cap pal={pal}>{t.cabinet.journal}</Cap>

@@ -6,7 +6,7 @@ const COPY = {
   en: {
     title: "Digital report access",
     cap: "Checkout readiness",
-    intro: "Payment is not active in this build. Before checkout is enabled, this page defines the customer-facing information that must be visible.",
+    intro: "The Founding Pass unlocks your Complete Read — a deep, personal reading of your sky, your star, and the year ahead, kept in your Cabinet. The terms below apply before purchase.",
     price: "Price and taxes",
     priceBody: "The final checkout must show the report price, applicable taxes, currency, and billing frequency before payment.",
     delivery: "Immediate digital delivery",
@@ -19,7 +19,7 @@ const COPY = {
   fr: {
     title: "Accès au rapport numérique",
     cap: "Préparation du paiement",
-    intro: "Le paiement n'est pas actif dans cette version. Avant activation, cette page définit les informations qui devront être visibles pour le client.",
+    intro: "Le Pass Fondateur débloque votre Lecture Complète — une lecture profonde et personnelle de votre ciel, de votre étoile et de l'année à venir, conservée dans votre Cabinet. Les conditions ci-dessous s'appliquent avant l'achat.",
     price: "Prix et taxes",
     priceBody: "Le paiement final devra afficher le prix du rapport, les taxes applicables, la devise et toute récurrence éventuelle avant validation.",
     delivery: "Livraison numérique immédiate",
