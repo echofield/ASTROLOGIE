@@ -343,7 +343,7 @@ export default function Page() {
           <div style={{ textAlign: "left" }} className="astro-fade">
             <Cap pal={pal}>One question</Cap>
             <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 34, marginTop: 14, color: pal.ink }}>What must happen?</div>
-            <input value={rmust} placeholder="Launch Symione." onChange={(e) => setRmust(e.target.value)}
+            <input value={rmust} placeholder="Send the proposal before Friday." onChange={(e) => setRmust(e.target.value)}
               style={{ width: "100%", marginTop: 28, background: "transparent", border: "none", borderBottom: `1px solid ${pal.panelLine}`, color: pal.ink, fontFamily: FD, fontStyle: "italic", fontSize: 24, padding: "8px 2px", outline: "none" }} />
             <div style={{ marginTop: 36 }}><Btn pal={pal} disabled={!rmust.trim()} onClick={() => setRstep(2)}>Continue</Btn></div>
           </div>
