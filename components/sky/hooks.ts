@@ -35,6 +35,19 @@ export function useParallax(ref: RefObject<HTMLElement | null>, enabled: boolean
   return p;
 }
 
+/** Responsive breakpoint. Returns false during SSR/first paint, then resolves. */
+export function useMediaQuery(query: string): boolean {
+  const [match, setMatch] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia(query);
+    const on = () => setMatch(m.matches);
+    on();
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, [query]);
+  return match;
+}
+
 /** A clock the user can fast-forward, so the Moon visibly advances. */
 export function useSkyClock() {
   const [offsetDays, setOffsetDays] = useState(0);
