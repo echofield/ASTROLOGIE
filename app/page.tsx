@@ -13,11 +13,14 @@ import {
 import { natalChart } from "@/lib/sky";
 import { makeStar, reachOf, type SealedStar } from "@/lib/star";
 import { archetypeForStar, geniusLine, geniusPhase } from "@/lib/archetypes";
-import { askGenius } from "@/lib/dialogue";
 import {
-  getProfile, saveProfile, getStar, saveStar, resetAll, type Profile,
+  askGenius, appendMessage, loadMessages, journalEntries, remainingExchanges, DAILY_EXCHANGE_LIMIT,
+} from "@/lib/dialogue";
+import type { ChatMessage } from "@/lib/llm/types";
+import {
+  getProfile, saveProfile, getStar, saveStar, getStarLedger, saveStarLedger, recordStar, resetAll, type Profile,
 } from "@/lib/storage";
-import { push as cloudPush, wipe as cloudWipe } from "@/lib/cloud";
+import { pull as cloudPull, push as cloudPush, wipe as cloudWipe } from "@/lib/cloud";
 
 type Screen = "cabinet" | "theme" | "star" | "genius";
 const TITLES: Record<Screen, string> = { cabinet: "Cabinet", theme: "Your Theme", star: "Your Star", genius: "Your Genius" };
@@ -36,6 +39,36 @@ const READ: Record<string, string> = {
 };
 
 const TAB_ICON: Record<Screen, string> = { cabinet: "⌂", theme: "◉", star: "★", genius: "◎" };
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function recordDate(iso?: string): string {
+  if (!iso) return "undated";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "undated";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
+function recordTime(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function ledgerStatus(star: SealedStar, date: Date): { label: string; stamp: string; detail: string } {
+  if (star.fulfilledAt) {
+    return { label: "kept", stamp: recordDate(star.fulfilledAt), detail: "kept in the cabinet" };
+  }
+  const reach = reachOf(star, date);
+  if (reach.gap <= 3 || reach.gap >= 357) {
+    return { label: "reached", stamp: recordDate(date.toISOString()), detail: "the Moon stands on it" };
+  }
+  if (reach.gap <= 30) {
+    const arrival = new Date(date.getTime() + reach.days * DAY_MS).toISOString();
+    return { label: "approaching", stamp: recordDate(arrival), detail: `${reach.gap.toFixed(1)} deg to go` };
+  }
+  return { label: "sealed", stamp: recordDate(star.sealedAt), detail: `sealed at ${recordTime(star.sealedAt)}` };
+}
 
 function SkyBg({ pal, night, par }: { pal: Palette; night: boolean; par: { x: number; y: number } }) {
   if (!night) return null;
@@ -160,13 +193,54 @@ export default function Page() {
   const [gInput, setGInput] = useState("");
   const [gReply, setGReply] = useState<string | null>(null);
   const [gSending, setGSending] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [ledger, setLedger] = useState<SealedStar[]>([]);
 
-  useEffect(() => { setProfile(getProfile()); setStar(getStar()); setReady(true); }, []);
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      await Promise.resolve();
+      if (!alive) return;
+      setProfile(getProfile());
+      setStar(getStar());
+      setLedger(getStarLedger());
+      setReady(true);
+
+      const m = await loadMessages();
+      if (alive) setMessages(m);
+
+      const remote = await cloudPull();
+      if (!alive || !remote) return;
+      if (remote.profile) {
+        saveProfile(remote.profile);
+        setProfile(remote.profile);
+      }
+      if (remote.star) {
+        saveStar(remote.star);
+        setStar(remote.star);
+      }
+      const cloudLedger = [...remote.ledger];
+      if (remote.star && !cloudLedger.some((s) => s.sealedAt === remote.star?.sealedAt)) cloudLedger.push(remote.star);
+      if (cloudLedger.length) {
+        cloudLedger.sort((a, b) => a.sealedAt.localeCompare(b.sealedAt));
+        saveStarLedger(cloudLedger);
+        setLedger(cloudLedger);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const natalLon = useMemo<LonMap | null>(() => (profile ? displaySky(new Date(profile.birthISO)) : null), [profile]);
   const liveLon = useMemo<LonMap>(() => displaySky(date), [date]);
   const reach = useMemo(() => (star ? reachOf(star, date) : null), [star, date]);
   const fulfilled = !!star?.fulfilledAt;
+  const remaining = remainingExchanges(messages);
+  const journal = useMemo(() => journalEntries(messages).slice(0, 4), [messages]);
+  const recordedStars = useMemo(() => {
+    const all = ledger.map((s) => (star && s.sealedAt === star.sealedAt ? star : s));
+    if (star && !all.some((s) => s.sealedAt === star.sealedAt)) all.push(star);
+    return all.sort((a, b) => b.sealedAt.localeCompare(a.sealedAt)).slice(0, 6);
+  }, [ledger, star]);
   const toggleNight = () => setNight((v) => !v);
   const onTab = (t: Screen) => { setScreen(t); setGReply(null); };
   const startSeal = () => { setRmust(""); setRname(""); setRstep(1); };
@@ -180,19 +254,41 @@ export default function Page() {
   }
   function sealNow() {
     const s = makeStar(rmust, rname);
-    saveStar(s); setStar(s); cloudPush(profile, s); setRstep(4);
+    saveStar(s);
+    setStar(s);
+    setLedger(recordStar(s));
+    cloudPush(profile, s);
+    setRstep(4);
+  }
+  function keepStar() {
+    if (!star) return;
+    const kept = { ...star, fulfilledAt: star.fulfilledAt ?? new Date().toISOString() };
+    saveStar(kept);
+    setStar(kept);
+    setLedger(recordStar(kept));
+    cloudPush(profile, kept);
   }
   async function askDaily() {
     const text = gInput.trim();
     if (!text || gSending || !star || !reach) return;
+    if (remainingExchanges(messages) <= 0) {
+      setGReply("The Genius is closed till tomorrow.");
+      return;
+    }
     setGSending(true); setGReply(null);
     const a = archetypeForStar(star);
-    const reply = await askGenius([{ role: "user", content: text }], {
+    const userMessage = appendMessage({ role: "user", content: text });
+    const history = [...messages, userMessage].slice(-40);
+    setMessages((prev) => [...prev, userMessage].slice(-100));
+    const reply = await askGenius(history, {
       star: { name: star.name, must: star.must, ruler: star.ruler },
       archetype: { name: a.name, essence: a.essence },
       reach: { gap: reach.gap, days: reach.days, phase: geniusPhase(reach, fulfilled) },
     });
-    setGReply(reply ?? "I hold your star in view. Stay with the question; the sky is slow, and so is what matters.");
+    const line = reply ?? "I hold your star in view. Stay with the question; the sky is slow, and so is what matters.";
+    const assistantMessage = appendMessage({ role: "assistant", content: line });
+    setMessages((prev) => [...prev, assistantMessage].slice(-100));
+    setGReply(line);
     setGInput(""); setGSending(false);
   }
 
@@ -303,22 +399,62 @@ export default function Page() {
   let detail: ReactNode = null;
 
   if (screen === "cabinet") {
-    visual = <PlanetMedallion pal={pal} glyph={star ? star.glyph : "✦"} size={wide ? 260 : 200} />;
+    const transit = star && reach
+      ? `Moon ${shortPos(liveLon.moon)}. ${reach.gap.toFixed(1)} deg from ${star.name}.`
+      : `Moon ${shortPos(liveLon.moon)}. Sun ${shortPos(liveLon.sun)}.`;
+    const panel = { padding: "12px 14px", background: pal.panel, border: `1px solid ${pal.panelLine}`, borderRadius: 3 };
+    visual = <SkyWheel pal={pal} size={wheelSize} bodies={liveSubset} highlight="moon" sealedLon={star?.lon} showArc={!!star} rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />;
     detail = (
-      <div>
-        <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 28, color: pal.ink }}>Good evening.</div>
-        <div style={{ fontFamily: FT, fontSize: 14, color: pal.inkSoft, marginTop: 2, marginBottom: 18 }}>The sky has moved since yesterday.</div>
-        {star && reach ? (
-          <div>
-            <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 30, color: pal.ink }}>in </span>
-            <span style={{ fontFamily: FD, fontWeight: 600, fontSize: 30, color: pal.accent }}>{reach.headline}</span>
-            <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 16, color: pal.inkSoft }}>the Moon nears <span style={{ color: pal.accent }}>{star.name}</span></div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div>
+          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 28, color: pal.ink }}>Today&apos;s sky</div>
+          <div style={{ fontFamily: FT, fontSize: 14.5, color: pal.inkSoft, marginTop: 4, lineHeight: 1.45 }}>{transit}</div>
+        </div>
+        <div style={panel}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+            <Cap pal={pal}>Genius journal</Cap>
+            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{journal.length} saved</span>
           </div>
-        ) : (
-          <Btn pal={pal} solid onClick={startSeal}>Seal a star</Btn>
-        )}
-        <div style={{ marginTop: 24 }}>
-          <button onClick={() => { if (confirm("Close the cabinet? This clears your sky and your star.")) { resetAll(); cloudWipe(); setProfile(null); setStar(null); setScreen("cabinet"); } }}
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            {journal.length ? journal.map((m) => (
+              <div key={`${m.createdAt ?? ""}${m.content}`} style={{ borderTop: `1px solid ${pal.panelLine}`, paddingTop: 9 }}>
+                <div style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{recordDate(m.createdAt)} {recordTime(m.createdAt)}</div>
+                <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 16, color: pal.ink, lineHeight: 1.3, marginTop: 3 }}>{m.content}</div>
+              </div>
+            )) : (
+              <div style={{ fontFamily: FT, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.45 }}>No reflection saved yet. Ask the Genius, and the answer will be kept here.</div>
+            )}
+          </div>
+        </div>
+        <div style={panel}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+            <Cap pal={pal}>Star ledger</Cap>
+            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>sealed / approaching / reached / kept</span>
+          </div>
+          <div style={{ marginTop: 10, display: "grid", gap: 9 }}>
+            {recordedStars.length ? recordedStars.map((s) => {
+              const status = ledgerStatus(s, date);
+              return (
+                <div key={s.sealedAt} style={{ borderTop: `1px solid ${pal.panelLine}`, paddingTop: 9 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
+                    <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 17, color: pal.ink }}>{s.name}</span>
+                    <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft, whiteSpace: "nowrap" }}>{status.stamp}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 3, fontFamily: FT, fontSize: 12.5, color: pal.inkSoft, lineHeight: 1.35 }}>
+                    <span style={{ color: status.label === "kept" ? pal.accent : pal.brass }}>{status.label}</span>
+                    <span>{status.detail}</span>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div style={{ display: "flex", justifyContent: wide ? "flex-start" : "center", marginTop: 2 }}>
+                <Btn pal={pal} solid onClick={startSeal}>Seal a star</Btn>
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ marginTop: 2 }}>
+          <button onClick={() => { if (confirm("Close the cabinet? This clears your sky, journal, and star ledger.")) { resetAll(); void cloudWipe(); setMessages([]); setLedger([]); setProfile(null); setStar(null); setScreen("cabinet"); } }}
             style={{ background: "none", border: "none", color: pal.inkSoft, fontFamily: FN, fontSize: 11, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>close the cabinet</button>
         </div>
       </div>
@@ -374,6 +510,16 @@ export default function Page() {
             </div>
             <input type="range" min={0} max={40} value={offsetDays} onChange={(e) => setOffsetDays(+e.target.value)} style={{ width: "100%", accentColor: pal.accent }} />
           </div>
+          {!fulfilled && (
+            <div style={{ marginTop: 16, textAlign: wide ? "left" : "center" }}>
+              <Btn pal={pal} onClick={keepStar}>Keep this star</Btn>
+            </div>
+          )}
+          {fulfilled && (
+            <div style={{ marginTop: 14, fontFamily: FT, fontSize: 13, color: pal.inkSoft, textAlign: wide ? "left" : "center" }}>
+              Kept on {recordDate(star.fulfilledAt)}.
+            </div>
+          )}
         </div>
       );
     } else {
@@ -387,20 +533,26 @@ export default function Page() {
       );
     }
   } else if (screen === "genius") {
+    const closed = remaining <= 0;
     visual = <PlanetMedallion pal={pal} glyph={star ? star.glyph : "◎"} size={wide ? 230 : 150} />;
     detail = (
       <div style={{ textAlign: wide ? "left" : "center", display: "flex", flexDirection: "column", height: "100%" }}>
-        {star && arch && <Cap pal={pal}>held by the {arch.name}</Cap>}
+        {star && arch && (
+          <div style={{ display: "flex", justifyContent: wide ? "space-between" : "center", alignItems: "baseline", gap: 12 }}>
+            <Cap pal={pal}>held by the {arch.name}</Cap>
+            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{remaining}/{DAILY_EXCHANGE_LIMIT} today</span>
+          </div>
+        )}
         <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 21, color: pal.ink, marginTop: 14, maxWidth: 340, lineHeight: 1.4 }}>
-          {gReply ?? (star && reach ? geniusLine(star, reach, fulfilled) : "Seal a star, and I will wake.")}
+          {gReply ?? (star && closed ? "The Genius is closed till tomorrow." : star && reach ? geniusLine(star, reach, fulfilled) : "Seal a star, and I will wake.")}
         </div>
         {star && (
           <div style={{ marginTop: 22, width: "100%" }}>
-            <input value={gInput} placeholder="what moves in you tonight…" disabled={gSending}
-              onChange={(e) => setGInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") askDaily(); }}
+            <input value={gInput} placeholder={closed ? "closed till tomorrow" : "what moves in you tonight…"} disabled={gSending || closed}
+              onChange={(e) => setGInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !closed) askDaily(); }}
               style={{ width: "100%", textAlign: wide ? "left" : "center", background: "transparent", border: "none",
                 borderBottom: `1px solid ${pal.panelLine}`, color: pal.ink, fontFamily: FD, fontStyle: "italic", fontSize: 17, padding: "10px 2px", outline: "none" }} />
-            <div style={{ marginTop: 16 }}><Btn pal={pal} disabled={gSending || !gInput.trim()} onClick={askDaily}>{gSending ? "listening…" : "Reflect"}</Btn></div>
+            <div style={{ marginTop: 16 }}><Btn pal={pal} disabled={gSending || closed || !gInput.trim()} onClick={askDaily}>{closed ? "Closed" : gSending ? "listening…" : "Reflect"}</Btn></div>
           </div>
         )}
       </div>

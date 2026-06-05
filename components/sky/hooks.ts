@@ -51,6 +51,7 @@ export function useMediaQuery(query: string): boolean {
 /** A clock the user can fast-forward, so the Moon visibly advances. */
 export function useSkyClock() {
   const [offsetDays, setOffsetDays] = useState(0);
-  const date = useMemo(() => new Date(Date.now() + offsetDays * 86400000), [offsetDays]);
+  const [baseTime] = useState(() => Date.now());
+  const date = useMemo(() => new Date(baseTime + offsetDays * 86400000), [baseTime, offsetDays]);
   return { date, offsetDays, setOffsetDays };
 }

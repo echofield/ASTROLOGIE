@@ -57,3 +57,11 @@ Cabinet is currently the weak tab (repetition) **because it's the only one with 
 
 ## Don't
 - Don't add temples/mysticism/new realms. Don't add a 5th tab. Don't expose the 21 archetypes as UI. Don't put the Anthropic key client-side. Don't deploy a public LLM route without the rate guard.
+
+## Codex update - 2026-06-05
+- Cabinet record is implemented in `app/page.tsx`: live Moon/Sun transit line, saved Genius replies as a journal, and a sealed-star ledger with `sealed / approaching / reached / kept` lifecycle labels.
+- Genius exchanges are capped at 3 user messages per local day. Each exchange writes the user prompt and the Genius/fallback reply to local storage and, when configured, `astrolabe_messages`.
+- New migration `supabase/migrations/0002_astrolabe_records.sql` creates `astrolabe_messages` and `astrolabe_star_ledger` with owner RLS. Apply it to cityflow before expecting cloud journal/ledger persistence on Vercel.
+- Current star restore is now local-first, then cloud-backed; cloud hydration is sequenced to avoid racing anonymous sign-in.
+- Verification on this slice: `npx tsc --noEmit`, `npm run lint` (one existing font warning only), `npm run build`, and `next start` smoke on port 3100 returned HTTP 200.
+- Next priority is now item 3: geocoding -> Ascendant -> houses + Big-Three Theme.

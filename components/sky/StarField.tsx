@@ -3,19 +3,25 @@
 import { useMemo } from "react";
 import type { Palette } from "@/lib/theme";
 
-// Night-only star layer — static, faint; depth comes from parallax.
+// Night-only star layer: static and faint; depth comes from parallax.
+function seeded(seed: number): number {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 export default function StarField({
   pal, layer = 1, par,
 }: {
   pal: Palette; layer?: number; par: { x: number; y: number };
 }) {
-  const dots = useMemo(() => {
-    let s = 11 + layer * 7;
-    const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-    return Array.from({ length: layer === 1 ? 60 : 26 }, () => ({
-      x: rnd() * 100, y: rnd() * 100, r: rnd() * (layer === 1 ? 1.2 : 1.8) + 0.4, o: rnd() * 0.5 + 0.2,
-    }));
-  }, [layer]);
+  const dots = useMemo(() => (
+    Array.from({ length: layer === 1 ? 60 : 26 }, (_, i) => ({
+      x: seeded(layer * 1000 + i * 4 + 1) * 100,
+      y: seeded(layer * 1000 + i * 4 + 2) * 100,
+      r: seeded(layer * 1000 + i * 4 + 3) * (layer === 1 ? 1.2 : 1.8) + 0.4,
+      o: seeded(layer * 1000 + i * 4 + 4) * 0.5 + 0.2,
+    }))
+  ), [layer]);
   const k = layer === 1 ? 6 : 12;
   return (
     <svg

@@ -1,10 +1,9 @@
-// Cloud persistence — local-first, dormant until configured.
+// Cloud persistence: local-first, dormant until configured.
 //
-// localStorage stays the source of truth for the UI (instant, offline). If
-// NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY are set, we also
-// back the sealed star + profile up to Supabase under an anonymous identity, so
-// it survives a cache clear and can travel to another device. Every call is
-// guarded: any failure (no env, offline, RLS) silently leaves you local-only.
+// localStorage stays the source of truth for the UI. If Supabase env vars are
+// set, we mirror profile, current star, star ledger, and Genius messages under
+// an anonymous user. Every call is guarded so missing env, offline mode, or RLS
+// failure leaves the app local-only.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Profile } from "./storage";
@@ -44,6 +43,7 @@ async function userId(): Promise<string | null> {
 export interface CloudState {
   profile: Profile | null;
   star: SealedStar | null;
+  ledger: SealedStar[];
 }
 
 /** Restore from the cloud, or null if unconfigured / empty / failed. */
@@ -53,16 +53,20 @@ export async function pull(): Promise<CloudState | null> {
   try {
     const uid = await userId();
     if (!uid) return null;
-    const [{ data: prof }, { data: st }] = await Promise.all([
+    const [{ data: prof }, { data: st }, { data: ledgerRows }] = await Promise.all([
       c.from("astrolabe_profiles").select("birth_iso, place, natal, created_at").eq("user_id", uid).maybeSingle(),
       c.from("astrolabe_stars").select("star").eq("user_id", uid).maybeSingle(),
+      c.from("astrolabe_star_ledger").select("star").eq("user_id", uid).order("sealed_at", { ascending: true }),
     ]);
     const profile: Profile | null = prof
       ? { birthISO: prof.birth_iso, place: prof.place ?? "", natal: prof.natal, createdAt: prof.created_at }
       : null;
     const star = (st?.star as SealedStar) ?? null;
-    if (!profile && !star) return null;
-    return { profile, star };
+    const ledger = Array.isArray(ledgerRows)
+      ? ledgerRows.map((row) => row.star as SealedStar).filter(Boolean)
+      : [];
+    if (!profile && !star && ledger.length === 0) return null;
+    return { profile, star, ledger };
   } catch {
     return null;
   }
@@ -77,12 +81,23 @@ export async function push(profile: Profile | null, star: SealedStar | null): Pr
     if (!uid) return;
     if (profile) {
       await c.from("astrolabe_profiles").upsert({
-        user_id: uid, birth_iso: profile.birthISO, place: profile.place,
-        natal: profile.natal, created_at: profile.createdAt,
+        user_id: uid,
+        birth_iso: profile.birthISO,
+        place: profile.place,
+        natal: profile.natal,
+        created_at: profile.createdAt,
       });
     }
     if (star) {
-      await c.from("astrolabe_stars").upsert({ user_id: uid, star, updated_at: new Date().toISOString() });
+      await Promise.all([
+        c.from("astrolabe_stars").upsert({ user_id: uid, star, updated_at: new Date().toISOString() }),
+        c.from("astrolabe_star_ledger").upsert({
+          user_id: uid,
+          sealed_at: star.sealedAt,
+          star,
+          updated_at: new Date().toISOString(),
+        }),
+      ]);
     }
   } catch {
     /* stay local-only */
@@ -98,6 +113,7 @@ export async function wipe(): Promise<void> {
     if (!uid) return;
     await Promise.all([
       c.from("astrolabe_messages").delete().eq("user_id", uid),
+      c.from("astrolabe_star_ledger").delete().eq("user_id", uid),
       c.from("astrolabe_stars").delete().eq("user_id", uid),
       c.from("astrolabe_profiles").delete().eq("user_id", uid),
     ]);
@@ -107,7 +123,7 @@ export async function wipe(): Promise<void> {
 }
 
 /** Conversation memory. Returns null when unconfigured (caller uses local). */
-export async function pullMessages(limit = 50): Promise<ChatMessage[] | null> {
+export async function pullMessages(limit = 100): Promise<ChatMessage[] | null> {
   const c = getClient();
   if (!c) return null;
   try {
@@ -115,11 +131,14 @@ export async function pullMessages(limit = 50): Promise<ChatMessage[] | null> {
     if (!uid) return null;
     const { data } = await c
       .from("astrolabe_messages")
-      .select("role, content")
+      .select("role, content, created_at")
       .eq("user_id", uid)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(limit);
-    return (data as ChatMessage[]) ?? [];
+    return ((data ?? []) as { role: string; content: string; created_at: string }[])
+      .reverse()
+      .filter((row) => row.role === "user" || row.role === "assistant")
+      .map((row) => ({ role: row.role as ChatMessage["role"], content: row.content, createdAt: row.created_at }));
   } catch {
     return null;
   }
@@ -131,7 +150,12 @@ export async function pushMessage(m: ChatMessage): Promise<void> {
   try {
     const uid = await userId();
     if (!uid) return;
-    await c.from("astrolabe_messages").insert({ user_id: uid, role: m.role, content: m.content });
+    await c.from("astrolabe_messages").insert({
+      user_id: uid,
+      role: m.role,
+      content: m.content,
+      created_at: m.createdAt ?? new Date().toISOString(),
+    });
   } catch {
     /* stay local-only */
   }

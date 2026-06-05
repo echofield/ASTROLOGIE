@@ -1,12 +1,24 @@
 // Client dialogue helper. Memory is local-first: localStorage always holds the
-// thread (instant, offline); when Supabase is configured it also syncs there so
-// the conversation follows you across devices. The reply comes from the
-// provider-agnostic /api/genius/chat route (dormant → null → no reply added).
+// thread; Supabase mirrors it when configured.
 
 import type { ChatMessage } from "./llm/types";
 import { pullMessages, pushMessage } from "./cloud";
 
 const LS = "astrolabe.messages";
+export const DAILY_EXCHANGE_LIMIT = 3;
+
+export function dayKey(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function messageDay(m: ChatMessage): string | null {
+  if (!m.createdAt) return null;
+  const d = new Date(m.createdAt);
+  return Number.isNaN(d.getTime()) ? null : dayKey(d);
+}
 
 function localGet(): ChatMessage[] {
   try {
@@ -16,11 +28,18 @@ function localGet(): ChatMessage[] {
     return [];
   }
 }
+
 function localSet(msgs: ChatMessage[]): void {
-  try { window.localStorage.setItem(LS, JSON.stringify(msgs.slice(-100))); } catch {}
+  try {
+    window.localStorage.setItem(LS, JSON.stringify(msgs.slice(-100)));
+  } catch {}
 }
 
-/** Load the thread — cloud if available, else local. */
+function stamped(m: ChatMessage): ChatMessage {
+  return { ...m, createdAt: m.createdAt ?? new Date().toISOString() };
+}
+
+/** Load the thread: cloud if available, else local. */
 export async function loadMessages(): Promise<ChatMessage[]> {
   const remote = await pullMessages();
   if (remote && remote.length) {
@@ -30,10 +49,32 @@ export async function loadMessages(): Promise<ChatMessage[]> {
   return localGet();
 }
 
-/** Persist one message (local immediately, cloud best-effort). */
-export function appendMessage(m: ChatMessage): void {
-  localSet([...localGet(), m]);
-  void pushMessage(m);
+/** Persist one message locally immediately, then cloud best-effort. */
+export function appendMessage(m: ChatMessage): ChatMessage {
+  const next = stamped(m);
+  localSet([...localGet(), next]);
+  void pushMessage(next);
+  return next;
+}
+
+export function clearMessages(): void {
+  try {
+    window.localStorage.removeItem(LS);
+  } catch {}
+}
+
+export function exchangesToday(messages: ChatMessage[], day = dayKey()): number {
+  return messages.filter((m) => m.role === "user" && messageDay(m) === day).length;
+}
+
+export function remainingExchanges(messages: ChatMessage[]): number {
+  return Math.max(0, DAILY_EXCHANGE_LIMIT - exchangesToday(messages));
+}
+
+export function journalEntries(messages: ChatMessage[]): ChatMessage[] {
+  return messages
+    .filter((m) => m.role === "assistant" && m.content.trim())
+    .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
 }
 
 export interface GeniusContext {
