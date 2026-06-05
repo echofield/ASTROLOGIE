@@ -10,7 +10,7 @@ Local: `C:\Users\echof\Desktop\02_PROJECTS\lodestar`.
 ## Hard rules
 - **No new product sections.** Four surfaces only: Cabinet, Theme, Star, Genius. Refine; do not expand mythology.
 - **Visual identity is locked** = Celestial Night (palette B). Don't reinvent it. Source of truth: the design handoff at `C:\Users\echof\Downloads\astrolab-handoff\astrolab\project\{proto,celestial,views,constellations,shell}.jsx`.
-- **Commit as the local git user** (Martial FOE <echofield@outlook.fr>). No AI/Co-Authored-By trailer; never change git config. Push to `main`.
+- **Commit as the local git user.** No AI/Co-Authored-By trailer; never change git config. Push to `main`.
 - **Real ephemeris only** (`astronomy-engine`). No fake astrology data.
 - **Server secrets stay server-side.** Anthropic SDK only in `app/api/**`; clients import `lib/llm/types` (type-only).
 - Verify before done: `npx tsc --noEmit` && `npm run build` green; smoke `npm run start` → HTTP 200.
