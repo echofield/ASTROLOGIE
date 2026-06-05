@@ -24,19 +24,15 @@ export function ramc(date: Date, lonDeg: number): number {
   return norm360((gastHours + lonDeg / 15) * 15);
 }
 
-/** Ecliptic longitude of the Ascendant (degrees, 0..360). */
+/** Ecliptic longitude of the Ascendant (degrees, 0..360).
+ *  Verified against reference charts: Einstein → Cancer 11.6°, JFK → Libra 20.0°.
+ *  The atan2 form below already resolves the eastern point — do NOT add an
+ *  MC-based 180° correction (that flips a correct Ascendant to the Descendant). */
 export function ascendant(date: Date, latDeg: number, lonDeg: number): number {
   const r = ramc(date, lonDeg) * DEG;
   const e = meanObliquity(date) * DEG;
   const phi = latDeg * DEG;
-  // standard horizon formula; atan2 resolves the quadrant
-  let asc = Math.atan2(Math.cos(r), -(Math.sin(r) * Math.cos(e) + Math.tan(phi) * Math.sin(e))) / DEG;
-  asc = norm360(asc);
-  // ensure the Ascendant is the eastern point (opposite half from the MC)
-  const mc = midheaven(date, lonDeg);
-  const diff = norm360(asc - mc);
-  if (diff < 180) asc = norm360(asc + 180);
-  return asc;
+  return norm360(Math.atan2(Math.cos(r), -(Math.sin(r) * Math.cos(e) + Math.tan(phi) * Math.sin(e))) / DEG);
 }
 
 /** Ecliptic longitude of the Midheaven (degrees, 0..360). */

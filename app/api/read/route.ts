@@ -6,6 +6,7 @@ import { ACCESS_COOKIE, readOpen, verifyAccess } from "@/lib/access";
 import { displaySky, signOf, SIGN_NAME } from "@/lib/chart";
 import { getProvider } from "@/lib/llm";
 import { READ_METHOD } from "@/lib/read-method";
+import { rateLimit, clientKey } from "@/lib/ratelimit";
 import type { Profile } from "@/lib/storage";
 import type { SealedStar } from "@/lib/star";
 import { computeYearAhead, tightestNatalAspects } from "@/lib/transits";
@@ -38,6 +39,13 @@ function parseReadJson(raw: string): Record<string, string> | null {
 }
 
 export async function POST(req: Request) {
+  // Cost guard — a read is an expensive Sonnet call. Cap per IP.
+  const rl = rateLimit(`read:${clientKey(req)}`, 6, 60 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "retry-after": String(rl.retryAfter) } });
+  }
+
   const jar = await cookies();
   const cookieVal = jar.get(ACCESS_COOKIE)?.value;
   if (!hasAccess(cookieVal)) {
