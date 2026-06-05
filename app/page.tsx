@@ -895,8 +895,10 @@ export default function Page() {
           <div style={{ fontFamily: FT, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.45, marginTop: 8 }}>{PRICING.note[lang]}</div>
           <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
             <Link href={`/checkout?lang=${lang}`} style={{ display: "inline-flex", alignItems: "center", padding: "11px 24px", borderRadius: 26, background: pal.accent, color: pal.btnInk, textDecoration: "none", fontFamily: FT, fontWeight: 500, letterSpacing: 2.5, textTransform: "uppercase", fontSize: 11 }}>{PRICING.cta[lang]}</Link>
-            {process.env.NEXT_PUBLIC_READ_OPEN === "true" && star && (
-              <Btn pal={pal} onClick={() => setIntakeOpen(true)}>{lang === "fr" ? "Générer (test)" : "Generate (test)"}</Btn>
+            {/* Entry to the read. Server gate (READ_OPEN / paid cookie) enforces access.
+                Re-gate or route 402→/checkout before public launch. */}
+            {star && (
+              <Btn pal={pal} onClick={() => setIntakeOpen(true)}>{lang === "fr" ? "Commencer la lecture" : "Begin the Read"}</Btn>
             )}
           </div>
           <div style={{ fontFamily: FT, fontSize: 12, color: pal.accent, lineHeight: 1.45, marginTop: 10 }}>{DISCLAIMER[lang]}</div>
