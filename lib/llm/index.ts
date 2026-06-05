@@ -16,7 +16,7 @@ class AnthropicProvider implements LLMProvider {
   }
   async complete(opts: CompleteOptions): Promise<string> {
     const msg = await this.client.messages.create({
-      model: process.env.GENIUS_MODEL || DEFAULT_MODEL,
+      model: opts.model || process.env.GENIUS_MODEL || DEFAULT_MODEL,
       max_tokens: opts.maxTokens ?? 300,
       temperature: opts.temperature ?? 0.8,
       // cache the standing persona across calls (prompt caching) — impl detail

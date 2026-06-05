@@ -9,6 +9,18 @@ export interface Profile {
   place: string;
   natal: NatalChart;
   createdAt: string;
+  lat?: number;
+  lon?: number;
+}
+
+export interface CompleteRead {
+  signature: string;
+  chart: string;
+  pattern: string;
+  star: string;
+  yearAhead: string;
+  counsel: string;
+  generatedAt: string;
 }
 
 const KEY = {
@@ -16,6 +28,7 @@ const KEY = {
   star: "astrolabe.star",
   starLedger: "astrolabe.starLedger",
   messages: "astrolabe.messages",
+  read: "astrolabe.read",
 } as const;
 
 function read<T>(key: string, fallback: T): T {
@@ -66,6 +79,14 @@ export function recordStar(star: SealedStar): SealedStar[] {
   const next = [...existing, star].sort((a, b) => a.sealedAt.localeCompare(b.sealedAt));
   saveStarLedger(next);
   return next;
+}
+
+export function getRead(): CompleteRead | null {
+  return read<CompleteRead | null>(KEY.read, null);
+}
+
+export function saveRead(r: CompleteRead): void {
+  write(KEY.read, r);
 }
 
 export function resetAll(): void {

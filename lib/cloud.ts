@@ -6,7 +6,7 @@
 // failure leaves the app local-only.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Profile } from "./storage";
+import type { CompleteRead, Profile } from "./storage";
 import type { SealedStar } from "./star";
 import type { ChatMessage } from "./llm/types";
 
@@ -54,12 +54,19 @@ export async function pull(): Promise<CloudState | null> {
     const uid = await userId();
     if (!uid) return null;
     const [{ data: prof }, { data: st }, { data: ledgerRows }] = await Promise.all([
-      c.from("astrolabe_profiles").select("birth_iso, place, natal, created_at").eq("user_id", uid).maybeSingle(),
+      c.from("astrolabe_profiles").select("birth_iso, place, natal, created_at, lat, lon").eq("user_id", uid).maybeSingle(),
       c.from("astrolabe_stars").select("star").eq("user_id", uid).maybeSingle(),
       c.from("astrolabe_star_ledger").select("star").eq("user_id", uid).order("sealed_at", { ascending: true }),
     ]);
     const profile: Profile | null = prof
-      ? { birthISO: prof.birth_iso, place: prof.place ?? "", natal: prof.natal, createdAt: prof.created_at }
+      ? {
+          birthISO: prof.birth_iso,
+          place: prof.place ?? "",
+          natal: prof.natal,
+          createdAt: prof.created_at,
+          ...(prof.lat != null && { lat: prof.lat }),
+          ...(prof.lon != null && { lon: prof.lon }),
+        }
       : null;
     const star = (st?.star as SealedStar) ?? null;
     const ledger = Array.isArray(ledgerRows)
@@ -86,6 +93,8 @@ export async function push(profile: Profile | null, star: SealedStar | null): Pr
         place: profile.place,
         natal: profile.natal,
         created_at: profile.createdAt,
+        lat: profile.lat ?? null,
+        lon: profile.lon ?? null,
       });
     }
     if (star) {
@@ -113,6 +122,7 @@ export async function wipe(): Promise<void> {
     if (!uid) return;
     await Promise.all([
       c.from("astrolabe_messages").delete().eq("user_id", uid),
+      c.from("astrolabe_reads").delete().eq("user_id", uid),
       c.from("astrolabe_star_ledger").delete().eq("user_id", uid),
       c.from("astrolabe_stars").delete().eq("user_id", uid),
       c.from("astrolabe_profiles").delete().eq("user_id", uid),
@@ -141,6 +151,36 @@ export async function pullMessages(limit = 100): Promise<ChatMessage[] | null> {
       .map((row) => ({ role: row.role as ChatMessage["role"], content: row.content, createdAt: row.created_at }));
   } catch {
     return null;
+  }
+}
+
+/** Complete Read artifact. Returns null when unconfigured. */
+export async function pullRead(): Promise<CompleteRead | null> {
+  const c = getClient();
+  if (!c) return null;
+  try {
+    const uid = await userId();
+    if (!uid) return null;
+    const { data } = await c.from("astrolabe_reads").select("read").eq("user_id", uid).maybeSingle();
+    return (data?.read as CompleteRead) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function pushRead(r: CompleteRead): Promise<void> {
+  const c = getClient();
+  if (!c) return;
+  try {
+    const uid = await userId();
+    if (!uid) return;
+    await c.from("astrolabe_reads").upsert({
+      user_id: uid,
+      read: r,
+      created_at: r.generatedAt,
+    });
+  } catch {
+    /* stay local-only */
   }
 }
 

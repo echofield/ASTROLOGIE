@@ -11,6 +11,7 @@ export interface ChatMessage {
 export interface CompleteOptions {
   system: string;
   messages: ChatMessage[];
+  model?: string;
   maxTokens?: number;
   temperature?: number;
 }

@@ -31,3 +31,9 @@ input[type="range"] { height: 4px; }
 
 ::-webkit-scrollbar { display: none; }
 * { scrollbar-width: none; }
+
+@media print {
+  body * { visibility: hidden; }
+  #read-artifact, #read-artifact * { visibility: visible; }
+  #read-artifact { position: absolute; left: 0; top: 0; width: 100%; }
+}

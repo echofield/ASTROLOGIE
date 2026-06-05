@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
+import IntakeForm from "@/components/read/IntakeForm";
+import ReadArtifact from "@/components/read/ReadArtifact";
 import SkyWheel from "@/components/sky/SkyWheel";
 import PlanetMedallion from "@/components/sky/PlanetMedallion";
 import StarField from "@/components/sky/StarField";
@@ -11,6 +13,7 @@ import { NIGHT, DAY, type Palette, FD, FT, FG, FN } from "@/lib/theme";
 import {
   displaySky, signOf, degStr, shortPos, SIGN_NAME, PLANETS, PLANET_GLYPH, PLANET_NAME, type LonMap,
 } from "@/lib/chart";
+import { ascendant } from "@/lib/ascendant";
 import { natalChart } from "@/lib/sky";
 import { makeStar, reachOf, type SealedStar } from "@/lib/star";
 import { archetypeForStar, geniusLine, geniusPhase } from "@/lib/archetypes";
@@ -19,11 +22,12 @@ import {
 } from "@/lib/dialogue";
 import type { ChatMessage } from "@/lib/llm/types";
 import {
-  getProfile, saveProfile, getStar, saveStar, getStarLedger, saveStarLedger, recordStar, resetAll, type Profile,
+  getProfile, saveProfile, getStar, saveStar, getStarLedger, saveStarLedger, recordStar, resetAll,
+  getRead, saveRead, type Profile, type CompleteRead,
 } from "@/lib/storage";
-import { pull as cloudPull, push as cloudPush, wipe as cloudWipe } from "@/lib/cloud";
+import { pull as cloudPull, push as cloudPush, wipe as cloudWipe, pullRead as cloudPullRead, pushRead as cloudPushRead } from "@/lib/cloud";
 import {
-  DEFAULT_LANG, DISCLAIMER, LANG_LABEL, LEGAL_LINKS, PRODUCT_NAME, type Lang,
+  DEFAULT_LANG, DISCLAIMER, LANG_LABEL, LEGAL_LINKS, PRICING, PRODUCT_NAME, type Lang,
 } from "@/lib/brand";
 
 type Screen = "cabinet" | "theme" | "star" | "genius";
@@ -87,7 +91,32 @@ const COPY = {
       sealedAt: (time: string) => `sealed at ${time}`,
       undated: "undated",
     },
+    completeRead: {
+      cta: `The Complete Read — ${PRICING.offer}${PRICING.currency}`,
+    },
+    intake: {
+      cap: "Before your read",
+      title: "Three questions, in your own words.",
+      season: "What season of life are you in?",
+      repeating: "What keeps repeating?",
+      afraid: "What are you afraid to want?",
+      submit: "Generate my read",
+      generating: "Writing your read…",
+      error: "The read could not be generated. Try again shortly.",
+    },
+    read: {
+      signature: "Signature",
+      chart: "Chart",
+      pattern: "Pattern",
+      star: "Your star",
+      yearAhead: "Year ahead",
+      counsel: "Counsel",
+      savePdf: "Save as PDF",
+    },
     theme: {
+      bigThree: (sun: string, moon: string, rising?: string) =>
+        rising ? `Sun in ${sun} · Moon in ${moon} · Rising ${rising}` : `Sun in ${sun} · Moon in ${moon}`,
+      signNames: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
       touchSign: "Touch a sign for its constellation",
       bornUnder: "this is the sky you were born under.",
       read: {
@@ -185,7 +214,32 @@ const COPY = {
       sealedAt: (time: string) => `scellée à ${time}`,
       undated: "sans date",
     },
+    completeRead: {
+      cta: `La Lecture Complète — ${PRICING.offer}${PRICING.currency}`,
+    },
+    intake: {
+      cap: "Avant votre lecture",
+      title: "Trois questions, dans vos propres mots.",
+      season: "Dans quelle saison de vie êtes-vous ?",
+      repeating: "Qu'est-ce qui revient sans cesse ?",
+      afraid: "Qu'avez-vous peur de vouloir ?",
+      submit: "Générer ma lecture",
+      generating: "Rédaction de votre lecture…",
+      error: "La lecture n'a pas pu être générée. Réessayez dans un instant.",
+    },
+    read: {
+      signature: "Signature",
+      chart: "Thème",
+      pattern: "Motif",
+      star: "Votre étoile",
+      yearAhead: "L'année à venir",
+      counsel: "Conseil",
+      savePdf: "Enregistrer en PDF",
+    },
     theme: {
+      bigThree: (sun: string, moon: string, rising?: string) =>
+        rising ? `Soleil en ${sun} · Lune en ${moon} · Ascendant ${rising}` : `Soleil en ${sun} · Lune en ${moon}`,
+      signNames: ["Bélier", "Taureau", "Gémeaux", "Cancer", "Lion", "Vierge", "Balance", "Scorpion", "Sagittaire", "Capricorne", "Verseau", "Poissons"],
       touchSign: "Touchez un signe pour voir sa constellation",
       bornUnder: "voici le ciel sous lequel vous êtes né.",
       read: {
@@ -239,7 +293,10 @@ const COPY = {
   status: {
     kept: string; keptDetail: string; reached: string; reachedDetail: string; approaching: string; toGo: (gap: string) => string; sealed: string; sealedAt: (time: string) => string; undated: string;
   };
-  theme: { touchSign: string; bornUnder: string; read: Record<string, string> };
+  completeRead: { cta: string };
+  intake: Record<string, string>;
+  read: Record<string, string>;
+  theme: { bigThree: (sun: string, moon: string, rising?: string) => string; signNames: string[]; touchSign: string; bornUnder: string; read: Record<string, string> };
   star: Record<string, string>;
   genius: Record<string, string>;
   loading: string;
@@ -434,6 +491,7 @@ export default function Page() {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [star, setStar] = useState<SealedStar | null>(null);
+  const [read, setRead] = useState<CompleteRead | null>(null);
   const [night, setNight] = useState(true);
   const [lang, setLang] = useState<Lang>(DEFAULT_LANG);
   const [screen, setScreen] = useState<Screen>("cabinet");
@@ -454,6 +512,9 @@ export default function Page() {
   const [bday, setBday] = useState("");
   const [btime, setBtime] = useState("");
   const [bplace, setBplace] = useState("");
+  const [casting, setCasting] = useState(false);
+  const [intakeOpen, setIntakeOpen] = useState(false);
+  const [generatingRead, setGeneratingRead] = useState(false);
   const [gInput, setGInput] = useState("");
   const [gReply, setGReply] = useState<string | null>(null);
   const [gSending, setGSending] = useState(false);
@@ -470,10 +531,18 @@ export default function Page() {
       setProfile(getProfile());
       setStar(getStar());
       setLedger(getStarLedger());
+      const localRead = getRead();
+      if (localRead) setRead(localRead);
       setReady(true);
 
       const m = await loadMessages();
       if (alive) setMessages(m);
+
+      const remoteRead = await cloudPullRead();
+      if (alive && remoteRead) {
+        saveRead(remoteRead);
+        setRead(remoteRead);
+      }
 
       const remote = await cloudPull();
       if (!alive || !remote) return;
@@ -496,12 +565,25 @@ export default function Page() {
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    if (!ready || read) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("read") === "intake" && star) {
+      setIntakeOpen(true);
+      setScreen("cabinet");
+    }
+  }, [ready, read, star]);
+
   function changeLang(next: Lang) {
     setLang(next);
     try { window.localStorage.setItem("the-astrolab.lang", next); } catch {}
   }
 
   const natalLon = useMemo<LonMap | null>(() => (profile ? displaySky(new Date(profile.birthISO)) : null), [profile]);
+  const ascVal = useMemo<number | null>(() => {
+    if (!profile || profile.lat == null || profile.lon == null) return null;
+    return ascendant(new Date(profile.birthISO), profile.lat, profile.lon);
+  }, [profile]);
   const liveLon = useMemo<LonMap>(() => displaySky(date), [date]);
   const reach = useMemo(() => (star ? reachOf(star, date) : null), [star, date]);
   const fulfilled = !!star?.fulfilledAt;
@@ -516,12 +598,67 @@ export default function Page() {
   const onTab = (t: Screen) => { setScreen(t); setGReply(null); };
   const startSeal = () => { setRmust(""); setRname(""); setRstep(1); };
 
-  function castSky() {
-    if (!bday) return;
+  async function castSky() {
+    if (!bday || casting) return;
+    setCasting(true);
     const birthISO = `${bday}T${btime || "12:00"}`;
     const natal = natalChart(new Date(birthISO), birthISO);
-    const p: Profile = { birthISO, place: bplace.trim(), natal, createdAt: new Date().toISOString() };
-    saveProfile(p); setProfile(p); cloudPush(p, null); setScreen("theme");
+    let lat: number | undefined;
+    let lon: number | undefined;
+    const place = bplace.trim();
+    if (place) {
+      try {
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(place)}`);
+        if (res.ok) {
+          const geo = await res.json();
+          if (geo.lat != null && geo.lon != null) {
+            lat = geo.lat;
+            lon = geo.lon;
+          }
+        }
+      } catch { /* graceful — profile saves without coords */ }
+    }
+    const p: Profile = {
+      birthISO, place, natal, createdAt: new Date().toISOString(),
+      ...(lat != null && lon != null ? { lat, lon } : {}),
+    };
+    saveProfile(p); setProfile(p); void cloudPush(p, null); setScreen("theme");
+    setCasting(false);
+  }
+
+  async function generateRead(intake: { season: string; repeating: string; afraid: string }) {
+    if (!profile || !star || generatingRead) return;
+    setGeneratingRead(true);
+    try {
+      const res = await fetch("/api/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, intake, star }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(t.intake.error);
+        return;
+      }
+      const artifact: CompleteRead = {
+        signature: data.signature,
+        chart: data.chart,
+        pattern: data.pattern,
+        star: data.star,
+        yearAhead: data.yearAhead,
+        counsel: data.counsel,
+        generatedAt: data.generatedAt ?? new Date().toISOString(),
+      };
+      saveRead(artifact);
+      setRead(artifact);
+      void cloudPushRead(artifact);
+      setIntakeOpen(false);
+      setScreen("cabinet");
+    } catch {
+      alert(t.intake.error);
+    } finally {
+      setGeneratingRead(false);
+    }
   }
   function sealNow() {
     const s = makeStar(rmust, rname);
@@ -587,7 +724,7 @@ export default function Page() {
                 borderBottom: `1px solid ${pal.panelLine}`, color: pal.ink, fontFamily: FD, fontStyle: "italic", fontSize: 22, padding: "8px 2px", outline: "none" }} />
           </label>
         ))}
-        <div style={{ marginTop: 34 }}><Btn pal={pal} solid onClick={castSky} disabled={!bday}>{t.onboarding.cast}</Btn></div>
+        <div style={{ marginTop: 34 }}><Btn pal={pal} solid onClick={() => void castSky()} disabled={!bday || casting}>{casting ? "…" : t.onboarding.cast}</Btn></div>
       </div>
     );
     if (wide) {
@@ -616,6 +753,38 @@ export default function Page() {
       <Frame pal={pal} night={night} par={par} date={date} frameRef={frameRef} withTabs={false} withToggle onToggleNight={toggleNight} lang={lang} onLang={changeLang}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingBottom: 30 }}>{fields}</div>
       </Frame>
+    );
+  }
+
+  // ── intake overlay (Complete Read) ──
+  if (intakeOpen && profile && star && !read) {
+    return (
+      <div ref={frameRef} style={{ position: "relative", minHeight: "100svh", overflow: "hidden", background: pal.bg, color: pal.ink, fontFamily: FT, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+        <SkyBg pal={pal} night={night} par={par} />
+        <div style={{ position: "absolute", top: 24, right: 24, zIndex: 4, display: "flex", gap: 10 }}>
+          <ModeToggle night={night} onToggle={toggleNight} pal={pal} title={t.mode.toggle} />
+          <LangSwitch pal={pal} lang={lang} onLang={changeLang} />
+        </div>
+        <div style={{ position: "relative", zIndex: 2, width: "100%" }}>
+          <IntakeForm
+            pal={pal}
+            copy={{
+              cap: t.intake.cap,
+              title: t.intake.title,
+              season: t.intake.season,
+              repeating: t.intake.repeating,
+              afraid: t.intake.afraid,
+              submit: t.intake.submit,
+              generating: t.intake.generating,
+            }}
+            generating={generatingRead}
+            onSubmit={(answers) => void generateRead(answers)}
+          />
+        </div>
+        <div style={{ position: "absolute", left: 14, right: 14, bottom: 20, zIndex: 3 }}>
+          <LegalFooter pal={pal} lang={lang} compact />
+        </div>
+      </div>
     );
   }
 
@@ -662,6 +831,9 @@ export default function Page() {
               ))}
             </div>
             <div style={{ marginTop: 30 }}><Btn pal={pal} solid onClick={() => { setRstep(0); setRmust(""); setRname(""); setScreen("star"); }}>{t.ritual.enter}</Btn></div>
+            <div style={{ marginTop: 18 }}>
+              <Link href={`/checkout?lang=${lang}`} style={{ color: pal.brass, fontFamily: FT, fontSize: 13, textDecoration: "none", letterSpacing: 1 }}>{t.completeRead.cta}</Link>
+            </div>
           </div>
         )}
       </div>
@@ -695,8 +867,19 @@ export default function Page() {
       : `Moon ${shortPos(liveLon.moon)}. ${t.cabinet.moonSun} ${shortPos(liveLon.sun)}.`;
     const panel = { padding: "12px 14px", background: pal.panel, border: `1px solid ${pal.panelLine}`, borderRadius: 3 };
     visual = <SkyWheel pal={pal} size={wheelSize} bodies={liveSubset} highlight="moon" sealedLon={star?.lon} showArc={!!star} rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />;
+    const readSections = [
+      { key: "signature" as const, title: t.read.signature },
+      { key: "chart" as const, title: t.read.chart },
+      { key: "pattern" as const, title: t.read.pattern },
+      { key: "star" as const, title: t.read.star },
+      { key: "yearAhead" as const, title: t.read.yearAhead },
+      { key: "counsel" as const, title: t.read.counsel },
+    ];
     detail = (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {read && (
+          <ReadArtifact pal={pal} read={read} sections={readSections} savePdf={t.read.savePdf} />
+        )}
         <div>
           <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 28, color: pal.ink }}>{t.cabinet.todaySky}</div>
           <div style={{ fontFamily: FT, fontSize: 14.5, color: pal.inkSoft, marginTop: 4, lineHeight: 1.45 }}>{transit}</div>
@@ -751,15 +934,22 @@ export default function Page() {
           </div>
         </div>
         <div style={{ marginTop: 2 }}>
-          <button onClick={() => { if (confirm(t.cabinet.closeConfirm)) { resetAll(); void cloudWipe(); setMessages([]); setLedger([]); setProfile(null); setStar(null); setScreen("cabinet"); } }}
+          <button onClick={() => { if (confirm(t.cabinet.closeConfirm)) { resetAll(); void cloudWipe(); setMessages([]); setLedger([]); setProfile(null); setStar(null); setRead(null); setScreen("cabinet"); } }}
             style={{ background: "none", border: "none", color: pal.inkSoft, fontFamily: FN, fontSize: 11, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>{t.cabinet.close}</button>
         </div>
       </div>
     );
   } else if (screen === "theme" && natalLon) {
-    visual = <SkyWheel pal={pal} size={wheelSize} bodies={natalLon} highlight={sel} rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />;
+    const signs = t.theme.signNames;
+    const sunSign = signs[signOf(natalLon.sun)];
+    const moonSign = signs[signOf(natalLon.moon)];
+    const risingSign = ascVal != null ? signs[signOf(ascVal)] : undefined;
+    visual = <SkyWheel pal={pal} size={wheelSize} bodies={natalLon} asc={ascVal} houses={ascVal != null} highlight={sel} rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />;
     detail = (
       <div>
+        <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: wide ? 22 : 20, color: pal.ink, lineHeight: 1.35, marginBottom: 14, textAlign: wide ? "left" : "center" }}>
+          {t.theme.bigThree(sunSign, moonSign, risingSign)}
+        </div>
         <div style={{ display: "flex", justifyContent: wide ? "flex-start" : "center", gap: 2, flexWrap: "wrap", marginBottom: 10 }}>
           {PLANETS.map((p) => {
             const on = sel === p.key;

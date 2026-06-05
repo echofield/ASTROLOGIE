@@ -1,21 +1,32 @@
 import Link from "next/link";
 import { DISCLAIMER, LANG_LABEL, PRODUCT_NAME, type Lang } from "@/lib/brand";
 import { FD, FN, FT, NIGHT } from "@/lib/theme";
+import SuccessAccessForm from "./SuccessAccessForm";
 
 const COPY = {
   en: {
     cap: "Payment received",
     title: "Your sky is yours.",
-    body: "The Founding Pass is confirmed. Open the instrument: cast your sky, seal a star, and let the daily Genius keep you honest.",
+    body: "The Founding Pass is confirmed. Confirm the email you paid with to unlock your Complete Read.",
     cta: "Enter the instrument",
     note: "A receipt has been sent by Stripe. If access does not appear, it will be granted shortly.",
+    emailLabel: "Confirm the email you paid with",
+    emailPlaceholder: "you@example.com",
+    confirm: "Unlock my read",
+    denied: "No payment found for this email. Try again or contact support.",
+    skip: "Enter without the read →",
   },
   fr: {
     cap: "Paiement reçu",
     title: "Votre ciel est à vous.",
-    body: "Le Pass Fondateur est confirmé. Ouvrez l'instrument : tracez votre ciel, scellez une étoile, et laissez le Genius quotidien vous garder honnête.",
+    body: "Le Pass Fondateur est confirmé. Confirmez l'e-mail utilisé pour le paiement afin de débloquer votre Lecture Complète.",
     cta: "Entrer dans l'instrument",
     note: "Un reçu a été envoyé par Stripe. Si l'accès n'apparaît pas, il sera accordé sous peu.",
+    emailLabel: "Confirmez l'e-mail utilisé pour le paiement",
+    emailPlaceholder: "vous@exemple.com",
+    confirm: "Débloquer ma lecture",
+    denied: "Aucun paiement trouvé pour cet e-mail. Réessayez ou contactez le support.",
+    skip: "Entrer sans la lecture →",
   },
 } satisfies Record<Lang, Record<string, string>>;
 
@@ -37,7 +48,13 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
         <div style={{ fontFamily: FT, letterSpacing: 3, textTransform: "uppercase", fontSize: 11, color: pal.brass }}>{t.cap}</div>
         <h1 style={{ fontFamily: FD, fontStyle: "italic", fontSize: 44, lineHeight: 1.05, margin: "12px 0 16px", fontWeight: 500 }}>{t.title}</h1>
         <p style={{ color: pal.inkSoft, fontSize: 16, lineHeight: 1.6, margin: 0 }}>{t.body}</p>
-        <Link href="/" style={{ display: "inline-flex", marginTop: 26, padding: "14px 36px", borderRadius: 30, background: pal.accent, color: pal.btnInk, textDecoration: "none", fontFamily: FT, fontWeight: 500, letterSpacing: 3, textTransform: "uppercase", fontSize: 12 }}>{t.cta}</Link>
+        <SuccessAccessForm pal={pal} lang={lang} copy={{
+          emailLabel: t.emailLabel,
+          emailPlaceholder: t.emailPlaceholder,
+          confirm: t.confirm,
+          denied: t.denied,
+          skip: t.skip,
+        }} />
         <p style={{ color: pal.inkSoft, fontSize: 12, lineHeight: 1.5, margin: "22px 0 0" }}>{t.note}</p>
         <p style={{ color: pal.inkSoft, fontSize: 11, lineHeight: 1.5, margin: "10px 0 0", opacity: 0.7 }}>{DISCLAIMER[lang]} · {PRODUCT_NAME}</p>
       </div>
