@@ -74,3 +74,28 @@ Cabinet is currently the weak tab (repetition) **because it's the only one with 
 - New `/checkout` route documents the current payment-readiness state and repeats the entertainment/self-reflection disclaimer near purchase context.
 - Internal persistence names such as `astrolabe_profiles`, `astrolabe_messages`, and old Supabase migration filenames are intentionally unchanged to avoid a database-breaking rename.
 - Before commercial launch, complete the legal notice placeholders for publisher/operator identity, registered address, registration/VAT details if applicable, support email, and final processor/payment-provider terms.
+
+## Claude spec - 2026-06-05 — THE COMPLETE READ (the 59€ paid tier)
+Decision: the free instrument is the attraction; the Pass GATES one deep, generated,
+KEPT artifact — **The Complete Read**. CTA fires right after a star is sealed (peak intent).
+Build in this order. (Stripe/pricing already shipped: `lib/brand.ts` PRICING+PAYMENT_LINK,
+`/checkout`, `/success`, dormant `/api/stripe/webhook`, migration `0003_astrolabe_orders`.)
+
+1. **Geocoding → Ascendant/houses (depth foundation, ship dependency for the paid read).**
+   - Ascendant/MC math is DONE: `lib/ascendant.ts` (`ascendant`, `midheaven`, `equalHouses`, `meanObliquity`). VERIFY it against a known chart on first use (quadrant bug is classic).
+   - Add `/api/geocode` (server, nodejs): proxy Nominatim (`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=`) with a `User-Agent`; cache; bundle a top-~1000-cities JSON for instant offline hits + Nominatim fallback. Returns `{lat, lon, label}`.
+   - Onboarding city → geocode → store `lat`/`lon` on `Profile` (extend `lib/storage.ts` Profile; back-compat: optional fields). Pass `asc` + `houses` to `SkyWheel` (already supports both props).
+   - Theme leads with the **Big Three signature** `Sun · Moon · Rising` before the explorable wheel.
+
+2. **Intake (3 questions) — the deeper input.** After purchase, before generating: 3 open prompts ("What season are you in? What keeps repeating? What are you afraid to want?"). Store on the read request. Their words are what make it feel personal.
+
+3. **`/api/read` (gated, nodejs).** Input: profile + intake + sealed star. Server-computes: full chart (10 bodies via `lib/chart`), `asc`+equal houses, the 2–3 tightest natal aspects, and **year-ahead transits** (outer-planet + Jupiter/Saturn hits to natal points over 12 months, via `astronomy-engine`). Build ONE structured prompt; call **Claude Sonnet** (`getProvider` with model override; one call per purchase — cost trivial vs 59€); prompt-cache the method/system block. Return six sections as JSON:
+   `signature · chart · pattern · star · yearAhead · counsel`.
+
+4. **Persist + render.** New table `astrolabe_reads` (RLS owner). Render the Read in Cabinet as the centerpiece artifact (Celestial Night, long-form, sectioned). Re-viewable, owned.
+
+5. **Identity-lite gate (the only real new plumbing).** No login. Webhook already writes `astrolabe_orders{email, paid}`. On `/success`, user confirms the paid email → server checks `astrolabe_orders` → issues a signed access cookie (HMAC with a server secret) → unlocks `/api/read`. Magic-link email later if needed.
+
+6. **PDF export + share (fast-follow).** The keepsake + growth loop.
+
+Defaults (redirect only if wrong): Read model = Sonnet; daily Genius stays Haiku. Identity = paid-email match, not full auth. Free tier stays open and generous. Don't gate the free instrument — only the Complete Read.
