@@ -1,4 +1,4 @@
-# Astrolabe — Phase 3 rationale
+# The AstroLab — Phase 3 rationale
 
 > Direction: **less astrology, more meaning. Less coaching, more ritual. Less feature, more object permanence.**
 > This is a *personal celestial instrument* — Natal Sky × Moving Sky × Human Intention — not a horoscope/coaching app.
@@ -38,8 +38,8 @@ After the seal the overlay dissolves directly into the Genius, which **wakes** (
 | **Reading / Journal / Dialogue** | Dropped from the core loop (not deleted conceptually). | "Do not add screens; refine." These diluted the instrument into an app. They can return later as *the Genius speaking*, not as features. |
 | **Tab bar** | Hidden until a star exists; 4 items (Cabinet · Star · Genius · Theme). | Before necessity, there is nowhere to go. |
 
-## Conceptual room left for SYMIONE (not built)
-The seal is deliberately modelled as a **commitment object**, not a note. The `makeStar()` output is a self-contained artifact (words + derived celestial coordinates + timestamp). When ready, that artifact is the natural place to attach SYMIONE infrastructure: cryptographic sealing, proof-of-creation timestamp, verifiable milestone, ownership of a personal celestial object. Nothing here assumes a backend yet, but nothing blocks one.
+## Conceptual room left for the proof layer (not built)
+The seal is deliberately modelled as a **commitment object**, not a note. The `makeStar()` output is a self-contained artifact (words + derived celestial coordinates + timestamp). When ready, that artifact is the natural place to attach cryptographic sealing, proof-of-creation timestamp, verifiable milestone, and ownership of a personal celestial object. Nothing here assumes a backend yet, but nothing blocks one.
 
 ## Word count, deliberately
 If a screen could lose half its words, it did. The instrument should feel quiet, material, and a little withholding — so that naming a star costs something.

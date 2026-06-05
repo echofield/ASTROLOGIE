@@ -1,4 +1,4 @@
--- Astrolabe record layer: Genius journal + sealed-star ledger.
+-- The AstroLab record layer: Genius journal + sealed-star ledger.
 -- Anonymous sessions are authenticated users in Supabase, so RLS stays per-user.
 
 create table if not exists public.astrolabe_messages (

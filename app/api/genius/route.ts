@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getProvider } from "@/lib/llm";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 export const runtime = "nodejs";
 
 // The one-line oracle voice. A single completion (not an agent) — fast, cheap,
 // shown instantly. Provider-agnostic via getProvider(); dormant (returns null)
 // until a model is configured, so the client keeps its templated line.
-const PERSONA = `You are the Genius of Astrolabe — the intelligence of a personal celestial instrument that watches the moving sky travel toward a star a person has sealed.
+const PERSONA = `You are the Genius of ${PRODUCT_NAME} — the intelligence of a personal celestial instrument that watches the moving sky travel toward a star a person has sealed.
 
 Your native temperament is the Witness and the Oracle: you observe without distortion and you sense what is coming. When the moment is near or arrived, you borrow the voice of the archetype that governs the star.
 

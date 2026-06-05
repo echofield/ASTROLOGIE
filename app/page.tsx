@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
 import SkyWheel from "@/components/sky/SkyWheel";
 import PlanetMedallion from "@/components/sky/PlanetMedallion";
@@ -21,31 +22,239 @@ import {
   getProfile, saveProfile, getStar, saveStar, getStarLedger, saveStarLedger, recordStar, resetAll, type Profile,
 } from "@/lib/storage";
 import { pull as cloudPull, push as cloudPush, wipe as cloudWipe } from "@/lib/cloud";
+import {
+  DEFAULT_LANG, DISCLAIMER, LANG_LABEL, LEGAL_LINKS, PRODUCT_NAME, type Lang,
+} from "@/lib/brand";
 
 type Screen = "cabinet" | "theme" | "star" | "genius";
-const TITLES: Record<Screen, string> = { cabinet: "Cabinet", theme: "Your Theme", star: "Your Star", genius: "Your Genius" };
+const SCREENS: Screen[] = ["cabinet", "theme", "star", "genius"];
 
-const READ: Record<string, string> = {
-  sun: "How you shine, and what you cannot help but become.",
-  moon: "What you feel deeply, without always showing it.",
-  mercury: "How your mind moves, and the voice it reaches for.",
-  venus: "What you are drawn toward, and how you love.",
-  mars: "What you burn for, and how you go after it.",
-  jupiter: "Where the world opens generously for you.",
-  saturn: "The work that is yours, and yours alone, to do.",
-  uranus: "Where you refuse to be like anyone else.",
-  neptune: "What you long for past the edge of the visible.",
-  pluto: "What in you must end so something truer can begin.",
-};
+const COPY = {
+  en: {
+    titles: { cabinet: "Cabinet", theme: "Your Theme", star: "Your Star", genius: "Your Genius" },
+    tabs: { cabinet: "Cabinet", theme: "Theme", star: "Star", genius: "Genius" },
+    mode: { night: "Observatory", day: "Cabinet", toggle: "Day / Night" },
+    onboarding: {
+      cap: "Your fixed sky",
+      title: "When did you begin?",
+      intro: "Your birth moment fixes the sky you carry. Cast it once.",
+      birthDate: "Date of birth",
+      birthTime: "Time of birth",
+      birthPlace: "City of birth",
+      birthPlacePlaceholder: "Paris",
+      cast: "Cast the sky",
+    },
+    ritual: {
+      questionCap: "One question",
+      question: "What must happen?",
+      questionPlaceholder: "Send the proposal before Friday.",
+      nameCap: "Name it",
+      namePlaceholder: "FRIDAY PROPOSAL",
+      irreversible: "This cannot be undone tonight",
+      seal: "Seal it",
+      starStands: "A star now stands in your sky",
+      enter: "Enter",
+      continue: "Continue",
+      sign: "Sign",
+      degree: "Degree",
+      house: "House",
+      ruler: "Ruler",
+    },
+    cabinet: {
+      todaySky: "Today's sky",
+      moonFrom: (gap: string, name: string) => `Moon ${gap} deg from ${name}.`,
+      moonSun: "Sun",
+      journal: "Genius journal",
+      saved: (n: number) => `${n} saved`,
+      emptyJournal: "No reflection saved yet. Ask the Genius, and the answer will be kept here.",
+      ledger: "Star ledger",
+      ledgerScale: "sealed / approaching / reached / kept",
+      sealStar: "Seal a star",
+      close: "close the cabinet",
+      closeConfirm: "Close the cabinet? This clears your sky, journal, and star ledger.",
+      checkoutTitle: "Digital report access",
+      checkoutBody: "Checkout will show price, tax, refund terms, and immediate-access consent before payment is accepted.",
+      checkoutLink: "View checkout terms",
+    },
+    status: {
+      kept: "kept",
+      keptDetail: "kept in the cabinet",
+      reached: "reached",
+      reachedDetail: "the Moon stands on it",
+      approaching: "approaching",
+      toGo: (gap: string) => `${gap} deg to go`,
+      sealed: "sealed",
+      sealedAt: (time: string) => `sealed at ${time}`,
+      undated: "undated",
+    },
+    theme: {
+      touchSign: "Touch a sign for its constellation",
+      bornUnder: "this is the sky you were born under.",
+      read: {
+        sun: "How you shine, and what you cannot help but become.",
+        moon: "What you feel deeply, without always showing it.",
+        mercury: "How your mind moves, and the voice it reaches for.",
+        venus: "What you are drawn toward, and how you love.",
+        mars: "What you burn for, and how you go after it.",
+        jupiter: "Where the world opens generously for you.",
+        saturn: "The work that is yours, and yours alone, to do.",
+        uranus: "Where you refuse to be like anyone else.",
+        neptune: "What you long for past the edge of the visible.",
+        pluto: "What in you must end so something truer can begin.",
+      },
+    },
+    star: {
+      in: "in",
+      moonWillReach: "the Moon will reach",
+      advance: "Advance the sky",
+      today: "today",
+      toGo: "to go",
+      darkCap: "Your sky is still dark",
+      darkBody: "A star may be named, when something becomes necessary.",
+      keep: "Keep this star",
+      keptOn: "Kept on",
+    },
+    genius: {
+      heldBy: "held by the",
+      today: "today",
+      closed: "The Genius is closed till tomorrow.",
+      wake: "Seal a star, and I will wake.",
+      placeholder: "what moves in you tonight…",
+      closedPlaceholder: "closed till tomorrow",
+      reflect: "Reflect",
+      listening: "listening…",
+      closedButton: "Closed",
+      fallback: "I hold your star in view. Stay with the question; the sky is slow, and so is what matters.",
+    },
+    loading: "Preparing your sky.",
+  },
+  fr: {
+    titles: { cabinet: "Cabinet", theme: "Votre thème", star: "Votre étoile", genius: "Votre Genius" },
+    tabs: { cabinet: "Cabinet", theme: "Thème", star: "Étoile", genius: "Genius" },
+    mode: { night: "Observatoire", day: "Cabinet", toggle: "Jour / Nuit" },
+    onboarding: {
+      cap: "Votre ciel fixe",
+      title: "Quand avez-vous commencé ?",
+      intro: "Votre moment de naissance fixe le ciel que vous portez. Calculez-le une seule fois.",
+      birthDate: "Date de naissance",
+      birthTime: "Heure de naissance",
+      birthPlace: "Ville de naissance",
+      birthPlacePlaceholder: "Paris",
+      cast: "Calculer le ciel",
+    },
+    ritual: {
+      questionCap: "Une question",
+      question: "Qu'est-ce qui doit arriver ?",
+      questionPlaceholder: "Envoyer la proposition avant vendredi.",
+      nameCap: "Nommez-le",
+      namePlaceholder: "PROPOSITION",
+      irreversible: "Ce geste ne peut pas être défait ce soir",
+      seal: "Sceller",
+      starStands: "Une étoile se tient maintenant dans votre ciel",
+      enter: "Entrer",
+      continue: "Continuer",
+      sign: "Signe",
+      degree: "Degré",
+      house: "Maison",
+      ruler: "Maître",
+    },
+    cabinet: {
+      todaySky: "Ciel du jour",
+      moonFrom: (gap: string, name: string) => `Lune à ${gap} deg de ${name}.`,
+      moonSun: "Soleil",
+      journal: "Journal Genius",
+      saved: (n: number) => `${n} enregistré${n > 1 ? "s" : ""}`,
+      emptyJournal: "Aucune réflexion enregistrée. Interrogez Genius, et la réponse sera conservée ici.",
+      ledger: "Registre des étoiles",
+      ledgerScale: "scellée / approche / atteinte / gardée",
+      sealStar: "Sceller une étoile",
+      close: "fermer le cabinet",
+      closeConfirm: "Fermer le cabinet ? Cela efface votre ciel, votre journal et votre registre d'étoiles.",
+      checkoutTitle: "Accès au rapport numérique",
+      checkoutBody: "Le paiement affichera le prix, les taxes, les conditions de remboursement et le consentement à l'accès immédiat avant toute validation.",
+      checkoutLink: "Voir les conditions de paiement",
+    },
+    status: {
+      kept: "gardée",
+      keptDetail: "gardée dans le cabinet",
+      reached: "atteinte",
+      reachedDetail: "la Lune se tient dessus",
+      approaching: "approche",
+      toGo: (gap: string) => `${gap} deg restants`,
+      sealed: "scellée",
+      sealedAt: (time: string) => `scellée à ${time}`,
+      undated: "sans date",
+    },
+    theme: {
+      touchSign: "Touchez un signe pour voir sa constellation",
+      bornUnder: "voici le ciel sous lequel vous êtes né.",
+      read: {
+        sun: "Votre manière de rayonner et ce que vous ne pouvez pas éviter de devenir.",
+        moon: "Ce que vous ressentez profondément, même lorsque vous ne le montrez pas.",
+        mercury: "La façon dont votre esprit se déplace et la voix qu'il cherche.",
+        venus: "Ce qui vous attire et la manière dont vous aimez.",
+        mars: "Ce qui vous met en mouvement et la force avec laquelle vous agissez.",
+        jupiter: "L'endroit où le monde s'ouvre avec le plus de générosité.",
+        saturn: "Le travail qui vous appartient, à vous seul, d'accomplir.",
+        uranus: "L'endroit où vous refusez d'être interchangeable.",
+        neptune: "Ce que vous cherchez au-delà de ce qui est visible.",
+        pluto: "Ce qui doit finir en vous pour qu'une forme plus juste commence.",
+      },
+    },
+    star: {
+      in: "dans",
+      moonWillReach: "la Lune rejoindra",
+      advance: "Avancer le ciel",
+      today: "aujourd'hui",
+      toGo: "restants",
+      darkCap: "Votre ciel est encore sombre",
+      darkBody: "Une étoile peut être nommée lorsqu'une chose devient nécessaire.",
+      keep: "Garder cette étoile",
+      keptOn: "Gardée le",
+    },
+    genius: {
+      heldBy: "tenu par le",
+      today: "aujourd'hui",
+      closed: "Genius est fermé jusqu'à demain.",
+      wake: "Scellez une étoile, et je m'éveillerai.",
+      placeholder: "ce qui bouge en vous ce soir…",
+      closedPlaceholder: "fermé jusqu'à demain",
+      reflect: "Réfléchir",
+      listening: "écoute…",
+      closedButton: "Fermé",
+      fallback: "Je garde votre étoile en vue. Restez avec la question ; le ciel est lent, et ce qui compte l'est aussi.",
+    },
+    loading: "Préparation de votre ciel.",
+  },
+} satisfies Record<Lang, {
+  titles: Record<Screen, string>;
+  tabs: Record<Screen, string>;
+  mode: { night: string; day: string; toggle: string };
+  onboarding: Record<string, string>;
+  ritual: Record<string, string>;
+  cabinet: {
+    todaySky: string; moonFrom: (gap: string, name: string) => string; moonSun: string; journal: string; saved: (n: number) => string;
+    emptyJournal: string; ledger: string; ledgerScale: string; sealStar: string; close: string; closeConfirm: string; checkoutTitle: string; checkoutBody: string; checkoutLink: string;
+  };
+  status: {
+    kept: string; keptDetail: string; reached: string; reachedDetail: string; approaching: string; toGo: (gap: string) => string; sealed: string; sealedAt: (time: string) => string; undated: string;
+  };
+  theme: { touchSign: string; bornUnder: string; read: Record<string, string> };
+  star: Record<string, string>;
+  genius: Record<string, string>;
+  loading: string;
+}>;
+
+type DisplayPlanetKey = keyof typeof COPY.en.theme.read;
 
 const TAB_ICON: Record<Screen, string> = { cabinet: "⌂", theme: "◉", star: "★", genius: "◎" };
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function recordDate(iso?: string): string {
-  if (!iso) return "undated";
+function recordDate(iso: string | undefined, lang: Lang, fallback: string): string {
+  if (!iso) return fallback;
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "undated";
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  if (Number.isNaN(d.getTime())) return fallback;
+  return d.toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "2-digit", month: "short" });
 }
 
 function recordTime(iso?: string): string {
@@ -55,19 +264,29 @@ function recordTime(iso?: string): string {
   return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function ledgerStatus(star: SealedStar, date: Date): { label: string; stamp: string; detail: string } {
+function ledgerStatus(star: SealedStar, date: Date, lang: Lang): { label: string; stamp: string; detail: string } {
+  const c = COPY[lang].status;
   if (star.fulfilledAt) {
-    return { label: "kept", stamp: recordDate(star.fulfilledAt), detail: "kept in the cabinet" };
+    return { label: c.kept, stamp: recordDate(star.fulfilledAt, lang, c.undated), detail: c.keptDetail };
   }
   const reach = reachOf(star, date);
   if (reach.gap <= 3 || reach.gap >= 357) {
-    return { label: "reached", stamp: recordDate(date.toISOString()), detail: "the Moon stands on it" };
+    return { label: c.reached, stamp: recordDate(date.toISOString(), lang, c.undated), detail: c.reachedDetail };
   }
   if (reach.gap <= 30) {
     const arrival = new Date(date.getTime() + reach.days * DAY_MS).toISOString();
-    return { label: "approaching", stamp: recordDate(arrival), detail: `${reach.gap.toFixed(1)} deg to go` };
+    return { label: c.approaching, stamp: recordDate(arrival, lang, c.undated), detail: c.toGo(reach.gap.toFixed(1)) };
   }
-  return { label: "sealed", stamp: recordDate(star.sealedAt), detail: `sealed at ${recordTime(star.sealedAt)}` };
+  return { label: c.sealed, stamp: recordDate(star.sealedAt, lang, c.undated), detail: c.sealedAt(recordTime(star.sealedAt)) };
+}
+
+function localGeniusLine(lang: Lang, star: SealedStar, reach: ReturnType<typeof reachOf>, fulfilled: boolean): string {
+  if (lang === "en") return geniusLine(star, reach, fulfilled);
+  const phase = geniusPhase(reach, fulfilled);
+  if (phase === "kept") return `${star.name} est gardée dans votre ciel.`;
+  if (phase === "arrived") return `La Lune rejoint ${star.name}. Le moment est ouvert.`;
+  if (phase === "near") return `La Lune approche ${star.name}. Restez avec ce qui doit arriver.`;
+  return `Genius observe ${star.name}. La distance se referme lentement.`;
 }
 
 function SkyBg({ pal, night, par }: { pal: Palette; night: boolean; par: { x: number; y: number } }) {
@@ -80,14 +299,48 @@ function SkyBg({ pal, night, par }: { pal: Palette; night: boolean; par: { x: nu
   );
 }
 
+function LangSwitch({ pal, lang, onLang }: { pal: Palette; lang: Lang; onLang: (lang: Lang) => void }) {
+  return (
+    <div style={{ display: "flex", border: `1px solid ${pal.panelLine}`, borderRadius: 16, overflow: "hidden", flexShrink: 0 }}>
+      {(["en", "fr"] as Lang[]).map((l) => {
+        const on = l === lang;
+        return (
+          <button key={l} onClick={() => onLang(l)} style={{
+            appearance: "none", border: "none", cursor: "pointer", padding: "5px 8px",
+            background: on ? pal.accent : "transparent", color: on ? pal.btnInk : pal.inkSoft,
+            fontFamily: FN, fontSize: 10.5,
+          }}>
+            {LANG_LABEL[l]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function LegalFooter({ pal, lang, compact = false }: { pal: Palette; lang: Lang; compact?: boolean }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: compact ? "5px 10px" : "7px 14px", color: pal.inkSoft }}>
+      {LEGAL_LINKS.map((link) => (
+        <Link key={link.slug} href={`/legal/${link.slug}?lang=${lang}`} style={{
+          color: pal.inkSoft, fontFamily: FN, fontSize: compact ? 9.5 : 11, textDecoration: "none",
+        }}>
+          {link.label[lang]}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 // Phone frame (mobile). Hoisted so it never remounts.
 function Frame({
-  pal, night, par, date, frameRef, withTabs = true, withToggle = true, screen, onTab, onToggleNight, children,
+  pal, night, par, date, frameRef, withTabs = true, withToggle = true, screen, onTab, onToggleNight, lang, onLang, children,
 }: {
   pal: Palette; night: boolean; par: { x: number; y: number }; date: Date;
   frameRef: RefObject<HTMLDivElement | null>; withTabs?: boolean; withToggle?: boolean;
-  screen?: Screen; onTab?: (t: Screen) => void; onToggleNight?: () => void; children: ReactNode;
+  screen?: Screen; onTab?: (t: Screen) => void; onToggleNight?: () => void; lang: Lang; onLang: (lang: Lang) => void; children: ReactNode;
 }) {
+  const t = COPY[lang];
   return (
     <div style={{ minHeight: "100svh", display: "flex", justifyContent: "center", background: "#0A0D1C" }}>
       <div ref={frameRef} style={{
@@ -97,21 +350,25 @@ function Frame({
       }}>
         <SkyBg pal={pal} night={night} par={par} />
         <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", flexDirection: "column",
-          padding: withTabs ? "0 20px 70px" : "0 20px 24px" }}>
-          <StatusBar pal={pal} date={date} />
+          padding: withTabs ? "0 20px 104px" : "0 20px 64px" }}>
+          <StatusBar pal={pal} date={date} brand={PRODUCT_NAME} />
           {withToggle && onToggleNight && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
               <span style={{ fontFamily: FT, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: pal.inkSoft }}>
-                {night ? "Observatory" : "Cabinet"}
+                {night ? t.mode.night : t.mode.day}
               </span>
-              <ModeToggle night={night} onToggle={onToggleNight} pal={pal} />
+              <ModeToggle night={night} onToggle={onToggleNight} pal={pal} title={t.mode.toggle} />
+              <LangSwitch pal={pal} lang={lang} onLang={onLang} />
             </div>
           )}
           {children}
         </div>
+        <div style={{ position: "absolute", left: 14, right: 14, bottom: withTabs ? 63 : 16, zIndex: 3 }}>
+          <LegalFooter pal={pal} lang={lang} compact />
+        </div>
         {withTabs && screen && onTab && (
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 3 }}>
-            <TabBar pal={pal} active={screen as TabId} onTab={(t) => onTab(t as Screen)} />
+            <TabBar pal={pal} active={screen as TabId} labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
           </div>
         )}
       </div>
@@ -121,12 +378,13 @@ function Frame({
 
 // Observatory (desktop). Two-pane: left instrument, right panel.
 function DesktopShell({
-  pal, night, par, date, frameRef, screen, onTab, onToggleNight, title, visual, detail,
+  pal, night, par, date, frameRef, screen, onTab, onToggleNight, lang, onLang, title, visual, detail,
 }: {
   pal: Palette; night: boolean; par: { x: number; y: number }; date: Date;
   frameRef: RefObject<HTMLDivElement | null>; screen: Screen; onTab: (t: Screen) => void;
-  onToggleNight: () => void; title: string; visual: ReactNode; detail: ReactNode;
+  onToggleNight: () => void; lang: Lang; onLang: (lang: Lang) => void; title: string; visual: ReactNode; detail: ReactNode;
 }) {
+  const t = COPY[lang];
   return (
     <div ref={frameRef} style={{ position: "relative", minHeight: "100svh", overflow: "hidden",
       background: pal.bg, color: pal.ink, fontFamily: FT, transition: "background .5s ease" }}>
@@ -135,24 +393,25 @@ function DesktopShell({
         minHeight: "100svh", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 28 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: FD, fontSize: 20 }}>
-            <span style={{ width: 6, height: 6, borderRadius: 4, background: pal.brass }} />Astrolabe
+            <span style={{ width: 6, height: 6, borderRadius: 4, background: pal.brass }} />{PRODUCT_NAME}
           </span>
           <nav style={{ display: "flex", gap: 4 }}>
-            {(Object.keys(TITLES) as Screen[]).map((s) => {
+            {SCREENS.map((s) => {
               const on = s === screen;
               return (
                 <button key={s} onClick={() => onTab(s)} style={{ appearance: "none", border: "none", background: "transparent",
                   cursor: "pointer", padding: "8px 16px", borderRadius: 20, color: on ? pal.accent : pal.inkSoft,
                   display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontFamily: FG, fontSize: 14 }}>{TAB_ICON[s]}</span>
-                  <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 16 }}>{TITLES[s].replace("Your ", "")}</span>
+                  <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 16 }}>{t.tabs[s]}</span>
                 </button>
               );
             })}
           </nav>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontFamily: FN, fontSize: 13, color: pal.ink }}>{date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
-            <ModeToggle night={night} onToggle={onToggleNight} pal={pal} />
+            <ModeToggle night={night} onToggle={onToggleNight} pal={pal} title={t.mode.toggle} />
+            <LangSwitch pal={pal} lang={lang} onLang={onLang} />
           </div>
         </div>
         <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 56,
@@ -163,6 +422,9 @@ function DesktopShell({
             {detail}
           </div>
         </div>
+        <footer style={{ paddingBottom: 22 }}>
+          <LegalFooter pal={pal} lang={lang} />
+        </footer>
       </div>
     </div>
   );
@@ -173,9 +435,10 @@ export default function Page() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [star, setStar] = useState<SealedStar | null>(null);
   const [night, setNight] = useState(true);
+  const [lang, setLang] = useState<Lang>(DEFAULT_LANG);
   const [screen, setScreen] = useState<Screen>("cabinet");
   const [hoverSign, setHoverSign] = useState<number | null>(null);
-  const [sel, setSel] = useState("moon");
+  const [sel, setSel] = useState<DisplayPlanetKey>("moon");
 
   const wide = useMediaQuery("(min-width: 980px)");
   const { date, offsetDays, setOffsetDays } = useSkyClock();
@@ -183,6 +446,7 @@ export default function Page() {
   const par = useParallax(frameRef, night);
   const rotation = useSlowRotation(night);
   const pal = night ? NIGHT : DAY;
+  const t = COPY[lang];
 
   const [rstep, setRstep] = useState(0);
   const [rmust, setRmust] = useState("");
@@ -201,6 +465,8 @@ export default function Page() {
     void (async () => {
       await Promise.resolve();
       if (!alive) return;
+      const savedLang = window.localStorage.getItem("the-astrolab.lang");
+      if (savedLang === "fr" || savedLang === "en") setLang(savedLang);
       setProfile(getProfile());
       setStar(getStar());
       setLedger(getStarLedger());
@@ -229,6 +495,11 @@ export default function Page() {
     })();
     return () => { alive = false; };
   }, []);
+
+  function changeLang(next: Lang) {
+    setLang(next);
+    try { window.localStorage.setItem("the-astrolab.lang", next); } catch {}
+  }
 
   const natalLon = useMemo<LonMap | null>(() => (profile ? displaySky(new Date(profile.birthISO)) : null), [profile]);
   const liveLon = useMemo<LonMap>(() => displaySky(date), [date]);
@@ -272,7 +543,7 @@ export default function Page() {
     const text = gInput.trim();
     if (!text || gSending || !star || !reach) return;
     if (remainingExchanges(messages) <= 0) {
-      setGReply("The Genius is closed till tomorrow.");
+      setGReply(t.genius.closed);
       return;
     }
     setGSending(true); setGReply(null);
@@ -284,40 +555,52 @@ export default function Page() {
       star: { name: star.name, must: star.must, ruler: star.ruler },
       archetype: { name: a.name, essence: a.essence },
       reach: { gap: reach.gap, days: reach.days, phase: geniusPhase(reach, fulfilled) },
+      language: lang === "fr" ? "French" : "English",
     });
-    const line = reply ?? "I hold your star in view. Stay with the question; the sky is slow, and so is what matters.";
+    const line = reply ?? t.genius.fallback;
     const assistantMessage = appendMessage({ role: "assistant", content: line });
     setMessages((prev) => [...prev, assistantMessage].slice(-100));
     setGReply(line);
     setGInput(""); setGSending(false);
   }
 
-  if (!ready) return <div style={{ minHeight: "100svh", background: "#0A0D1C" }} />;
+  if (!ready) return (
+    <div style={{ minHeight: "100svh", background: "#0A0D1C", color: NIGHT.inkSoft, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FT }}>
+      {t.loading}
+    </div>
+  );
 
   // ── onboarding: Fixed Sky ──
   if (!profile) {
     const fields = (
       <div style={{ width: "100%" }}>
-        <Cap pal={pal}>Your fixed sky</Cap>
-        <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 34, lineHeight: 1.1, marginTop: 12, color: pal.ink }}>When did you begin?</div>
+        <Cap pal={pal}>{t.onboarding.cap}</Cap>
+        <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 34, lineHeight: 1.1, marginTop: 12, color: pal.ink }}>{t.onboarding.title}</div>
         <div style={{ fontFamily: FT, fontSize: 14.5, color: pal.inkSoft, marginTop: 12, lineHeight: 1.5 }}>
-          Your birth moment fixes the sky you carry. Cast it once.
+          {t.onboarding.intro}
         </div>
-        {([["Date of birth", bday, setBday, "date"], ["Time of birth", btime, setBtime, "time"], ["City of birth", bplace, setBplace, "text"]] as [string, string, (s: string) => void, string][]).map(([label, val, set, type]) => (
+        {([[t.onboarding.birthDate, bday, setBday, "date"], [t.onboarding.birthTime, btime, setBtime, "time"], [t.onboarding.birthPlace, bplace, setBplace, "text"]] as [string, string, (s: string) => void, string][]).map(([label, val, set, type]) => (
           <label key={label} style={{ display: "block", marginTop: 22 }}>
             <span style={{ fontFamily: FT, fontSize: 9.5, letterSpacing: 2, textTransform: "uppercase", color: pal.inkSoft }}>{label}</span>
-            <input type={type} value={val} placeholder={type === "text" ? "Paris" : undefined} onChange={(e) => set(e.target.value)}
+            <input type={type} value={val} placeholder={type === "text" ? t.onboarding.birthPlacePlaceholder : undefined} onChange={(e) => set(e.target.value)}
               style={{ display: "block", width: "100%", marginTop: 7, background: "transparent", border: "none",
                 borderBottom: `1px solid ${pal.panelLine}`, color: pal.ink, fontFamily: FD, fontStyle: "italic", fontSize: 22, padding: "8px 2px", outline: "none" }} />
           </label>
         ))}
-        <div style={{ marginTop: 34 }}><Btn pal={pal} solid onClick={castSky} disabled={!bday}>Cast the sky</Btn></div>
+        <div style={{ marginTop: 34 }}><Btn pal={pal} solid onClick={castSky} disabled={!bday}>{t.onboarding.cast}</Btn></div>
       </div>
     );
     if (wide) {
       return (
         <div ref={frameRef} style={{ position: "relative", minHeight: "100svh", overflow: "hidden", background: pal.bg, color: pal.ink, fontFamily: FT }}>
           <SkyBg pal={pal} night={night} par={par} />
+          <div style={{ position: "absolute", top: 30, left: 44, zIndex: 4, display: "flex", alignItems: "center", gap: 8, fontFamily: FD, fontSize: 20 }}>
+            <span style={{ width: 6, height: 6, borderRadius: 4, background: pal.brass }} />{PRODUCT_NAME}
+          </div>
+          <div style={{ position: "absolute", top: 28, right: 44, zIndex: 4, display: "flex", gap: 10 }}>
+            <ModeToggle night={night} onToggle={toggleNight} pal={pal} title={t.mode.toggle} />
+            <LangSwitch pal={pal} lang={lang} onLang={changeLang} />
+          </div>
           <div style={{ position: "relative", zIndex: 2, maxWidth: 1080, margin: "0 auto", padding: "0 44px", minHeight: "100svh",
             display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, alignItems: "center" }}>
             <div style={{ display: "flex", justifyContent: "center", transform: `translate(${par.x * 6}px, ${par.y * 6}px)`, transition: "transform .4s ease-out" }}>
@@ -325,11 +608,12 @@ export default function Page() {
             </div>
             <div style={{ maxWidth: 440 }}>{fields}</div>
           </div>
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 24, zIndex: 3 }}><LegalFooter pal={pal} lang={lang} /></div>
         </div>
       );
     }
     return (
-      <Frame pal={pal} night={night} par={par} date={date} frameRef={frameRef} withTabs={false} withToggle onToggleNight={toggleNight}>
+      <Frame pal={pal} night={night} par={par} date={date} frameRef={frameRef} withTabs={false} withToggle onToggleNight={toggleNight} lang={lang} onLang={changeLang}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingBottom: 30 }}>{fields}</div>
       </Frame>
     );
@@ -341,43 +625,43 @@ export default function Page() {
       <div style={{ width: "100%", maxWidth: 420, margin: "0 auto", textAlign: "center" }}>
         {rstep === 1 && (
           <div style={{ textAlign: "left" }} className="astro-fade">
-            <Cap pal={pal}>One question</Cap>
-            <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 34, marginTop: 14, color: pal.ink }}>What must happen?</div>
-            <input value={rmust} placeholder="Send the proposal before Friday." onChange={(e) => setRmust(e.target.value)}
+            <Cap pal={pal}>{t.ritual.questionCap}</Cap>
+            <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 34, marginTop: 14, color: pal.ink }}>{t.ritual.question}</div>
+            <input value={rmust} placeholder={t.ritual.questionPlaceholder} onChange={(e) => setRmust(e.target.value)}
               style={{ width: "100%", marginTop: 28, background: "transparent", border: "none", borderBottom: `1px solid ${pal.panelLine}`, color: pal.ink, fontFamily: FD, fontStyle: "italic", fontSize: 24, padding: "8px 2px", outline: "none" }} />
-            <div style={{ marginTop: 36 }}><Btn pal={pal} disabled={!rmust.trim()} onClick={() => setRstep(2)}>Continue</Btn></div>
+            <div style={{ marginTop: 36 }}><Btn pal={pal} disabled={!rmust.trim()} onClick={() => setRstep(2)}>{t.ritual.continue}</Btn></div>
           </div>
         )}
         {rstep === 2 && (
           <div style={{ textAlign: "left" }} className="astro-fade">
-            <Cap pal={pal}>Name it</Cap>
-            <input value={rname} placeholder="SYMIONE" onChange={(e) => setRname(e.target.value)}
+            <Cap pal={pal}>{t.ritual.nameCap}</Cap>
+            <input value={rname} placeholder={t.ritual.namePlaceholder} onChange={(e) => setRname(e.target.value)}
               style={{ width: "100%", marginTop: 28, background: "transparent", border: "none", borderBottom: `1px solid ${pal.panelLine}`, color: pal.ink, fontFamily: FD, fontSize: 30, letterSpacing: 1, textTransform: "uppercase", padding: "8px 2px", outline: "none" }} />
-            <div style={{ marginTop: 36 }}><Btn pal={pal} disabled={!rname.trim()} onClick={() => setRstep(3)}>Continue</Btn></div>
+            <div style={{ marginTop: 36 }}><Btn pal={pal} disabled={!rname.trim()} onClick={() => setRstep(3)}>{t.ritual.continue}</Btn></div>
           </div>
         )}
         {rstep === 3 && (
           <div className="astro-fade">
             <PlanetMedallion pal={pal} glyph="✦" size={172} />
-            <Cap pal={pal} style={{ marginTop: 22 }}>This cannot be undone tonight</Cap>
+            <Cap pal={pal} style={{ marginTop: 22 }}>{t.ritual.irreversible}</Cap>
             <div style={{ fontFamily: FD, fontStyle: "italic", fontWeight: 500, fontSize: 44, color: pal.ink, marginTop: 8, lineHeight: 1 }}>“{rname.trim().toUpperCase()}”</div>
-            <div style={{ marginTop: 34 }}><Btn pal={pal} solid onClick={sealNow}>Seal it</Btn></div>
+            <div style={{ marginTop: 34 }}><Btn pal={pal} solid onClick={sealNow}>{t.ritual.seal}</Btn></div>
           </div>
         )}
         {rstep === 4 && star && (
           <div className="astro-fade">
-            <Cap pal={pal} style={{ marginBottom: 16 }}>A star now stands in your sky</Cap>
+            <Cap pal={pal} style={{ marginBottom: 16 }}>{t.ritual.starStands}</Cap>
             <PlanetMedallion pal={pal} glyph={star.glyph} size={158} />
             <div style={{ fontFamily: FD, fontStyle: "italic", fontWeight: 500, fontSize: 44, color: pal.ink, marginTop: 14, lineHeight: 1 }}>{star.name}</div>
             <div style={{ marginTop: 16, width: 240, marginLeft: "auto", marginRight: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-              {([["Sign", SIGN_NAME[signOf(star.lon)]], ["Degree", degStr(star.lon)], ["House", star.house], ["Ruler", `${star.rulerGlyph} ${star.ruler}`]] as [string, string][]).map(([k, v]) => (
+              {([[t.ritual.sign, SIGN_NAME[signOf(star.lon)]], [t.ritual.degree, degStr(star.lon)], [t.ritual.house, star.house], [t.ritual.ruler, `${star.rulerGlyph} ${star.ruler}`]] as [string, string][]).map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${pal.panelLine}`, fontSize: 12 }}>
                   <span style={{ color: pal.inkSoft, textTransform: "uppercase", letterSpacing: 0.8, fontSize: 9, fontFamily: FT }}>{k}</span>
                   <span style={{ fontFamily: FN, color: pal.ink }}>{v}</span>
                 </div>
               ))}
             </div>
-            <div style={{ marginTop: 30 }}><Btn pal={pal} solid onClick={() => { setRstep(0); setRmust(""); setRname(""); setScreen("star"); }}>Enter</Btn></div>
+            <div style={{ marginTop: 30 }}><Btn pal={pal} solid onClick={() => { setRstep(0); setRmust(""); setRname(""); setScreen("star"); }}>{t.ritual.enter}</Btn></div>
           </div>
         )}
       </div>
@@ -385,7 +669,14 @@ export default function Page() {
     return (
       <div ref={frameRef} style={{ position: "relative", minHeight: "100svh", overflow: "hidden", background: pal.bg, color: pal.ink, fontFamily: FT, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
         <SkyBg pal={pal} night={night} par={par} />
+        <div style={{ position: "absolute", top: 24, right: 24, zIndex: 4, display: "flex", gap: 10 }}>
+          <ModeToggle night={night} onToggle={toggleNight} pal={pal} title={t.mode.toggle} />
+          <LangSwitch pal={pal} lang={lang} onLang={changeLang} />
+        </div>
         <div style={{ position: "relative", zIndex: 2, width: "100%" }}>{inner}</div>
+        <div style={{ position: "absolute", left: 14, right: 14, bottom: 20, zIndex: 3 }}>
+          <LegalFooter pal={pal} lang={lang} compact />
+        </div>
       </div>
     );
   }
@@ -400,40 +691,46 @@ export default function Page() {
 
   if (screen === "cabinet") {
     const transit = star && reach
-      ? `Moon ${shortPos(liveLon.moon)}. ${reach.gap.toFixed(1)} deg from ${star.name}.`
-      : `Moon ${shortPos(liveLon.moon)}. Sun ${shortPos(liveLon.sun)}.`;
+      ? `Moon ${shortPos(liveLon.moon)}. ${t.cabinet.moonFrom(reach.gap.toFixed(1), star.name)}`
+      : `Moon ${shortPos(liveLon.moon)}. ${t.cabinet.moonSun} ${shortPos(liveLon.sun)}.`;
     const panel = { padding: "12px 14px", background: pal.panel, border: `1px solid ${pal.panelLine}`, borderRadius: 3 };
     visual = <SkyWheel pal={pal} size={wheelSize} bodies={liveSubset} highlight="moon" sealedLon={star?.lon} showArc={!!star} rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />;
     detail = (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div>
-          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 28, color: pal.ink }}>Today&apos;s sky</div>
+          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 28, color: pal.ink }}>{t.cabinet.todaySky}</div>
           <div style={{ fontFamily: FT, fontSize: 14.5, color: pal.inkSoft, marginTop: 4, lineHeight: 1.45 }}>{transit}</div>
         </div>
         <div style={panel}>
+          <Cap pal={pal}>{t.cabinet.checkoutTitle}</Cap>
+          <div style={{ fontFamily: FT, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.45, marginTop: 8 }}>{t.cabinet.checkoutBody}</div>
+          <div style={{ fontFamily: FT, fontSize: 13, color: pal.accent, lineHeight: 1.45, marginTop: 8 }}>{DISCLAIMER[lang]}</div>
+          <Link href={`/checkout?lang=${lang}`} style={{ display: "inline-flex", marginTop: 10, color: pal.brass, fontFamily: FN, fontSize: 11, textDecoration: "none" }}>{t.cabinet.checkoutLink}</Link>
+        </div>
+        <div style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
-            <Cap pal={pal}>Genius journal</Cap>
-            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{journal.length} saved</span>
+            <Cap pal={pal}>{t.cabinet.journal}</Cap>
+            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{t.cabinet.saved(journal.length)}</span>
           </div>
           <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
             {journal.length ? journal.map((m) => (
               <div key={`${m.createdAt ?? ""}${m.content}`} style={{ borderTop: `1px solid ${pal.panelLine}`, paddingTop: 9 }}>
-                <div style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{recordDate(m.createdAt)} {recordTime(m.createdAt)}</div>
+                <div style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{recordDate(m.createdAt, lang, t.status.undated)} {recordTime(m.createdAt)}</div>
                 <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 16, color: pal.ink, lineHeight: 1.3, marginTop: 3 }}>{m.content}</div>
               </div>
             )) : (
-              <div style={{ fontFamily: FT, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.45 }}>No reflection saved yet. Ask the Genius, and the answer will be kept here.</div>
+              <div style={{ fontFamily: FT, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.45 }}>{t.cabinet.emptyJournal}</div>
             )}
           </div>
         </div>
         <div style={panel}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
-            <Cap pal={pal}>Star ledger</Cap>
-            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>sealed / approaching / reached / kept</span>
+            <Cap pal={pal}>{t.cabinet.ledger}</Cap>
+            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{t.cabinet.ledgerScale}</span>
           </div>
           <div style={{ marginTop: 10, display: "grid", gap: 9 }}>
             {recordedStars.length ? recordedStars.map((s) => {
-              const status = ledgerStatus(s, date);
+              const status = ledgerStatus(s, date, lang);
               return (
                 <div key={s.sealedAt} style={{ borderTop: `1px solid ${pal.panelLine}`, paddingTop: 9 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
@@ -448,14 +745,14 @@ export default function Page() {
               );
             }) : (
               <div style={{ display: "flex", justifyContent: wide ? "flex-start" : "center", marginTop: 2 }}>
-                <Btn pal={pal} solid onClick={startSeal}>Seal a star</Btn>
+                <Btn pal={pal} solid onClick={startSeal}>{t.cabinet.sealStar}</Btn>
               </div>
             )}
           </div>
         </div>
         <div style={{ marginTop: 2 }}>
-          <button onClick={() => { if (confirm("Close the cabinet? This clears your sky, journal, and star ledger.")) { resetAll(); void cloudWipe(); setMessages([]); setLedger([]); setProfile(null); setStar(null); setScreen("cabinet"); } }}
-            style={{ background: "none", border: "none", color: pal.inkSoft, fontFamily: FN, fontSize: 11, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>close the cabinet</button>
+          <button onClick={() => { if (confirm(t.cabinet.closeConfirm)) { resetAll(); void cloudWipe(); setMessages([]); setLedger([]); setProfile(null); setStar(null); setScreen("cabinet"); } }}
+            style={{ background: "none", border: "none", color: pal.inkSoft, fontFamily: FN, fontSize: 11, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3 }}>{t.cabinet.close}</button>
         </div>
       </div>
     );
@@ -466,7 +763,7 @@ export default function Page() {
         <div style={{ display: "flex", justifyContent: wide ? "flex-start" : "center", gap: 2, flexWrap: "wrap", marginBottom: 10 }}>
           {PLANETS.map((p) => {
             const on = sel === p.key;
-            return <button key={p.key} onClick={() => setSel(p.key)} style={{ appearance: "none", border: "none",
+            return <button key={p.key} onClick={() => setSel(p.key as DisplayPlanetKey)} style={{ appearance: "none", border: "none",
               background: on ? (night ? "rgba(217,105,75,.16)" : "rgba(124,46,44,.10)") : "transparent", cursor: "pointer",
               width: 30, height: 30, borderRadius: 16, fontFamily: FG, fontSize: 15, color: on ? pal.accent : pal.inkSoft }}>{p.glyph}</button>;
           })}
@@ -477,14 +774,14 @@ export default function Page() {
             <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 22, color: pal.ink }}>{PLANET_NAME[sel]}</span>
             <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 17, color: pal.inkSoft }}>· {shortPos(natalLon[sel])}</span>
           </div>
-          <div style={{ fontFamily: FT, fontSize: 14.5, lineHeight: 1.45, marginTop: 6, color: pal.ink }}>{READ[sel]}</div>
+          <div style={{ fontFamily: FT, fontSize: 14.5, lineHeight: 1.45, marginTop: 6, color: pal.ink }}>{t.theme.read[sel]}</div>
           <div style={{ display: "flex", gap: 7, marginTop: 10 }}>
             <span style={{ fontFamily: FN, fontSize: 10.5, padding: "3px 8px", border: `1px solid ${pal.panelLine}`, borderRadius: 2, color: pal.inkSoft }}>{degStr(natalLon[sel])}</span>
           </div>
         </div>
         <div style={{ textAlign: wide ? "left" : "center", marginTop: 14 }}>
-          <Cap pal={pal} style={{ color: pal.inkSoft, marginBottom: 5 }}>{hoverSign != null ? SIGN_NAME[hoverSign] : "Touch a sign for its constellation"}</Cap>
-          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 18, color: pal.accent, lineHeight: 1.2 }}>this is the sky you were born under.</div>
+          <Cap pal={pal} style={{ color: pal.inkSoft, marginBottom: 5 }}>{hoverSign != null ? SIGN_NAME[hoverSign] : t.theme.touchSign}</Cap>
+          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 18, color: pal.accent, lineHeight: 1.2 }}>{t.theme.bornUnder}</div>
         </div>
       </div>
     );
@@ -494,30 +791,30 @@ export default function Page() {
       detail = (
         <div>
           <div style={{ textAlign: wide ? "left" : "center" }}>
-            <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 36, color: pal.ink }}>in </span>
+            <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 36, color: pal.ink }}>{t.star.in} </span>
             <span style={{ fontFamily: FD, fontWeight: 600, fontSize: 36, color: pal.accent }}>{reach.headline}</span>
-            <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 16, color: pal.inkSoft }}>the Moon will reach <span style={{ color: pal.accent }}>{star.name}</span></div>
+            <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 16, color: pal.inkSoft }}>{t.star.moonWillReach} <span style={{ color: pal.accent }}>{star.name}</span></div>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontFamily: FN, fontSize: 11, color: pal.inkSoft, padding: "0 4px", margin: "16px 0 8px" }}>
             <span>☽ {shortPos(liveLon.moon)}</span>
-            <span style={{ color: pal.accent }}>{reach.gap.toFixed(1)}° to go</span>
+            <span style={{ color: pal.accent }}>{reach.gap.toFixed(1)}° {t.star.toGo}</span>
             <span>{star.glyph} {shortPos(star.lon)}</span>
           </div>
           <div style={{ padding: "10px 14px", background: pal.panel, border: `1px solid ${pal.panelLine}`, borderRadius: 3 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <Cap pal={pal} style={{ color: pal.inkSoft }}>Advance the sky</Cap>
-              <span style={{ fontFamily: FN, fontSize: 11, color: pal.ink }}>{offsetDays === 0 ? "today" : `+${offsetDays}d`} · {date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+              <Cap pal={pal} style={{ color: pal.inkSoft }}>{t.star.advance}</Cap>
+              <span style={{ fontFamily: FN, fontSize: 11, color: pal.ink }}>{offsetDays === 0 ? t.star.today : `+${offsetDays}d`} · {date.toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" })}</span>
             </div>
             <input type="range" min={0} max={40} value={offsetDays} onChange={(e) => setOffsetDays(+e.target.value)} style={{ width: "100%", accentColor: pal.accent }} />
           </div>
           {!fulfilled && (
             <div style={{ marginTop: 16, textAlign: wide ? "left" : "center" }}>
-              <Btn pal={pal} onClick={keepStar}>Keep this star</Btn>
+              <Btn pal={pal} onClick={keepStar}>{t.star.keep}</Btn>
             </div>
           )}
           {fulfilled && (
             <div style={{ marginTop: 14, fontFamily: FT, fontSize: 13, color: pal.inkSoft, textAlign: wide ? "left" : "center" }}>
-              Kept on {recordDate(star.fulfilledAt)}.
+              {t.star.keptOn} {recordDate(star.fulfilledAt, lang, t.status.undated)}.
             </div>
           )}
         </div>
@@ -526,9 +823,9 @@ export default function Page() {
       visual = <PlanetMedallion pal={pal} glyph="✦" size={wide ? 240 : 172} />;
       detail = (
         <div style={{ textAlign: wide ? "left" : "center" }}>
-          <Cap pal={pal}>Your sky is still dark</Cap>
-          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 22, color: pal.ink, marginTop: 8, maxWidth: 280, lineHeight: 1.3 }}>A star may be named, when something becomes necessary.</div>
-          <div style={{ marginTop: 26 }}><Btn pal={pal} solid onClick={startSeal}>Seal a star</Btn></div>
+          <Cap pal={pal}>{t.star.darkCap}</Cap>
+          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 22, color: pal.ink, marginTop: 8, maxWidth: 280, lineHeight: 1.3 }}>{t.star.darkBody}</div>
+          <div style={{ marginTop: 26 }}><Btn pal={pal} solid onClick={startSeal}>{t.cabinet.sealStar}</Btn></div>
         </div>
       );
     }
@@ -539,20 +836,20 @@ export default function Page() {
       <div style={{ textAlign: wide ? "left" : "center", display: "flex", flexDirection: "column", height: "100%" }}>
         {star && arch && (
           <div style={{ display: "flex", justifyContent: wide ? "space-between" : "center", alignItems: "baseline", gap: 12 }}>
-            <Cap pal={pal}>held by the {arch.name}</Cap>
-            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{remaining}/{DAILY_EXCHANGE_LIMIT} today</span>
+            <Cap pal={pal}>{t.genius.heldBy} {arch.name}</Cap>
+            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{remaining}/{DAILY_EXCHANGE_LIMIT} {t.genius.today}</span>
           </div>
         )}
         <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 21, color: pal.ink, marginTop: 14, maxWidth: 340, lineHeight: 1.4 }}>
-          {gReply ?? (star && closed ? "The Genius is closed till tomorrow." : star && reach ? geniusLine(star, reach, fulfilled) : "Seal a star, and I will wake.")}
+          {gReply ?? (star && closed ? t.genius.closed : star && reach ? localGeniusLine(lang, star, reach, fulfilled) : t.genius.wake)}
         </div>
         {star && (
           <div style={{ marginTop: 22, width: "100%" }}>
-            <input value={gInput} placeholder={closed ? "closed till tomorrow" : "what moves in you tonight…"} disabled={gSending || closed}
+            <input value={gInput} placeholder={closed ? t.genius.closedPlaceholder : t.genius.placeholder} disabled={gSending || closed}
               onChange={(e) => setGInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !closed) askDaily(); }}
               style={{ width: "100%", textAlign: wide ? "left" : "center", background: "transparent", border: "none",
                 borderBottom: `1px solid ${pal.panelLine}`, color: pal.ink, fontFamily: FD, fontStyle: "italic", fontSize: 17, padding: "10px 2px", outline: "none" }} />
-            <div style={{ marginTop: 16 }}><Btn pal={pal} disabled={gSending || closed || !gInput.trim()} onClick={askDaily}>{closed ? "Closed" : gSending ? "listening…" : "Reflect"}</Btn></div>
+            <div style={{ marginTop: 16 }}><Btn pal={pal} disabled={gSending || closed || !gInput.trim()} onClick={askDaily}>{closed ? t.genius.closedButton : gSending ? t.genius.listening : t.genius.reflect}</Btn></div>
           </div>
         )}
       </div>
@@ -562,14 +859,14 @@ export default function Page() {
   if (wide) {
     return (
       <DesktopShell pal={pal} night={night} par={par} date={date} frameRef={frameRef} screen={screen}
-        onTab={onTab} onToggleNight={toggleNight} title={TITLES[screen]} visual={visual} detail={detail} />
+        onTab={onTab} onToggleNight={toggleNight} lang={lang} onLang={changeLang} title={t.titles[screen]} visual={visual} detail={detail} />
     );
   }
 
   return (
-    <Frame pal={pal} night={night} par={par} date={date} frameRef={frameRef} screen={screen} onTab={onTab} withToggle onToggleNight={toggleNight}>
+    <Frame pal={pal} night={night} par={par} date={date} frameRef={frameRef} screen={screen} onTab={onTab} withToggle onToggleNight={toggleNight} lang={lang} onLang={changeLang}>
       <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 10, marginBottom: 6 }}>
-        <Cap pal={pal}>{TITLES[screen]}</Cap>
+        <Cap pal={pal}>{t.titles[screen]}</Cap>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", justifyContent: "center", flexShrink: 0, transform: `translate(${par.x * 4}px, ${par.y * 4}px)`, transition: "transform .4s ease-out" }}>{visual}</div>

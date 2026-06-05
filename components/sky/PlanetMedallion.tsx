@@ -4,7 +4,7 @@ import { useId } from "react";
 import type { Palette } from "@/lib/theme";
 import { GlyphText } from "./primitives";
 
-// Astrolabe-style medallion — light + orbit + engraving. The sealed-star hero
+// AstroLab-style medallion — light + orbit + engraving. The sealed-star hero
 // (replaces the brown sphere). The glyph is a label on the orbit, not an object.
 export default function PlanetMedallion({
   pal, glyph = "♂", size = 200,

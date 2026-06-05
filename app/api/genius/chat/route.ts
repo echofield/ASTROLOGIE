@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProvider } from "@/lib/llm";
 import type { ChatMessage } from "@/lib/llm/types";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ const MAX_HISTORY = 40;
 // it is given the person's sky (sealed star, natal context, the governing
 // archetype) plus the running conversation, and replies in character. Memory
 // (the history) lives in the caller's Supabase; this route is stateless.
-const PERSONA = `You are the Genius of Astrolabe — the intelligence of a personal celestial instrument, in quiet dialogue with the person who woke you.
+const PERSONA = `You are the Genius of ${PRODUCT_NAME} — the intelligence of a personal celestial instrument, in quiet dialogue with the person who woke you.
 
 Your native temperament is the Witness and the Oracle: you observe without distortion and sense what is coming. You know this person's fixed sky and the star they have sealed, and you borrow the voice of the archetype that governs that star.
 
@@ -30,6 +31,7 @@ interface Body {
   archetype?: { name: string; essence: string };
   natal?: string; // a short human summary of the natal sky
   reach?: { gap: number; days: number; phase: string };
+  language?: "English" | "French";
 }
 
 const dev = process.env.NODE_ENV !== "production";
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { history, star, archetype, natal, reach }: Body = await req.json();
+    const { history, star, archetype, natal, reach, language = "English" }: Body = await req.json();
     if (!Array.isArray(history) || history.length === 0) {
       return NextResponse.json({ reply: null });
     }
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
 
     const reply = (
       await provider.complete({
-        system: `${PERSONA}\n\n${context}`,
+        system: `${PERSONA}\n\n${context}- Reply in ${language}.`,
         maxTokens: 300,
         temperature: 0.85,
         messages: trimmed.slice(-16), // recent turns

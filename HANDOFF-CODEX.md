@@ -1,10 +1,11 @@
-# Astrolabe — handoff to Codex
+# The AstroLab — handoff to Codex
 
-Continuity brief. Astrolabe is a personal celestial instrument (Next.js 16, React 19,
+Continuity brief. The AstroLab is a personal celestial instrument (Next.js 16, React 19,
 TS) — and, by design, a **commitment instrument disguised as an astrology app**:
 Theme says *who*, Star says *what*, Genius keeps you *honest* daily, Cabinet *proves*
 you did it. Repo: `github.com/echofield/ASTROLOGIE` (push to `main` → Vercel project
-`astrologie` auto-deploys). Local: `C:\Users\echof\Desktop\02_PROJECTS\lodestar`.
+`astrologie`, legacy infra name, auto-deploys). Public domain: `https://the-astrolab.app`.
+Local: `C:\Users\echof\Desktop\02_PROJECTS\lodestar`.
 
 ## Hard rules
 - **No new product sections.** Four surfaces only: Cabinet, Theme, Star, Genius. Refine; do not expand mythology.
@@ -51,7 +52,7 @@ Cabinet is currently the weak tab (repetition) **because it's the only one with 
 2. **Genius 3/day → journal.** Cap to 3 exchanges/day (localStorage + cloud count), then "closed till tomorrow." Each exchange saved to the journal. Caps Claude cost too.
 3. **Geocoding → Ascendant → houses + Big-Three Theme.** Onboarding city → lat/long (bundle a city list or a free geocode at onboarding only). Compute Ascendant (sidereal time + obliquity). Then: `SkyWheel` gets real `asc`+`houses`, and **Theme leads with the signature `Sun · Moon · Rising`** before the explorable wheel. This single unlock fixes both personalization and the houses gap.
 4. **Theme interpretations** — currently generic (`READ` map in `page.tsx`). Make them specific/psychologically sharp ("how did it know that"); optionally Claude-generated per placement.
-5. **Proof of doing (SYMIONE wedge — Sprint 3, leave seam now).** `fulfilledAt` + optional evidence; phase 1 = DB-immutable timestamps; phase 2 = content-hash verifiable commitment + a public shareable "constellation" reputation page.
+5. **Proof of doing (Sprint 3, leave seam now).** `fulfilledAt` + optional evidence; phase 1 = DB-immutable timestamps; phase 2 = content-hash verifiable commitment + a public shareable "constellation" reputation page.
 6. **French localization** — native/literary, not translation. Externalize strings; FR likely default (francophone-first market).
 7. **Desktop polish** — the two-pane works; refine per-screen spacing/hierarchy, and consider the living sky scale on wide.
 
@@ -65,3 +66,11 @@ Cabinet is currently the weak tab (repetition) **because it's the only one with 
 - Current star restore is now local-first, then cloud-backed; cloud hydration is sequenced to avoid racing anonymous sign-in.
 - Verification on this slice: `npx tsc --noEmit`, `npm run lint` (one existing font warning only), `npm run build`, and `next start` smoke on port 3100 returned HTTP 200.
 - Next priority is now item 3: geocoding -> Ascendant -> houses + Big-Three Theme.
+
+## Codex update - 2026-06-05 branding/legal
+- Public product name is now **The AstroLab** with `https://the-astrolab.app` as canonical metadata/domain.
+- English/French copy now lives in `app/page.tsx` for the main shell, onboarding, checkout notice, result/report surfaces, Genius states, loading, and errors. Language preference is stored as `the-astrolab.lang`.
+- New legal routes: `/legal/privacy`, `/legal/terms`, `/legal/refund`, `/legal/notice`, each supporting `?lang=en|fr`. Footer legal links point to these pages.
+- New `/checkout` route documents the current payment-readiness state and repeats the entertainment/self-reflection disclaimer near purchase context.
+- Internal persistence names such as `astrolabe_profiles`, `astrolabe_messages`, and old Supabase migration filenames are intentionally unchanged to avoid a database-breaking rename.
+- Before commercial launch, complete the legal notice placeholders for publisher/operator identity, registered address, registration/VAT details if applicable, support email, and final processor/payment-provider terms.

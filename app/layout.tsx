@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Spectral } from "next/font/google";
+import { PRODUCT_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const display = Cormorant_Garamond({
@@ -18,9 +19,16 @@ const text = Spectral({
 });
 
 export const metadata: Metadata = {
-  title: "Astrolabe",
+  title: PRODUCT_NAME,
   description:
-    "A personal celestial instrument. Cast your sky, seal a star, and watch the moving heavens travel toward it.",
+    "Personalized digital entertainment and self-reflection reports based on your sky, intentions, and daily record.",
+  metadataBase: new URL("https://the-astrolab.app"),
+  openGraph: {
+    title: PRODUCT_NAME,
+    description: "Personalized digital entertainment and self-reflection reports.",
+    url: "https://the-astrolab.app",
+    siteName: PRODUCT_NAME,
+  },
 };
 
 export const viewport: Viewport = {

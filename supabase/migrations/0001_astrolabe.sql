@@ -1,4 +1,4 @@
--- Astrolabe persistence: one profile and one sacred star per (anonymous) user.
+-- The AstroLab persistence: one profile and one sacred star per (anonymous) user.
 -- Requires "Anonymous sign-ins" enabled in the project's Auth settings.
 
 create table if not exists public.astrolabe_profiles (

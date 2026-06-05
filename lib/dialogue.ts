@@ -82,6 +82,7 @@ export interface GeniusContext {
   archetype?: { name: string; essence: string };
   natal?: string;
   reach?: { gap: number; days: number; phase: string };
+  language?: "English" | "French";
 }
 
 /** Ask the Genius. Returns its reply, or null if the model is dormant/offline. */

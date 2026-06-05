@@ -26,22 +26,22 @@ export function Btn({ pal, children, solid, onClick, disabled, style }: {
   );
 }
 
-export function StatusBar({ pal, date }: { pal: Palette; date: Date }) {
+export function StatusBar({ pal, date, brand = "The AstroLab" }: { pal: Palette; date: Date; brand?: string }) {
   const t = date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 14,
       fontSize: 13, color: pal.ink, flexShrink: 0 }}>
       <span style={{ fontFamily: FN, fontVariantNumeric: "tabular-nums" }}>{t}</span>
       <span style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: FD, fontSize: 15 }}>
-        <span style={{ width: 6, height: 6, borderRadius: 4, background: pal.brass }} />Astrolabe
+        <span style={{ width: 6, height: 6, borderRadius: 4, background: pal.brass }} />{brand}
       </span>
     </div>
   );
 }
 
-export function ModeToggle({ night, onToggle, pal }: { night: boolean; onToggle: () => void; pal: Palette }) {
+export function ModeToggle({ night, onToggle, pal, title = "Day / Night" }: { night: boolean; onToggle: () => void; pal: Palette; title?: string }) {
   return (
-    <button onClick={onToggle} title="Day / Night" style={{
+    <button onClick={onToggle} title={title} style={{
       appearance: "none", cursor: "pointer", width: 52, height: 28, borderRadius: 16,
       border: `1px solid ${pal.panelLine}`, background: pal.panel, position: "relative", flexShrink: 0,
     }}>
@@ -55,10 +55,12 @@ export function ModeToggle({ night, onToggle, pal }: { night: boolean; onToggle:
 
 export type TabId = "cabinet" | "theme" | "star" | "genius";
 
-export function TabBar({ pal, active, onTab }: { pal: Palette; active: TabId; onTab: (t: TabId) => void }) {
+export function TabBar({ pal, active, labels, onTab }: {
+  pal: Palette; active: TabId; labels?: Record<TabId, string>; onTab: (t: TabId) => void;
+}) {
   const tabs: [TabId, string, string][] = [
-    ["cabinet", "⌂", "Cabinet"], ["theme", "◉", "Theme"],
-    ["star", "★", "Star"], ["genius", "◎", "Genius"],
+    ["cabinet", "⌂", labels?.cabinet ?? "Cabinet"], ["theme", "◉", labels?.theme ?? "Theme"],
+    ["star", "★", labels?.star ?? "Star"], ["genius", "◎", labels?.genius ?? "Genius"],
   ];
   return (
     <div style={{ display: "flex", borderTop: `1px solid ${pal.panelLine}`,
