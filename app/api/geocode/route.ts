@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lookupCity } from "@/lib/cities";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,10 @@ export async function GET(req: Request) {
   const q = new URL(req.url).searchParams.get("q")?.trim();
   if (!q) return NextResponse.json({ error: "missing query" }, { status: 400 });
 
+  // 1) bundled common cities — instant, never depends on a third party
+  const bundled = lookupCity(q);
+  if (bundled) return NextResponse.json({ lat: bundled.lat, lon: bundled.lon, label: bundled.label });
+
   const key = q.toLowerCase();
   const hit = CACHE.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) {
@@ -18,7 +23,7 @@ export async function GET(req: Request) {
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
     const res = await fetch(url, {
-      headers: { "User-Agent": "the-astrolab/1.0" },
+      headers: { "User-Agent": "the-astrolab/1.0 (contact: hello@the-astrolab.app)" },
       next: { revalidate: 3600 },
     });
     if (!res.ok) return NextResponse.json({ error: "geocode failed" }, { status: 502 });

@@ -47,3 +47,8 @@ export function midheaven(date: Date, lonDeg: number): number {
 export function equalHouses(asc: number): number[] {
   return Array.from({ length: 12 }, (_, i) => norm360(asc + i * 30));
 }
+
+/** The equal house (1..12) a longitude falls into, given the Ascendant. */
+export function houseOf(lon: number, asc: number): number {
+  return Math.floor(norm360(lon - asc) / 30) + 1;
+}

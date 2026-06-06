@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ascendant, equalHouses, midheaven } from "@/lib/ascendant";
+import { ascendant, equalHouses, houseOf, midheaven } from "@/lib/ascendant";
 import { archetypeForStar } from "@/lib/archetypes";
 import { ACCESS_COOKIE, readOpen, verifyAccess } from "@/lib/access";
 import { displaySky, signOf, SIGN_NAME } from "@/lib/chart";
@@ -84,8 +84,13 @@ export async function POST(req: Request) {
       birth: profile.birthISO,
       place: profile.place,
       natal: Object.fromEntries(
-        Object.entries(natal).map(([k, v]) => [k, { lon: v, sign: SIGN_NAME[signOf(v)] }]),
+        Object.entries(natal).map(([k, v]) => [k, {
+          lon: v, sign: SIGN_NAME[signOf(v)],
+          ...(asc != null ? { house: houseOf(v, asc) } : {}),
+        }]),
       ),
+      // houses only exist when we have a real Ascendant — never fabricate one
+      hasHouses: asc != null,
       asc: asc != null ? { lon: asc, sign: SIGN_NAME[signOf(asc)] } : null,
       mc: mc != null ? { lon: mc, sign: SIGN_NAME[signOf(mc)] } : null,
       houses,
@@ -97,7 +102,8 @@ export async function POST(req: Request) {
         must: star.must,
         lon: star.lon,
         sign: SIGN_NAME[signOf(star.lon)],
-        house: star.house,
+        // real house from the real Ascendant, or null — no fabricated house
+        house: asc != null ? houseOf(star.lon, asc) : null,
         resonance: star.resonance,
         sealedAt: star.sealedAt,
       },

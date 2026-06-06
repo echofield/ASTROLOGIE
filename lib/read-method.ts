@@ -8,6 +8,8 @@ Each section is 2–4 dense paragraphs. Name real placements (signs, houses, asp
 but always translate them into the person's lived experience — the chart explains the human, never
 the other way round. Use their intake answers and the words they sealed; let them feel seen.
 
+Use only the data given. If hasHouses is false (or a house field is null), no birth time/place was usable — do NOT mention houses or invent one for any planet or the star; lean on signs and aspects instead, and you may note the rising is unknown. Never state a house that is not in the data.
+
 Return ONLY a JSON object with these six markdown-string keys:
 - signature: who they are, from Sun (core), Moon (inner), Rising (how they meet the world), woven into one portrait.
 - chart: the 2–3 defining placements/aspects, read psychologically — the tension that drives them.
