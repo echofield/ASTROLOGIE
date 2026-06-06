@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
 import IntakeForm from "@/components/read/IntakeForm";
 import ReadArtifact from "@/components/read/ReadArtifact";
+import CastingScreen from "@/components/read/CastingScreen";
+import ReadCeremony from "@/components/read/ReadCeremony";
 import SkyWheel from "@/components/sky/SkyWheel";
 import PlanetMedallion from "@/components/sky/PlanetMedallion";
 import StarField from "@/components/sky/StarField";
@@ -66,7 +68,7 @@ const COPY = {
     },
     cabinet: {
       todaySky: "Today's sky",
-      moonFrom: (gap: string, name: string) => `Moon ${gap} deg from ${name}.`,
+      moonFrom: (headline: string, name: string) => `${name} draws closer — ${headline} away.`,
       moonSun: "Sun",
       journal: "Genius journal",
       saved: (n: number) => `${n} saved`,
@@ -189,7 +191,7 @@ const COPY = {
     },
     cabinet: {
       todaySky: "Ciel du jour",
-      moonFrom: (gap: string, name: string) => `Lune à ${gap} deg de ${name}.`,
+      moonFrom: (headline: string, name: string) => `${name} se rapproche — encore ${headline}.`,
       moonSun: "Soleil",
       journal: "Journal Genius",
       saved: (n: number) => `${n} enregistré${n > 1 ? "s" : ""}`,
@@ -515,6 +517,7 @@ export default function Page() {
   const [casting, setCasting] = useState(false);
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [generatingRead, setGeneratingRead] = useState(false);
+  const [ceremony, setCeremony] = useState(false);
   const [gInput, setGInput] = useState("");
   const [gReply, setGReply] = useState<string | null>(null);
   const [gSending, setGSending] = useState(false);
@@ -653,7 +656,7 @@ export default function Page() {
       setRead(artifact);
       void cloudPushRead(artifact);
       setIntakeOpen(false);
-      setScreen("cabinet");
+      setCeremony(true); // first viewing = the arrival ceremony, then it settles into the Cabinet
     } catch {
       alert(t.intake.error);
     } finally {
@@ -766,23 +769,60 @@ export default function Page() {
           <LangSwitch pal={pal} lang={lang} onLang={changeLang} />
         </div>
         <div style={{ position: "relative", zIndex: 2, width: "100%" }}>
-          <IntakeForm
-            pal={pal}
-            copy={{
-              cap: t.intake.cap,
-              title: t.intake.title,
-              season: t.intake.season,
-              repeating: t.intake.repeating,
-              afraid: t.intake.afraid,
-              submit: t.intake.submit,
-              generating: t.intake.generating,
-            }}
-            generating={generatingRead}
-            onSubmit={(answers) => void generateRead(answers)}
-          />
+          {generatingRead ? (
+            <CastingScreen pal={pal} par={par}
+              cap={lang === "fr" ? "On trace ton ciel" : "Casting your sky"}
+              lines={lang === "fr"
+                ? ["On lit le ciel de ta naissance…", "On aligne le ciel mobile…", "On mesure la Lune face à ton étoile…", "On laisse le Genius trouver les mots…"]
+                : ["Reading the sky you were born under…", "Aligning the moving heavens…", "Measuring the Moon against your star…", "Letting the Genius find the words…"]} />
+          ) : (
+            <IntakeForm
+              pal={pal}
+              copy={{
+                cap: t.intake.cap,
+                title: t.intake.title,
+                season: t.intake.season,
+                repeating: t.intake.repeating,
+                afraid: t.intake.afraid,
+                submit: t.intake.submit,
+                generating: t.intake.generating,
+              }}
+              generating={generatingRead}
+              onSubmit={(answers) => void generateRead(answers)}
+            />
+          )}
         </div>
         <div style={{ position: "absolute", left: 14, right: 14, bottom: 20, zIndex: 3 }}>
           <LegalFooter pal={pal} lang={lang} compact />
+        </div>
+      </div>
+    );
+  }
+
+  // ── arrival ceremony (first viewing of the read; then it settles into the Cabinet) ──
+  if (ceremony && read && profile) {
+    const order: (keyof CompleteRead)[] = ["signature", "chart", "pattern", "star", "yearAhead", "counsel"];
+    const ceremonySections = order
+      .map((k) => ({ title: (t.read as Record<string, string>)[k], body: read[k] as string }))
+      .filter((s) => typeof s.body === "string" && s.body);
+    return (
+      <div ref={frameRef} style={{ position: "relative", minHeight: "100svh", overflow: "hidden", background: pal.bg, color: pal.ink, fontFamily: FT, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
+        <SkyBg pal={pal} night={night} par={par} />
+        <div style={{ position: "absolute", top: 24, right: 24, zIndex: 4 }}>
+          <ModeToggle night={night} onToggle={toggleNight} pal={pal} title={t.mode.toggle} />
+        </div>
+        <div style={{ position: "relative", zIndex: 2, width: "100%" }}>
+          <ReadCeremony
+            pal={pal}
+            sections={ceremonySections}
+            labels={{
+              cap: lang === "fr" ? "Ta lecture" : "Your reading",
+              continue: lang === "fr" ? "Continuer" : "Continue",
+              keep: lang === "fr" ? "Garder dans le Cabinet" : "Keep it",
+              of: (a, b) => (lang === "fr" ? `${a} sur ${b}` : `${a} of ${b}`),
+            }}
+            onDone={() => { setCeremony(false); setScreen("cabinet"); }}
+          />
         </div>
       </div>
     );
@@ -863,7 +903,7 @@ export default function Page() {
 
   if (screen === "cabinet") {
     const transit = star && reach
-      ? `Moon ${shortPos(liveLon.moon)}. ${t.cabinet.moonFrom(reach.gap.toFixed(1), star.name)}`
+      ? `Moon ${shortPos(liveLon.moon)}. ${t.cabinet.moonFrom(reach.headline, star.name)}`
       : `Moon ${shortPos(liveLon.moon)}. ${t.cabinet.moonSun} ${shortPos(liveLon.sun)}.`;
     const panel = { padding: "12px 14px", background: pal.panel, border: `1px solid ${pal.panelLine}`, borderRadius: 3 };
     visual = <SkyWheel pal={pal} size={wheelSize} bodies={liveSubset} highlight="moon" sealedLon={star?.lon} showArc={!!star} rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />;

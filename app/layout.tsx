@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Spectral } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { PRODUCT_NAME } from "@/lib/brand";
 import "./globals.css";
 
@@ -50,7 +51,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${display.variable} ${text.variable}`}>{children}</body>
+      <body className={`${display.variable} ${text.variable}`}>{children}<Analytics /></body>
     </html>
   );
 }
