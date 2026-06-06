@@ -1,0 +1,1998 @@
+{
+  "_provenance": {
+    "stars": "HYG v4.1 (CC BY-SA-4.0), astronexus/HYG-Database hyg/CURRENT/hygdata_v41.csv, retrieved 2026-06-07; pinned via scripts/cache/hyg-zodiac.csv. Every ra/dec/mag is the catalog value; design seed only identified the star (nearest ≤0.25°, or HIP override).",
+    "lines": "Stellarium 'modern' sky culture (GPL-2.0+), skycultures/modern/index.json, retrieved 2026-06-07; pinned via scripts/cache/zodiac-lines.json. Figures are Stellarium HIP polylines joined to catalog stars by HIP.",
+    "copy": "Sigils, plate numbers, and editorial copy lifted from the Claude Design seed.",
+    "generated": "2026-06-06"
+  },
+  "signs": {
+    "aries": {
+      "abbr": "Ari",
+      "plate": "Plate I / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M3,40 C3,4 -26,10 -30,-24 C-32,-44 -52,-40 -47,-18",
+          "M-3,40 C-3,4 26,10 30,-24 C32,-44 52,-40 47,-18"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>I</b> · Cardinal Fire",
+        "name": "The Forge of<em>First Fire</em>",
+        "tagline": "Where the year is struck into being.",
+        "attr": "Courage <span class=\"sep\">·</span> Ignition <span class=\"sep\">·</span> Beginning",
+        "lede": "The first territory, where the wheel catches and turns over — the raw spark before form, before doubt, before the long elaboration of everything that follows.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Aries</b> — the Ram</span><span>441 sq. degrees</span><span>α Hamal · the Ram’s Brow</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "hamal",
+          "ra": 2.1196,
+          "dec": 23.4624,
+          "mag": 2.01,
+          "hip": 9884
+        },
+        {
+          "id": "sheratan",
+          "ra": 1.9107,
+          "dec": 20.808,
+          "mag": 2.64,
+          "hip": 8903
+        },
+        {
+          "id": "mesarthim",
+          "ra": 1.8922,
+          "dec": 19.2939,
+          "mag": 3.88,
+          "hip": 8832
+        },
+        {
+          "id": "b41",
+          "ra": 2.8331,
+          "dec": 27.2605,
+          "mag": 3.61,
+          "hip": 13209
+        },
+        {
+          "id": "delta",
+          "ra": 3.1938,
+          "dec": 19.7267,
+          "mag": 4.35,
+          "faint": true,
+          "hip": 14838
+        },
+        {
+          "id": "epsilon",
+          "ra": 2.9869,
+          "dec": 21.3404,
+          "mag": 4.63,
+          "faint": true,
+          "hip": 13914
+        }
+      ],
+      "lines": [
+        [
+          "b41",
+          "hamal"
+        ],
+        [
+          "hamal",
+          "sheratan"
+        ],
+        [
+          "sheratan",
+          "mesarthim"
+        ]
+      ]
+    },
+    "taurus": {
+      "abbr": "Tau",
+      "plate": "Plate II / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M0,20 m-24,0 a24,24 0 1,0 48,0 a24,24 0 1,0 -48,0",
+          "M-30,-12 C-22,-40 22,-40 30,-12"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>II</b> · Fixed Earth",
+        "name": "The Standing<em>Field</em>",
+        "tagline": "Where nothing is hurried and nothing is lost.",
+        "attr": "Patience <span class=\"sep\">·</span> Devotion <span class=\"sep\">·</span> Abundance",
+        "lede": "The second territory, where the spark of the first hardens into ground — the slow, rooted wealth of a thing that simply refuses to be rushed.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Taurus</b> — the Bull</span><span>797 sq. degrees</span><span>α Aldebaran · the Eye</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "aldebaran",
+          "ra": 4.5987,
+          "dec": 16.5093,
+          "mag": 0.87,
+          "hip": 21421
+        },
+        {
+          "id": "elnath",
+          "ra": 5.4382,
+          "dec": 28.6075,
+          "mag": 1.65,
+          "hip": 25428
+        },
+        {
+          "id": "zeta",
+          "ra": 5.6274,
+          "dec": 21.1425,
+          "mag": 2.97,
+          "hip": 26451
+        },
+        {
+          "id": "theta2",
+          "ra": 4.4777,
+          "dec": 15.8709,
+          "mag": 3.4,
+          "hip": 20894
+        },
+        {
+          "id": "gamma",
+          "ra": 4.3299,
+          "dec": 15.6276,
+          "mag": 3.65,
+          "hip": 20205
+        },
+        {
+          "id": "delta",
+          "ra": 4.3822,
+          "dec": 17.5425,
+          "mag": 3.77,
+          "hip": 20455
+        },
+        {
+          "id": "epsilon",
+          "ra": 4.4769,
+          "dec": 19.1804,
+          "mag": 3.53,
+          "hip": 20889
+        },
+        {
+          "id": "lambda",
+          "ra": 4.0113,
+          "dec": 12.4903,
+          "mag": 3.41,
+          "hip": 18724
+        },
+        {
+          "id": "xi",
+          "ra": 3.4528,
+          "dec": 9.7327,
+          "mag": 3.73,
+          "hip": 16083
+        },
+        {
+          "id": "omicron",
+          "ra": 3.4136,
+          "dec": 9.0289,
+          "mag": 3.61,
+          "hip": 15900
+        },
+        {
+          "id": "hip21881",
+          "ra": 4.7041,
+          "dec": 22.9569,
+          "mag": 4.27,
+          "hip": 21881
+        },
+        {
+          "id": "hip20648",
+          "ra": 4.4248,
+          "dec": 17.9279,
+          "mag": 4.3,
+          "hip": 20648
+        },
+        {
+          "id": "atlas",
+          "ra": 3.8194,
+          "dec": 24.0534,
+          "mag": 3.62,
+          "hip": 17847
+        }
+      ],
+      "lines": [
+        [
+          "elnath",
+          "hip21881"
+        ],
+        [
+          "hip21881",
+          "epsilon"
+        ],
+        [
+          "aldebaran",
+          "zeta"
+        ],
+        [
+          "gamma",
+          "delta"
+        ],
+        [
+          "gamma",
+          "lambda"
+        ],
+        [
+          "lambda",
+          "omicron"
+        ],
+        [
+          "aldebaran",
+          "epsilon"
+        ],
+        [
+          "aldebaran",
+          "theta2"
+        ],
+        [
+          "theta2",
+          "gamma"
+        ],
+        [
+          "epsilon",
+          "hip20648"
+        ],
+        [
+          "hip20648",
+          "delta"
+        ],
+        [
+          "delta",
+          "atlas"
+        ]
+      ]
+    },
+    "gemini": {
+      "abbr": "Gem",
+      "plate": "Plate III / XII",
+      "sigil": {
+        "k": 1.12,
+        "paths": [
+          "M-30,-56 L-30,56",
+          "M30,-56 L30,56",
+          "M-44,-50 C-20,-64 20,-64 44,-50",
+          "M-44,50 C-20,64 20,64 44,50"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>III</b> · Mutable Air",
+        "name": "The Hall of<em>Two Lights</em>",
+        "tagline": "Where every answer arrives already twinned.",
+        "attr": "Curiosity <span class=\"sep\">·</span> Exchange <span class=\"sep\">·</span> Duality",
+        "lede": "The third territory, where the single self first discovers it is two — and learns that nothing true can be said only once, or from only one side.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Gemini</b> — the Twins</span><span>514 sq. degrees</span><span>α Castor · β Pollux</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "castor",
+          "ra": 7.5768,
+          "dec": 31.8905,
+          "mag": 2.85,
+          "hip": 0
+        },
+        {
+          "id": "pollux",
+          "ra": 7.7553,
+          "dec": 28.0262,
+          "mag": 1.16,
+          "hip": 37826
+        },
+        {
+          "id": "alhena",
+          "ra": 6.6285,
+          "dec": 16.3993,
+          "mag": 1.93,
+          "hip": 31681
+        },
+        {
+          "id": "wasat",
+          "ra": 7.3354,
+          "dec": 21.9823,
+          "mag": 3.5,
+          "hip": 35550
+        },
+        {
+          "id": "mebsuta",
+          "ra": 6.7322,
+          "dec": 25.1311,
+          "mag": 3.06,
+          "hip": 32246
+        },
+        {
+          "id": "mekbuda",
+          "ra": 7.0685,
+          "dec": 20.5703,
+          "mag": 4.01,
+          "hip": 34088
+        },
+        {
+          "id": "tejat",
+          "ra": 6.3827,
+          "dec": 22.5136,
+          "mag": 2.87,
+          "hip": 30343
+        },
+        {
+          "id": "propus",
+          "ra": 6.248,
+          "dec": 22.5068,
+          "mag": 3.31,
+          "hip": 29655
+        },
+        {
+          "id": "alzirr",
+          "ra": 6.7548,
+          "dec": 12.8956,
+          "mag": 3.35,
+          "hip": 32362
+        },
+        {
+          "id": "kappa",
+          "ra": 7.7408,
+          "dec": 24.398,
+          "mag": 3.57,
+          "hip": 37740
+        },
+        {
+          "id": "theta",
+          "ra": 6.8798,
+          "dec": 33.9613,
+          "mag": 3.6,
+          "hip": 33018
+        },
+        {
+          "id": "iota",
+          "ra": 7.4288,
+          "dec": 27.7981,
+          "mag": 3.78,
+          "hip": 36046
+        },
+        {
+          "id": "tau",
+          "ra": 7.1857,
+          "dec": 30.2452,
+          "mag": 4.41,
+          "hip": 34693
+        },
+        {
+          "id": "lambda",
+          "ra": 7.3015,
+          "dec": 16.5404,
+          "mag": 3.58,
+          "hip": 35350
+        },
+        {
+          "id": "nu",
+          "ra": 6.4827,
+          "dec": 20.2121,
+          "mag": 4.13,
+          "hip": 30883
+        },
+        {
+          "id": "hip36962",
+          "ra": 7.5987,
+          "dec": 26.8957,
+          "mag": 4.06,
+          "hip": 36962
+        },
+        {
+          "id": "castor",
+          "ra": 7.5766,
+          "dec": 31.8883,
+          "mag": 1.58,
+          "hip": 36850
+        },
+        {
+          "id": "hip28734",
+          "ra": 6.0687,
+          "dec": 23.2633,
+          "mag": 4.16,
+          "hip": 28734
+        }
+      ],
+      "lines": [
+        [
+          "alhena",
+          "mekbuda"
+        ],
+        [
+          "mekbuda",
+          "wasat"
+        ],
+        [
+          "wasat",
+          "lambda"
+        ],
+        [
+          "lambda",
+          "alzirr"
+        ],
+        [
+          "wasat",
+          "hip36962"
+        ],
+        [
+          "hip36962",
+          "kappa"
+        ],
+        [
+          "hip36962",
+          "pollux"
+        ],
+        [
+          "hip36962",
+          "iota"
+        ],
+        [
+          "iota",
+          "tau"
+        ],
+        [
+          "tau",
+          "castor"
+        ],
+        [
+          "tau",
+          "theta"
+        ],
+        [
+          "tau",
+          "mebsuta"
+        ],
+        [
+          "mebsuta",
+          "nu"
+        ],
+        [
+          "mebsuta",
+          "tejat"
+        ],
+        [
+          "tejat",
+          "propus"
+        ],
+        [
+          "propus",
+          "hip28734"
+        ]
+      ]
+    },
+    "cancer": {
+      "abbr": "Cnc",
+      "plate": "Plate IV / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M30,-13 C-4,-13 -4,3 16,3",
+          "M-30,13 C4,13 4,-3 -16,-3",
+          "M16,3 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0",
+          "M-16,-3 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>IV</b> · Cardinal Water",
+        "name": "The Sheltering<em>Tide</em>",
+        "tagline": "Where the shore keeps what the sea returns.",
+        "attr": "Memory <span class=\"sep\">·</span> Refuge <span class=\"sep\">·</span> Tenderness",
+        "lede": "The fourth territory, where feeling first builds itself a shell — the soft thing that learns to carry its own home, and to guard what it loves behind a patient wall.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Cancer</b> — the Crab</span><span>506 sq. degrees</span><span>the Beehive within</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "tarf",
+          "ra": 8.2753,
+          "dec": 9.1855,
+          "mag": 3.53,
+          "hip": 40526
+        },
+        {
+          "id": "delta",
+          "ra": 8.7447,
+          "dec": 18.1543,
+          "mag": 3.94,
+          "hip": 42911
+        },
+        {
+          "id": "gamma",
+          "ra": 8.7214,
+          "dec": 21.4685,
+          "mag": 4.66,
+          "hip": 42806
+        },
+        {
+          "id": "alpha",
+          "ra": 8.9748,
+          "dec": 11.8577,
+          "mag": 4.26,
+          "hip": 44066
+        },
+        {
+          "id": "iota",
+          "ra": 8.7783,
+          "dec": 28.7599,
+          "mag": 4.03,
+          "hip": 43103
+        },
+        {
+          "id": "hip40843",
+          "ra": 8.3344,
+          "dec": 27.2177,
+          "mag": 5.13,
+          "hip": 40843
+        }
+      ],
+      "lines": [
+        [
+          "iota",
+          "gamma"
+        ],
+        [
+          "gamma",
+          "hip40843"
+        ],
+        [
+          "gamma",
+          "delta"
+        ],
+        [
+          "delta",
+          "tarf"
+        ],
+        [
+          "delta",
+          "alpha"
+        ]
+      ]
+    },
+    "leo": {
+      "abbr": "Leo",
+      "plate": "Plate V / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M-12,-2 m-9,0 a9,9 0 1,0 18,0 a9,9 0 1,0 -18,0",
+          "M-3,-5 C16,-18 32,2 21,17 C15,25 4,21 4,12"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>V</b> · Fixed Fire",
+        "name": "The Sovereign<em>Light</em>",
+        "tagline": "Where the fire learns it has a face.",
+        "attr": "Radiance <span class=\"sep\">·</span> Courage <span class=\"sep\">·</span> Sovereignty",
+        "lede": "The fifth territory, where the warmth of the world gathers into a single bright centre and dares to be seen — the heart that rules by being most fully itself.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Leo</b> — the Lion</span><span>947 sq. degrees</span><span>α Regulus · the Heart</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "regulus",
+          "ra": 10.1395,
+          "dec": 11.9672,
+          "mag": 1.36,
+          "hip": 49669
+        },
+        {
+          "id": "denebola",
+          "ra": 11.8177,
+          "dec": 14.5721,
+          "mag": 2.14,
+          "hip": 57632
+        },
+        {
+          "id": "algieba",
+          "ra": 10.3329,
+          "dec": 19.8415,
+          "mag": 2.01,
+          "hip": 50583
+        },
+        {
+          "id": "zosma",
+          "ra": 11.2351,
+          "dec": 20.5237,
+          "mag": 2.56,
+          "hip": 54872
+        },
+        {
+          "id": "epsilon",
+          "ra": 9.7642,
+          "dec": 23.7743,
+          "mag": 2.97,
+          "hip": 47908
+        },
+        {
+          "id": "zeta",
+          "ra": 10.2782,
+          "dec": 23.4173,
+          "mag": 3.43,
+          "hip": 50335
+        },
+        {
+          "id": "eta",
+          "ra": 10.1222,
+          "dec": 16.7627,
+          "mag": 3.48,
+          "hip": 49583
+        },
+        {
+          "id": "theta",
+          "ra": 11.2373,
+          "dec": 15.4296,
+          "mag": 3.33,
+          "hip": 54879
+        },
+        {
+          "id": "mu",
+          "ra": 9.8794,
+          "dec": 26.007,
+          "mag": 3.88,
+          "hip": 48455
+        }
+      ],
+      "lines": [
+        [
+          "denebola",
+          "theta"
+        ],
+        [
+          "theta",
+          "regulus"
+        ],
+        [
+          "regulus",
+          "eta"
+        ],
+        [
+          "eta",
+          "algieba"
+        ],
+        [
+          "algieba",
+          "zosma"
+        ],
+        [
+          "zosma",
+          "denebola"
+        ],
+        [
+          "algieba",
+          "zeta"
+        ],
+        [
+          "zeta",
+          "mu"
+        ],
+        [
+          "mu",
+          "epsilon"
+        ],
+        [
+          "zosma",
+          "theta"
+        ]
+      ]
+    },
+    "virgo": {
+      "abbr": "Vir",
+      "plate": "Plate VI / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M-30,-18 L-30,18",
+          "M-12,-18 L-12,18",
+          "M6,-18 L6,18",
+          "M-30,-18 C-30,-26 -12,-26 -12,-18",
+          "M-12,-18 C-12,-26 6,-26 6,-18",
+          "M6,18 C6,26 24,26 24,10 C24,-2 8,-2 8,8"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>VI</b> · Mutable Earth",
+        "name": "The Quiet<em>Harvest</em>",
+        "tagline": "Where care is the only perfect language.",
+        "attr": "Precision <span class=\"sep\">·</span> Service <span class=\"sep\">·</span> Discernment",
+        "lede": "The sixth territory, where the abundance of summer is sorted, weighed and made useful — the patient art of improving a thing without ever needing to be thanked.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Virgo</b> — the Maiden</span><span>1294 sq. degrees</span><span>α Spica · the Ear of Grain</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "spica",
+          "ra": 13.4199,
+          "dec": -11.1613,
+          "mag": 0.98,
+          "hip": 65474
+        },
+        {
+          "id": "beta",
+          "ra": 11.8449,
+          "dec": 1.7647,
+          "mag": 3.59,
+          "hip": 57757
+        },
+        {
+          "id": "gamma",
+          "ra": 12.6942,
+          "dec": -1.4492,
+          "mag": 3.52,
+          "hip": 0
+        },
+        {
+          "id": "delta",
+          "ra": 12.9267,
+          "dec": 3.3975,
+          "mag": 3.39,
+          "hip": 63090
+        },
+        {
+          "id": "epsilon",
+          "ra": 13.0363,
+          "dec": 10.9591,
+          "mag": 2.85,
+          "hip": 63608
+        },
+        {
+          "id": "zeta",
+          "ra": 13.5782,
+          "dec": -0.5958,
+          "mag": 3.38,
+          "hip": 66249
+        },
+        {
+          "id": "eta",
+          "ra": 12.3318,
+          "dec": -0.6668,
+          "mag": 3.89,
+          "hip": 60129
+        },
+        {
+          "id": "iota",
+          "ra": 14.2669,
+          "dec": -6.0005,
+          "mag": 4.07,
+          "hip": 69701
+        },
+        {
+          "id": "mu",
+          "ra": 14.7177,
+          "dec": -5.6582,
+          "mag": 3.87,
+          "hip": 71957
+        },
+        {
+          "id": "hip57380",
+          "ra": 11.7643,
+          "dec": 6.5294,
+          "mag": 4.04,
+          "hip": 57380
+        },
+        {
+          "id": "porrima",
+          "ra": 12.6943,
+          "dec": -1.4494,
+          "mag": 2.74,
+          "hip": 61941
+        },
+        {
+          "id": "kang",
+          "ra": 14.2149,
+          "dec": -10.2737,
+          "mag": 4.18,
+          "hip": 69427
+        },
+        {
+          "id": "hip68520",
+          "ra": 14.0274,
+          "dec": 1.5445,
+          "mag": 4.23,
+          "hip": 68520
+        },
+        {
+          "id": "hip72220",
+          "ra": 14.7708,
+          "dec": 1.8929,
+          "mag": 3.73,
+          "hip": 72220
+        }
+      ],
+      "lines": [
+        [
+          "hip57380",
+          "eta"
+        ],
+        [
+          "eta",
+          "porrima"
+        ],
+        [
+          "porrima",
+          "spica"
+        ],
+        [
+          "spica",
+          "kang"
+        ],
+        [
+          "kang",
+          "iota"
+        ],
+        [
+          "iota",
+          "mu"
+        ],
+        [
+          "spica",
+          "zeta"
+        ],
+        [
+          "zeta",
+          "hip68520"
+        ],
+        [
+          "hip68520",
+          "hip72220"
+        ],
+        [
+          "zeta",
+          "delta"
+        ],
+        [
+          "delta",
+          "epsilon"
+        ],
+        [
+          "delta",
+          "porrima"
+        ]
+      ]
+    },
+    "libra": {
+      "abbr": "Lib",
+      "plate": "Plate VII / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M-32,16 L32,16",
+          "M-32,0 L-10,0",
+          "M10,0 L32,0",
+          "M-10,0 C-10,-16 10,-16 10,0"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>VII</b> · Cardinal Air",
+        "name": "The Weighing<em>Hall</em>",
+        "tagline": "Where every truth must answer to another.",
+        "attr": "Balance <span class=\"sep\">·</span> Justice <span class=\"sep\">·</span> Grace",
+        "lede": "The seventh territory, the first to face outward — where the self meets its equal and learns that fairness is not a feeling but a discipline, held level against the weight of the other.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Libra</b> — the Scales</span><span>538 sq. degrees</span><span>β Zubeneschamali</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "alpha",
+          "ra": 14.848,
+          "dec": -16.0418,
+          "mag": 2.75,
+          "hip": 72622
+        },
+        {
+          "id": "beta",
+          "ra": 15.2834,
+          "dec": -9.3829,
+          "mag": 2.61,
+          "hip": 74785
+        },
+        {
+          "id": "gamma",
+          "ra": 15.5921,
+          "dec": -14.7895,
+          "mag": 3.91,
+          "hip": 76333
+        },
+        {
+          "id": "sigma",
+          "ra": 15.0678,
+          "dec": -25.282,
+          "mag": 3.25,
+          "hip": 73714
+        },
+        {
+          "id": "hip77853",
+          "ra": 15.8971,
+          "dec": -16.7293,
+          "mag": 4.13,
+          "hip": 77853
+        }
+      ],
+      "lines": [
+        [
+          "hip77853",
+          "gamma"
+        ],
+        [
+          "gamma",
+          "beta"
+        ],
+        [
+          "beta",
+          "alpha"
+        ],
+        [
+          "alpha",
+          "sigma"
+        ],
+        [
+          "sigma",
+          "gamma"
+        ]
+      ]
+    },
+    "scorpio": {
+      "abbr": "Sco",
+      "plate": "Plate VIII / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M-30,-18 L-30,18",
+          "M-12,-18 L-12,18",
+          "M6,-18 L6,16",
+          "M-30,-18 C-30,-26 -12,-26 -12,-18",
+          "M-12,-18 C-12,-26 6,-26 6,-18",
+          "M6,16 L24,16",
+          "M24,16 L16,9",
+          "M24,16 L16,23"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>VIII</b> · Fixed Water",
+        "name": "The Deepest<em>Water</em>",
+        "tagline": "Where nothing stays buried forever.",
+        "attr": "Intensity <span class=\"sep\">·</span> Devotion <span class=\"sep\">·</span> Transformation",
+        "lede": "The eighth territory, the dark water beneath the still water — where love and loss turn out to be the same current, and what is destroyed here returns wearing a truer face.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Scorpius</b> — the Scorpion</span><span>497 sq. degrees</span><span>α Antares · the Rival of Mars</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "antares",
+          "ra": 16.4901,
+          "dec": -26.432,
+          "mag": 1.06,
+          "hip": 80763
+        },
+        {
+          "id": "beta",
+          "ra": 16.0906,
+          "dec": -19.8055,
+          "mag": 2.56,
+          "hip": 78820
+        },
+        {
+          "id": "delta",
+          "ra": 16.0056,
+          "dec": -22.6217,
+          "mag": 2.29,
+          "hip": 78401
+        },
+        {
+          "id": "pi",
+          "ra": 15.9809,
+          "dec": -26.1141,
+          "mag": 2.89,
+          "hip": 78265
+        },
+        {
+          "id": "sigma",
+          "ra": 16.3531,
+          "dec": -25.5928,
+          "mag": 2.9,
+          "hip": 80112
+        },
+        {
+          "id": "tau",
+          "ra": 16.598,
+          "dec": -28.216,
+          "mag": 2.82,
+          "hip": 81266
+        },
+        {
+          "id": "epsilon",
+          "ra": 16.8361,
+          "dec": -34.2932,
+          "mag": 2.29,
+          "hip": 82396
+        },
+        {
+          "id": "mu",
+          "ra": 16.8645,
+          "dec": -38.0474,
+          "mag": 3,
+          "hip": 82514
+        },
+        {
+          "id": "zeta",
+          "ra": 16.9097,
+          "dec": -42.3613,
+          "mag": 3.62,
+          "hip": 82729
+        },
+        {
+          "id": "eta",
+          "ra": 17.2026,
+          "dec": -43.2392,
+          "mag": 3.32,
+          "hip": 84143
+        },
+        {
+          "id": "theta",
+          "ra": 17.622,
+          "dec": -42.9978,
+          "mag": 1.86,
+          "hip": 86228
+        },
+        {
+          "id": "iota",
+          "ra": 17.7931,
+          "dec": -40.127,
+          "mag": 2.99,
+          "hip": 87073
+        },
+        {
+          "id": "kappa",
+          "ra": 17.7081,
+          "dec": -39.03,
+          "mag": 2.39,
+          "hip": 86670
+        },
+        {
+          "id": "lambda",
+          "ra": 17.5601,
+          "dec": -37.1038,
+          "mag": 1.62,
+          "hip": 85927
+        },
+        {
+          "id": "upsilon",
+          "ra": 17.5127,
+          "dec": -37.2958,
+          "mag": 2.7,
+          "hip": 85696
+        },
+        {
+          "id": "hip82671",
+          "ra": 16.8999,
+          "dec": -42.362,
+          "mag": 4.7,
+          "hip": 82671
+        }
+      ],
+      "lines": [
+        [
+          "lambda",
+          "kappa"
+        ],
+        [
+          "kappa",
+          "iota"
+        ],
+        [
+          "iota",
+          "theta"
+        ],
+        [
+          "theta",
+          "eta"
+        ],
+        [
+          "eta",
+          "hip82671"
+        ],
+        [
+          "hip82671",
+          "mu"
+        ],
+        [
+          "mu",
+          "epsilon"
+        ],
+        [
+          "epsilon",
+          "tau"
+        ],
+        [
+          "tau",
+          "antares"
+        ],
+        [
+          "antares",
+          "delta"
+        ],
+        [
+          "antares",
+          "pi"
+        ],
+        [
+          "antares",
+          "beta"
+        ]
+      ]
+    },
+    "sagittarius": {
+      "abbr": "Sgr",
+      "plate": "Plate IX / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M-24,24 L18,-18",
+          "M18,-18 L4,-16",
+          "M18,-18 L16,-4",
+          "M-10,2 L8,20"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>IX</b> · Mutable Fire",
+        "name": "The Long<em>Horizon</em>",
+        "tagline": "Where the arrow is loosed before the target is known.",
+        "attr": "Freedom <span class=\"sep\">·</span> Vision <span class=\"sep\">·</span> Faith",
+        "lede": "The ninth territory, where the intensity of the depths turns outward and upward into a search — the restless aim at something larger than the self, fired toward a horizon that keeps receding.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Sagittarius</b> — the Archer</span><span>867 sq. degrees</span><span>ε Kaus Australis</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "epsilon",
+          "ra": 18.4029,
+          "dec": -34.3846,
+          "mag": 1.79,
+          "hip": 90185
+        },
+        {
+          "id": "delta",
+          "ra": 18.3499,
+          "dec": -29.8281,
+          "mag": 2.72,
+          "hip": 89931
+        },
+        {
+          "id": "lambda",
+          "ra": 18.4662,
+          "dec": -25.4217,
+          "mag": 2.82,
+          "hip": 90496
+        },
+        {
+          "id": "sigma",
+          "ra": 18.9211,
+          "dec": -26.2967,
+          "mag": 2.05,
+          "hip": 92855
+        },
+        {
+          "id": "zeta",
+          "ra": 19.0435,
+          "dec": -29.8801,
+          "mag": 2.6,
+          "hip": 93506
+        },
+        {
+          "id": "phi",
+          "ra": 18.7609,
+          "dec": -26.9908,
+          "mag": 3.17,
+          "hip": 92041
+        },
+        {
+          "id": "tau",
+          "ra": 19.1157,
+          "dec": -27.6704,
+          "mag": 3.32,
+          "hip": 93864
+        },
+        {
+          "id": "gamma2",
+          "ra": 18.0968,
+          "dec": -30.4241,
+          "mag": 2.98,
+          "hip": 88635
+        },
+        {
+          "id": "eta",
+          "ra": 18.2938,
+          "dec": -36.7617,
+          "mag": 3.1,
+          "hip": 89642
+        },
+        {
+          "id": "hip87072",
+          "ra": 17.7927,
+          "dec": -27.8308,
+          "mag": 4.53,
+          "hip": 87072
+        },
+        {
+          "id": "polis",
+          "ra": 18.2294,
+          "dec": -21.0588,
+          "mag": 3.84,
+          "hip": 89341
+        },
+        {
+          "id": "hip93085",
+          "ra": 18.9622,
+          "dec": -21.1067,
+          "mag": 3.52,
+          "hip": 93085
+        },
+        {
+          "id": "hip93683",
+          "ra": 19.0781,
+          "dec": -21.7415,
+          "mag": 3.76,
+          "hip": 93683
+        },
+        {
+          "id": "hip94820",
+          "ra": 19.2939,
+          "dec": -18.9529,
+          "mag": 4.88,
+          "hip": 94820
+        },
+        {
+          "id": "hip95168",
+          "ra": 19.3612,
+          "dec": -17.8472,
+          "mag": 3.92,
+          "hip": 95168
+        },
+        {
+          "id": "hip96406",
+          "ra": 19.6005,
+          "dec": -24.7191,
+          "mag": 5.64,
+          "hip": 96406
+        },
+        {
+          "id": "hip98688",
+          "ra": 20.0443,
+          "dec": -27.7098,
+          "mag": 4.43,
+          "hip": 98688
+        },
+        {
+          "id": "hip98412",
+          "ra": 19.9956,
+          "dec": -35.2763,
+          "mag": 4.37,
+          "hip": 98412
+        },
+        {
+          "id": "hip98032",
+          "ra": 19.921,
+          "dec": -41.8683,
+          "mag": 4.12,
+          "hip": 98032
+        },
+        {
+          "id": "rukbat",
+          "ra": 19.3981,
+          "dec": -40.6159,
+          "mag": 3.96,
+          "hip": 95347
+        },
+        {
+          "id": "arkab_posterior",
+          "ra": 19.387,
+          "dec": -44.7998,
+          "mag": 4.27,
+          "hip": 95294
+        }
+      ],
+      "lines": [
+        [
+          "delta",
+          "lambda"
+        ],
+        [
+          "eta",
+          "epsilon"
+        ],
+        [
+          "epsilon",
+          "gamma2"
+        ],
+        [
+          "gamma2",
+          "hip87072"
+        ],
+        [
+          "gamma2",
+          "delta"
+        ],
+        [
+          "delta",
+          "epsilon"
+        ],
+        [
+          "epsilon",
+          "zeta"
+        ],
+        [
+          "zeta",
+          "phi"
+        ],
+        [
+          "phi",
+          "delta"
+        ],
+        [
+          "phi",
+          "lambda"
+        ],
+        [
+          "lambda",
+          "polis"
+        ],
+        [
+          "zeta",
+          "tau"
+        ],
+        [
+          "tau",
+          "sigma"
+        ],
+        [
+          "sigma",
+          "phi"
+        ],
+        [
+          "sigma",
+          "hip93085"
+        ],
+        [
+          "hip93085",
+          "hip93683"
+        ],
+        [
+          "hip93683",
+          "hip94820"
+        ],
+        [
+          "hip94820",
+          "hip95168"
+        ],
+        [
+          "tau",
+          "hip96406"
+        ],
+        [
+          "hip96406",
+          "hip98688"
+        ],
+        [
+          "hip98688",
+          "hip98412"
+        ],
+        [
+          "hip98412",
+          "hip98032"
+        ],
+        [
+          "hip98032",
+          "rukbat"
+        ],
+        [
+          "hip98032",
+          "arkab_posterior"
+        ]
+      ]
+    },
+    "capricorn": {
+      "abbr": "Cap",
+      "plate": "Plate X / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M-28,-16 L-12,16",
+          "M-12,16 C-12,-8 8,-12 8,4",
+          "M8,4 C8,18 24,18 26,4 C28,-8 14,-10 12,2"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>X</b> · Cardinal Earth",
+        "name": "The Cold<em>Summit</em>",
+        "tagline": "Where the long climb is the whole of the reward.",
+        "attr": "Discipline <span class=\"sep\">·</span> Ambition <span class=\"sep\">·</span> Endurance",
+        "lede": "The tenth territory, the high and stony peak above the tree line — where time is the only currency and the patient, solitary climb toward mastery is undertaken for its own austere sake.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Capricornus</b> — the Sea-Goat</span><span>414 sq. degrees</span><span>δ Deneb Algedi</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "alpha",
+          "ra": 20.3009,
+          "dec": -12.5449,
+          "mag": 3.58,
+          "hip": 100064
+        },
+        {
+          "id": "beta",
+          "ra": 20.3502,
+          "dec": -14.7814,
+          "mag": 3.05,
+          "hip": 100345
+        },
+        {
+          "id": "psi",
+          "ra": 20.7683,
+          "dec": -25.2709,
+          "mag": 4.13,
+          "hip": 102485
+        },
+        {
+          "id": "omega",
+          "ra": 20.8637,
+          "dec": -26.9191,
+          "mag": 4.12,
+          "hip": 102978
+        },
+        {
+          "id": "zeta",
+          "ra": 21.4445,
+          "dec": -22.4113,
+          "mag": 3.77,
+          "hip": 105881
+        },
+        {
+          "id": "delta",
+          "ra": 21.784,
+          "dec": -16.1273,
+          "mag": 2.85,
+          "hip": 107556
+        },
+        {
+          "id": "gamma",
+          "ra": 21.6682,
+          "dec": -16.6623,
+          "mag": 3.69,
+          "hip": 106985
+        },
+        {
+          "id": "theta",
+          "ra": 21.0991,
+          "dec": -17.2329,
+          "mag": 4.08,
+          "hip": 104139
+        },
+        {
+          "id": "hip105515",
+          "ra": 21.3708,
+          "dec": -16.8345,
+          "mag": 4.28,
+          "hip": 105515
+        }
+      ],
+      "lines": [
+        [
+          "alpha",
+          "beta"
+        ],
+        [
+          "beta",
+          "theta"
+        ],
+        [
+          "theta",
+          "hip105515"
+        ],
+        [
+          "hip105515",
+          "gamma"
+        ],
+        [
+          "gamma",
+          "delta"
+        ],
+        [
+          "hip105515",
+          "zeta"
+        ],
+        [
+          "zeta",
+          "theta"
+        ],
+        [
+          "beta",
+          "psi"
+        ],
+        [
+          "theta",
+          "omega"
+        ]
+      ]
+    },
+    "aquarius": {
+      "abbr": "Aqr",
+      "plate": "Plate XI / XII",
+      "sigil": {
+        "k": 1,
+        "paths": [
+          "M-30,-8 l10,-7 l10,7 l10,-7 l10,7",
+          "M-30,11 l10,-7 l10,7 l10,-7 l10,7"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>XI</b> · Fixed Air",
+        "name": "The Pouring<em>Light</em>",
+        "tagline": "Where the gift is poured out for those not yet born.",
+        "attr": "Vision <span class=\"sep\">·</span> Freedom <span class=\"sep\">·</span> Belonging",
+        "lede": "The eleventh territory, where the lone summit gives way to the wide human field — the cool, far-seeing mind that pours its strange water out for a future it will not live to drink.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Aquarius</b> — the Water-Bearer</span><span>980 sq. degrees</span><span>β Sadalsuud</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "beta",
+          "ra": 21.526,
+          "dec": -5.5712,
+          "mag": 2.9,
+          "hip": 106278
+        },
+        {
+          "id": "alpha",
+          "ra": 22.0964,
+          "dec": -0.3199,
+          "mag": 2.95,
+          "hip": 109074
+        },
+        {
+          "id": "gamma",
+          "ra": 22.3609,
+          "dec": -1.3873,
+          "mag": 3.86,
+          "hip": 110395
+        },
+        {
+          "id": "zeta",
+          "ra": 22.4805,
+          "dec": -0.02,
+          "mag": 3.65,
+          "hip": 110960
+        },
+        {
+          "id": "eta",
+          "ra": 22.5893,
+          "dec": -0.1175,
+          "mag": 4.04,
+          "hip": 111497
+        },
+        {
+          "id": "pi",
+          "ra": 22.4213,
+          "dec": 1.3774,
+          "mag": 4.8,
+          "hip": 110672
+        },
+        {
+          "id": "delta",
+          "ra": 22.9108,
+          "dec": -15.8208,
+          "mag": 3.27,
+          "hip": 113136
+        },
+        {
+          "id": "lambda",
+          "ra": 22.8769,
+          "dec": -7.5796,
+          "mag": 3.73,
+          "hip": 112961
+        },
+        {
+          "id": "tau",
+          "ra": 22.8265,
+          "dec": -13.5926,
+          "mag": 4.05,
+          "hip": 112716
+        },
+        {
+          "id": "phi",
+          "ra": 23.2387,
+          "dec": -6.049,
+          "mag": 4.22,
+          "hip": 114724
+        },
+        {
+          "id": "hip114855",
+          "ra": 23.2649,
+          "dec": -9.0877,
+          "mag": 4.24,
+          "hip": 114855
+        },
+        {
+          "id": "hip115438",
+          "ra": 23.3828,
+          "dec": -20.1006,
+          "mag": 3.96,
+          "hip": 115438
+        },
+        {
+          "id": "ancha",
+          "ra": 22.2806,
+          "dec": -7.7833,
+          "mag": 4.17,
+          "hip": 110003
+        },
+        {
+          "id": "hip109139",
+          "ra": 22.1073,
+          "dec": -13.8697,
+          "mag": 4.29,
+          "hip": 109139
+        },
+        {
+          "id": "hip111123",
+          "ra": 22.5108,
+          "dec": -10.6779,
+          "mag": 4.82,
+          "hip": 111123
+        },
+        {
+          "id": "hip114341",
+          "ra": 23.1574,
+          "dec": -21.1724,
+          "mag": 3.68,
+          "hip": 114341
+        },
+        {
+          "id": "albali",
+          "ra": 20.7946,
+          "dec": -9.4958,
+          "mag": 3.78,
+          "hip": 102618
+        }
+      ],
+      "lines": [
+        [
+          "beta",
+          "alpha"
+        ],
+        [
+          "alpha",
+          "gamma"
+        ],
+        [
+          "gamma",
+          "zeta"
+        ],
+        [
+          "zeta",
+          "eta"
+        ],
+        [
+          "eta",
+          "lambda"
+        ],
+        [
+          "lambda",
+          "hip114855"
+        ],
+        [
+          "hip114855",
+          "hip115438"
+        ],
+        [
+          "alpha",
+          "ancha"
+        ],
+        [
+          "ancha",
+          "hip109139"
+        ],
+        [
+          "ancha",
+          "hip111123"
+        ],
+        [
+          "hip111123",
+          "tau"
+        ],
+        [
+          "tau",
+          "delta"
+        ],
+        [
+          "delta",
+          "hip114341"
+        ],
+        [
+          "albali",
+          "beta"
+        ]
+      ]
+    },
+    "pisces": {
+      "abbr": "Psc",
+      "plate": "Plate XII / XII",
+      "sigil": {
+        "k": 0.94,
+        "paths": [
+          "M-46,-78 C-92,-44 -92,44 -46,78",
+          "M46,-78 C92,-44 92,44 46,78",
+          "M-78,0 L78,0"
+        ]
+      },
+      "ed": {
+        "eyebrow": "Territory <b>XII</b> · Mutable Water",
+        "name": "The Dreaming<em>Ocean</em>",
+        "tagline": "Where every tide remembers the shape of a life.",
+        "attr": "Compassion <span class=\"sep\">·</span> Imagination <span class=\"sep\">·</span> Surrender",
+        "lede": "The twelfth and final territory, where the self loosens its outline and dissolves back into the great water — remembering everything at once, and holding none of it.",
+        "plaque": "Begin the reading",
+        "cap": "<span><b>Pisces</b> — the Fishes</span><span>889 sq. degrees</span><span>α Alrescha · the Knot</span><span>Ptolemy, 2ⁿᵈ century</span>"
+      },
+      "stars": [
+        {
+          "id": "alpha",
+          "ra": 2.0341,
+          "dec": 2.7638,
+          "mag": 3.82,
+          "hip": 9487
+        },
+        {
+          "id": "xi",
+          "ra": 1.8926,
+          "dec": 3.1875,
+          "mag": 4.61,
+          "hip": 8833
+        },
+        {
+          "id": "nu",
+          "ra": 1.6905,
+          "dec": 5.4876,
+          "mag": 4.45,
+          "hip": 7884
+        },
+        {
+          "id": "mu",
+          "ra": 1.5031,
+          "dec": 6.1438,
+          "mag": 4.84,
+          "hip": 7007
+        },
+        {
+          "id": "zeta",
+          "ra": 1.2289,
+          "dec": 7.5754,
+          "mag": 5.21,
+          "hip": 5737
+        },
+        {
+          "id": "epsilon",
+          "ra": 1.0491,
+          "dec": 7.8901,
+          "mag": 4.27,
+          "hip": 4906
+        },
+        {
+          "id": "delta",
+          "ra": 0.8114,
+          "dec": 7.5851,
+          "mag": 4.44,
+          "hip": 3786
+        },
+        {
+          "id": "omega",
+          "ra": 23.9885,
+          "dec": 6.8633,
+          "mag": 4.03,
+          "hip": 118268
+        },
+        {
+          "id": "gamma",
+          "ra": 23.2861,
+          "dec": 3.2823,
+          "mag": 3.7,
+          "hip": 114971
+        },
+        {
+          "id": "kappa",
+          "ra": 23.4541,
+          "dec": 1.1226,
+          "mag": 6.26,
+          "hip": 115768
+        },
+        {
+          "id": "lambda",
+          "ra": 23.7008,
+          "dec": 1.78,
+          "mag": 4.49,
+          "hip": 116928
+        },
+        {
+          "id": "tx",
+          "ra": 23.7732,
+          "dec": 3.4868,
+          "mag": 4.95,
+          "hip": 117245
+        },
+        {
+          "id": "iota",
+          "ra": 23.6658,
+          "dec": 5.6263,
+          "mag": 4.13,
+          "hip": 116771
+        },
+        {
+          "id": "theta",
+          "ra": 23.4661,
+          "dec": 6.379,
+          "mag": 4.27,
+          "hip": 115830
+        },
+        {
+          "id": "s7",
+          "ra": 23.466,
+          "dec": 5.38,
+          "mag": 5.05,
+          "unverified": true
+        },
+        {
+          "id": "eta",
+          "ra": 1.5247,
+          "dec": 15.3458,
+          "mag": 3.62,
+          "hip": 7097
+        },
+        {
+          "id": "omicron",
+          "ra": 1.7566,
+          "dec": 9.1577,
+          "mag": 4.26,
+          "hip": 8198
+        },
+        {
+          "id": "hip4889",
+          "ra": 1.047,
+          "dec": 31.8043,
+          "mag": 5.5,
+          "hip": 4889
+        },
+        {
+          "id": "hip5742",
+          "ra": 1.2292,
+          "dec": 24.5837,
+          "mag": 4.67,
+          "hip": 5742
+        },
+        {
+          "id": "hip6193",
+          "ra": 1.3244,
+          "dec": 27.2641,
+          "mag": 4.74,
+          "hip": 6193
+        },
+        {
+          "id": "hip3760",
+          "ra": 0.8048,
+          "dec": 7.2999,
+          "mag": 5.92,
+          "hip": 3760
+        },
+        {
+          "id": "hip1645",
+          "ra": 0.3433,
+          "dec": 8.1903,
+          "mag": 5.38,
+          "hip": 1645
+        },
+        {
+          "id": "hip115738",
+          "ra": 23.4489,
+          "dec": 1.2556,
+          "mag": 4.95,
+          "hip": 115738
+        },
+        {
+          "id": "hip115227",
+          "ra": 23.3391,
+          "dec": 5.3813,
+          "mag": 5.05,
+          "hip": 115227
+        }
+      ],
+      "lines": [
+        [
+          "hip4889",
+          "hip5742"
+        ],
+        [
+          "hip4889",
+          "hip6193"
+        ],
+        [
+          "hip6193",
+          "hip5742"
+        ],
+        [
+          "hip5742",
+          "eta"
+        ],
+        [
+          "eta",
+          "omicron"
+        ],
+        [
+          "omicron",
+          "alpha"
+        ],
+        [
+          "alpha",
+          "xi"
+        ],
+        [
+          "xi",
+          "nu"
+        ],
+        [
+          "nu",
+          "mu"
+        ],
+        [
+          "mu",
+          "epsilon"
+        ],
+        [
+          "epsilon",
+          "hip3760"
+        ],
+        [
+          "hip3760",
+          "hip1645"
+        ],
+        [
+          "hip1645",
+          "omega"
+        ],
+        [
+          "omega",
+          "iota"
+        ],
+        [
+          "iota",
+          "tx"
+        ],
+        [
+          "tx",
+          "lambda"
+        ],
+        [
+          "lambda",
+          "hip115738"
+        ],
+        [
+          "hip115738",
+          "gamma"
+        ],
+        [
+          "gamma",
+          "hip115227"
+        ],
+        [
+          "hip115227",
+          "theta"
+        ],
+        [
+          "theta",
+          "iota"
+        ]
+      ]
+    }
+  }
+}
