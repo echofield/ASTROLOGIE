@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Spectral, EB_Garamond, IBM_Plex_Mono } from "next/f
 import { Analytics } from "@vercel/analytics/next";
 import { PRODUCT_NAME } from "@/lib/brand";
 import "./globals.css";
+import "./astrolab.css"; // the design system, ported verbatim — source of truth for the gold register
 
 const display = Cormorant_Garamond({
   subsets: ["latin"],
@@ -49,6 +50,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* the export's exact font stack — the design CSS references these by literal name */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=EB+Garamond:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500&display=swap"
+          rel="stylesheet"
+        />
         <link
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap"
           rel="stylesheet"
