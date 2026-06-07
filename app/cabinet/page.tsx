@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } 
 import IntakeForm from "@/components/read/IntakeForm";
 import ReadArtifact from "@/components/read/ReadArtifact";
 import CastingScreen from "@/components/read/CastingScreen";
-import ReadCeremony from "@/components/read/ReadCeremony";
+import ReadReveal from "@/components/read/ReadReveal";
 import SkyWheel from "@/components/sky/SkyWheel";
 import PlanetMedallion from "@/components/sky/PlanetMedallion";
 import StarField from "@/components/sky/StarField";
@@ -825,32 +825,15 @@ export default function Page() {
     );
   }
 
-  // ── arrival ceremony (first viewing of the read; then it settles into the Cabinet) ──
+  // ── the reveal — sealed letter → break the seal → descent → the reading surfaces ──
   if (ceremony && read && profile) {
-    const order: (keyof CompleteRead)[] = ["signature", "chart", "pattern", "star", "yearAhead", "counsel"];
-    const ceremonySections = order
-      .map((k) => ({ title: (t.read as Record<string, string>)[k], body: read[k] as string }))
-      .filter((s) => typeof s.body === "string" && s.body);
     return (
-      <div ref={frameRef} style={{ position: "relative", minHeight: "100svh", overflow: "hidden", background: pal.bg, color: pal.ink, fontFamily: FT, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
-        <SkyBg pal={pal} night={night} par={par} />
-        <div style={{ position: "absolute", top: 24, right: 24, zIndex: 4 }}>
-          <ModeToggle night={night} onToggle={toggleNight} pal={pal} title={t.mode.toggle} />
-        </div>
-        <div style={{ position: "relative", zIndex: 2, width: "100%" }}>
-          <ReadCeremony
-            pal={pal}
-            sections={ceremonySections}
-            labels={{
-              cap: lang === "fr" ? "Ta lecture" : "Your reading",
-              continue: lang === "fr" ? "Continuer" : "Continue",
-              keep: lang === "fr" ? "Garder dans le Cabinet" : "Keep it",
-              of: (a, b) => (lang === "fr" ? `${a} sur ${b}` : `${a} of ${b}`),
-            }}
-            onDone={() => { setCeremony(false); setScreen("cabinet"); }}
-          />
-        </div>
-      </div>
+      <ReadReveal
+        read={read}
+        question={star?.must ?? ""}
+        lang={lang}
+        onClose={() => { setCeremony(false); setScreen("cabinet"); }}
+      />
     );
   }
 
