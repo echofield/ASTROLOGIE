@@ -7,7 +7,7 @@ const COPY = {
   en: {
     cap: "Payment received",
     title: "Your sky is yours.",
-    body: "The Founding Pass is confirmed. Confirm the email you paid with to unlock your Complete Read.",
+    body: "Your Reading is confirmed. Confirm the email you paid with to unlock it.",
     cta: "Enter the instrument",
     note: "A receipt has been sent by Stripe. If access does not appear, it will be granted shortly.",
     emailLabel: "Confirm the email you paid with",
@@ -19,7 +19,7 @@ const COPY = {
   fr: {
     cap: "Paiement reçu",
     title: "Votre ciel est à vous.",
-    body: "Le Pass Fondateur est confirmé. Confirmez l'e-mail utilisé pour le paiement afin de débloquer votre Lecture Complète.",
+    body: "Votre Lecture est confirmée. Confirmez l'e-mail utilisé pour le paiement afin de la débloquer.",
     cta: "Entrer dans l'instrument",
     note: "Un reçu a été envoyé par Stripe. Si l'accès n'apparaît pas, il sera accordé sous peu.",
     emailLabel: "Confirmez l'e-mail utilisé pour le paiement",

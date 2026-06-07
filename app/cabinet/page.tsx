@@ -96,7 +96,7 @@ const COPY = {
       undated: "undated",
     },
     completeRead: {
-      cta: `The Complete Read — ${PRICING.offer}${PRICING.currency}`,
+      cta: `The Reading — ${PRICING.offer}${PRICING.currency}`,
     },
     intake: {
       cap: "Before your read",
@@ -219,7 +219,7 @@ const COPY = {
       undated: "sans date",
     },
     completeRead: {
-      cta: `La Lecture Complète — ${PRICING.offer}${PRICING.currency}`,
+      cta: `La Lecture — ${PRICING.offer}${PRICING.currency}`,
     },
     intake: {
       cap: "Avant votre lecture",
@@ -958,7 +958,6 @@ export default function Page() {
         <div style={panel}>
           <Cap pal={pal}>{t.cabinet.checkoutTitle}</Cap>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: FD, fontSize: 16, color: pal.inkSoft, textDecoration: "line-through", textDecorationColor: pal.accent }}>{PRICING.full}{PRICING.currency}</span>
             <span style={{ fontFamily: FD, fontWeight: 600, fontSize: 30, color: pal.accent, lineHeight: 1 }}>{PRICING.offer}{PRICING.currency}</span>
             <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 15, color: pal.ink }}>· {PRICING.name[lang]}</span>
           </div>

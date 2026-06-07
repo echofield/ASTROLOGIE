@@ -24,19 +24,20 @@ export const DISCLAIMER: Record<Lang, string> = {
   fr: "Ce contenu est fourni à des fins de divertissement et de réflexion personnelle uniquement.",
 };
 
-// Public Stripe Payment Link (safe to expose). Set its post-payment redirect to
-// /success in the Stripe dashboard.
-export const PAYMENT_LINK = "https://buy.stripe.com/8x25kF3OhefR4Reeqf8k800";
+// Public Stripe Payment Link (safe to expose). Live €60 "The Reading" link; set its
+// post-payment redirect to /success in the Stripe dashboard.
+export const PAYMENT_LINK = "https://buy.stripe.com/bJe00k0pcbI7ggkaXK3Je00";
 
+// The Reading — one reading, drawn for a sealed question, kept in the Cabinet.
+// One price, no anchor, no "lifetime / beta / future features" — we deliver one reading.
 export const PRICING = {
-  name: { en: "The AstroLab Founding Pass", fr: "The AstroLab — Pass Fondateur" } as Record<Lang, string>,
-  full: 89,
-  offer: 59,
+  name: { en: "The Reading", fr: "La Lecture" } as Record<Lang, string>,
+  offer: 60,
   currency: "€",
-  badge: { en: "Launch Offer", fr: "Offre de lancement" } as Record<Lang, string>,
-  cta: { en: "Get the Founding Pass", fr: "Obtenir le Pass Fondateur" } as Record<Lang, string>,
+  badge: { en: "A single moment", fr: "Un seul moment" } as Record<Lang, string>,
+  cta: { en: "Have it drawn", fr: "Faire tirer la lecture" } as Record<Lang, string>,
   note: {
-    en: "One-time payment · your sky, your star, and the daily Genius, kept.",
-    fr: "Paiement unique · votre ciel, votre étoile et le Genius quotidien, gardés.",
+    en: "A single reading, drawn for a question you seal, against the sky exactly as it stands. Yours to keep in your Cabinet, to return to.",
+    fr: "Une seule lecture, tirée pour une question que vous scellez, sous le ciel tel qu'il se tient. À garder dans votre Cabinet, pour y revenir.",
   } as Record<Lang, string>,
 };
