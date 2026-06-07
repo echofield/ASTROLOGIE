@@ -243,9 +243,13 @@ export async function POST(req: Request) {
       verdict = await judge(provider, current);
     }
     const lintPayload = { before: lint.before, after: lint.after, kept: lint.kept, passes: lint.passes };
+    // everything the operator needs to hand-fulfil: the best draft, the inputs to
+    // regenerate, and the question. Logged on the read_judged_failed event (client-side,
+    // under the customer's uid) so the admin held-reads page can recover + deliver it.
+    const held = { draft: current, profile, intake, star, generatedAt };
 
     if (regenLintFailed) {
-      lifecycle.push(evt("read_judged_failed", { reason: "antithesis_unconverged_on_regen", residual: lint.after - lint.kept }));
+      lifecycle.push(evt("read_judged_failed", { reason: "antithesis_unconverged_on_regen", residual: lint.after - lint.kept, held }));
       return NextResponse.json({ error: "judge_failed", _lifecycle: lifecycle }, { status: 422 });
     }
     if (verdict === null) {
@@ -254,8 +258,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ...current, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
     }
     if (!verdict.pass) {
-      // failed after the 2-retry cap — ship NOTHING; record the failure for the operator
-      lifecycle.push(evt("read_judged_failed", { failedSections: verdict.sections.filter((s) => !s.pass) }));
+      // failed after the retry cap — ship NOTHING; record the failure + held context for the operator
+      lifecycle.push(evt("read_judged_failed", { failedSections: verdict.sections.filter((s) => !s.pass), held }));
       return NextResponse.json({ error: "judge_failed", _lifecycle: lifecycle }, { status: 422 });
     }
     lifecycle.push(evt("read_judged_passed", { pivotCount: verdict.pivotCount, sections: verdict.sections.map((s) => ({ section: s.section, pass: s.pass })) }));

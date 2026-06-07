@@ -520,6 +520,7 @@ export default function Page() {
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [generatingRead, setGeneratingRead] = useState(false);
   const [ceremony, setCeremony] = useState(false);
+  const [held, setHeld] = useState(false); // judge-fail → ceremonial held state, never an error
   const [gInput, setGInput] = useState("");
   const [gReply, setGReply] = useState<string | null>(null);
   const [gSending, setGSending] = useState(false);
@@ -647,7 +648,10 @@ export default function Page() {
         for (const e of data._lifecycle) logEvent(e.subject_type, e.subject_id, e.event_type, e.payload, e.idempotency_key);
       }
       if (!res.ok || data.error) {
-        alert(t.intake.error); // generic retry only — never a "did not pass" banner
+        // A judge-fail must NEVER dead-end a paying customer: hold gracefully (the read
+        // is being hand-fulfilled from the admin held-reads page → lands in the Cabinet).
+        if (data.error === "judge_failed") { setIntakeOpen(false); setHeld(true); return; }
+        alert(t.intake.error); // generic retry for true infra errors only
         return;
       }
       const artifact: CompleteRead = {
@@ -801,6 +805,25 @@ export default function Page() {
         </div>
         <div style={{ position: "absolute", left: 14, right: 14, bottom: 20, zIndex: 3 }}>
           <LegalFooter pal={pal} lang={lang} compact />
+        </div>
+      </div>
+    );
+  }
+
+  // ── held state (judge-fail) — ceremony, never an error; hand-fulfilled into the Cabinet ──
+  if (held) {
+    const h = lang === "fr"
+      ? { cap: "Votre lecture se dessine", title: "Le ciel prend une nuit.", body: "Certains ciels demandent plus de temps à lire. Le vôtre est tracé à la main, avec soin — il vous attendra dans votre Cabinet à votre retour.", btn: "Retour au Cabinet" }
+      : { cap: "Your reading is being drawn", title: "The sky takes a night.", body: "Some skies take longer to read. Yours is being drawn by hand, with care — and will be waiting in your Cabinet when you return.", btn: "Return to the Cabinet" };
+    return (
+      <div ref={frameRef} style={{ position: "relative", minHeight: "100svh", overflow: "hidden", background: pal.bg, color: pal.ink, fontFamily: FT, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
+        <SkyBg pal={pal} night={night} par={par} />
+        <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 460, textAlign: "center" }}>
+          <PlanetMedallion pal={pal} glyph="✦" size={150} />
+          <Cap pal={pal} style={{ marginTop: 26 }}>{h.cap}</Cap>
+          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 36, lineHeight: 1.1, color: pal.ink, marginTop: 10 }}>{h.title}</div>
+          <div style={{ fontFamily: FT, fontSize: 15, color: pal.inkSoft, marginTop: 16, lineHeight: 1.6 }}>{h.body}</div>
+          <div style={{ marginTop: 32 }}><Btn pal={pal} onClick={() => { setHeld(false); setScreen("cabinet"); }}>{h.btn}</Btn></div>
         </div>
       </div>
     );
