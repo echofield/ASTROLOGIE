@@ -71,9 +71,6 @@ export default function AtlasHome() {
         <Sky par={par} n={36} depth={12} rmax={1.8} op={0.5} />
         <Sky par={par} n={10} depth={22} rmax={2.6} op={0.5} />
       </>}
-      <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        background: "radial-gradient(38% 38% at 50% 50%, rgba(90,110,220,0.10) 0%, rgba(90,110,220,0) 70%)" }} />
-
       {/* header */}
       <Header />
 
@@ -93,6 +90,7 @@ export default function AtlasHome() {
                 style={{ filter: "brightness(1.5) saturate(1.25) drop-shadow(0 0 5px rgba(234,208,138,0.5))", transition: "opacity .3s ease" }} />
             ))}
           </g>
+          <circle cx={C} cy={C} r={93} fill="#070b18" />
           <g clipPath={`url(#hub${uid})`}>
             {mounted && Array.from({ length: 24 }, (_, i) => (
               <circle key={i} cx={120 + rnd(i * 7 + 1) * 160} cy={120 + rnd(i * 7 + 2) * 160} r={rnd(i * 7 + 3) * 1.0 + 0.3}
@@ -118,7 +116,7 @@ export default function AtlasHome() {
               <div style={{ fontFamily: FT, fontSize: 8.5, letterSpacing: 2, textTransform: "uppercase", color: pal.inkSoft, marginTop: 8 }}>{t.keywords.join(" · ")}</div>
             </div>
           ) : plate ? (
-            <div className="astro-fade" style={{ fontFamily: FT, color: pal.inkSoft }}>
+            <div style={{ fontFamily: FT, color: pal.inkSoft }}>
               <div style={{ fontSize: 9, letterSpacing: 3, textTransform: "uppercase", opacity: 0.7 }}>{plate.isDay ? "Day" : "Night"} · Hour of</div>
               <div style={{ fontFamily: FG, fontSize: "clamp(22px,4vw,30px)", color: pal.brassHi, margin: "2px 0" }}>{PLANET_GLYPH[plate.ruler]}</div>
               <div style={{ fontFamily: FD, fontSize: "clamp(16px,2.6vw,20px)", color: pal.ink, letterSpacing: 2 }}>{plate.ruler}</div>
