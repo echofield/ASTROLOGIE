@@ -18,7 +18,8 @@ class AnthropicProvider implements LLMProvider {
     const msg = await this.client.messages.create({
       model: opts.model || process.env.GENIUS_MODEL || DEFAULT_MODEL,
       max_tokens: opts.maxTokens ?? 300,
-      temperature: opts.temperature ?? 0.8,
+      // temperature only when set — some models (Opus 4.8) reject the param entirely
+      ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
       // cache the standing persona across calls (prompt caching) — impl detail
       system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
       messages: opts.messages.map((m) => ({ role: m.role, content: m.content })),

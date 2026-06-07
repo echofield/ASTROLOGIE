@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProvider } from "@/lib/llm";
 import type { ChatMessage } from "@/lib/llm/types";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
+import { lintLight } from "@/lib/antithesis";
 import { PRODUCT_NAME } from "@/lib/brand";
 
 export const runtime = "nodejs";
@@ -76,7 +77,11 @@ export async function POST(req: Request) {
       })
     ).trim();
 
-    return NextResponse.json({ reply: reply || null });
+    // Light antithesis pass — one best-effort rewrite so even quick replies hold
+    // the voice; never withholds the reply if it can't run.
+    const clean = reply ? await lintLight(provider, reply) : reply;
+
+    return NextResponse.json({ reply: clean || null });
   } catch (e) {
     console.error("[genius/chat] model call failed:", e);
     return NextResponse.json({ reply: null, ...(dev && { reason: String((e as Error)?.message ?? e) }) });

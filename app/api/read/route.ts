@@ -5,7 +5,10 @@ import { archetypeForStar } from "@/lib/archetypes";
 import { ACCESS_COOKIE, readOpen, verifyAccess } from "@/lib/access";
 import { displaySky, signOf, SIGN_NAME } from "@/lib/chart";
 import { getProvider } from "@/lib/llm";
+import type { LLMProvider } from "@/lib/llm/types";
 import { READ_METHOD, STANDING_SPINE_METHOD, STANDING_MONTH_METHOD } from "@/lib/read-method";
+import { lintField } from "@/lib/antithesis";
+import { detect, PIVOT_PATTERNS } from "@/lib/read-lint";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
 import type { Profile } from "@/lib/storage";
 import type { SealedStar } from "@/lib/star";
@@ -38,12 +41,58 @@ function parseReadJson(raw: string): Record<string, string> | null {
   }
 }
 
+// Pick the one earned pivot the artifact may keep: the first clean-pivot flag,
+// never in the counsel (the bible bans a pivot there). All other flags rewrite.
+function pickProtected(obj: Record<string, unknown>): string | null {
+  for (const [field, val] of Object.entries(obj)) {
+    if (field === "counsel" || typeof val !== "string") continue;
+    const piv = detect(val).flags.find((f) => PIVOT_PATTERNS.has(f.pattern));
+    if (piv) return piv.sentence;
+  }
+  return null;
+}
+
+// Enforce the antithesis gate over every string field of an artifact (including
+// nested chapter strings for the Standing). Rewrites every flag except the one
+// budgeted pivot; the route refuses to return anything with violations > 0.
+async function enforce<T extends Record<string, unknown>>(
+  provider: LLMProvider,
+  obj: T,
+): Promise<{ artifact: T; before: number; after: number; passes: number; kept: number }> {
+  const protect = pickProtected(obj);
+  const out: Record<string, unknown> = { ...obj };
+  let before = 0, after = 0, passes = 0;
+  for (const [field, val] of Object.entries(obj)) {
+    if (typeof val === "string") {
+      const r = await lintField(provider, val, { protect });
+      out[field] = r.text; before += r.before; after += r.after; passes = Math.max(passes, r.passes);
+    } else if (Array.isArray(val)) {
+      const arr = val.map((x) => (x && typeof x === "object" ? { ...(x as Record<string, unknown>) } : x));
+      for (const item of arr) {
+        if (!item || typeof item !== "object") continue;
+        const rec = item as Record<string, unknown>;
+        for (const [k, v] of Object.entries(rec)) {
+          if (typeof v !== "string") continue;
+          const r = await lintField(provider, v, { protect });
+          rec[k] = r.text; before += r.before; after += r.after; passes = Math.max(passes, r.passes);
+        }
+      }
+      out[field] = arr;
+    }
+  }
+  // `after` still counts the budgeted pivot if one was kept; violations excludes it.
+  return { artifact: out as T, before, after, passes, kept: protect ? 1 : 0 };
+}
+
 export async function POST(req: Request) {
-  // Cost guard — a read is an expensive Sonnet call. Cap per IP.
-  const rl = rateLimit(`read:${clientKey(req)}`, 6, 60 * 60 * 1000);
-  if (!rl.ok) {
-    return NextResponse.json({ error: "rate_limited", retryAfter: rl.retryAfter },
-      { status: 429, headers: { "retry-after": String(rl.retryAfter) } });
+  // Cost guard — a read is an expensive Sonnet call. Cap per IP. Skipped in
+  // READ_OPEN test mode (the paywall is already bypassed there).
+  if (!readOpen()) {
+    const rl = rateLimit(`read:${clientKey(req)}`, 6, 60 * 60 * 1000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: "rate_limited", retryAfter: rl.retryAfter },
+        { status: 429, headers: { "retry-after": String(rl.retryAfter) } });
+    }
   }
 
   const jar = await cookies();
@@ -73,11 +122,12 @@ export async function POST(req: Request) {
       });
       let text = raw.trim();
       if (text.startsWith("```")) text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-      try {
-        return NextResponse.json({ ...JSON.parse(text), span, generatedAt: new Date().toISOString() });
-      } catch {
-        return NextResponse.json({ error: "parse_failed" }, { status: 500 });
-      }
+      let draft: Record<string, unknown>;
+      try { draft = JSON.parse(text) as Record<string, unknown>; }
+      catch { return NextResponse.json({ error: "parse_failed" }, { status: 500 }); }
+      const { artifact, before, after, passes, kept } = await enforce(provider, draft);
+      if (after - kept > 0) return NextResponse.json({ error: "antithesis_unconverged", residual: after - kept }, { status: 502 });
+      return NextResponse.json({ ...artifact, span, generatedAt: new Date().toISOString(), _lint: { before, after, kept, passes } });
     }
 
     const { profile, intake, star } = body as {
@@ -143,9 +193,12 @@ export async function POST(req: Request) {
     const parsed = parseReadJson(raw);
     if (!parsed) return NextResponse.json({ error: "parse_failed" }, { status: 500 });
 
+    const { artifact, before, after, passes, kept } = await enforce(provider, parsed);
+    if (after - kept > 0) return NextResponse.json({ error: "antithesis_unconverged", residual: after - kept }, { status: 502 });
     return NextResponse.json({
-      ...parsed,
+      ...artifact,
       generatedAt: new Date().toISOString(),
+      _lint: { before, after, kept, passes },
     });
   } catch (e) {
     console.error("[read] failed:", e);
