@@ -5,7 +5,7 @@ import { archetypeForStar } from "@/lib/archetypes";
 import { ACCESS_COOKIE, readOpen, verifyAccess } from "@/lib/access";
 import { displaySky, signOf, SIGN_NAME } from "@/lib/chart";
 import { getProvider } from "@/lib/llm";
-import { READ_METHOD } from "@/lib/read-method";
+import { READ_METHOD, STANDING_SPINE_METHOD, STANDING_MONTH_METHOD } from "@/lib/read-method";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
 import type { Profile } from "@/lib/storage";
 import type { SealedStar } from "@/lib/star";
@@ -58,7 +58,29 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { profile, intake, star } = await req.json() as {
+    const body = await req.json();
+    const span: "moment" | "spine" | "month" = body.span ?? "moment";
+
+    // The Standing — same engine, longer span. The client assembles `context`
+    // (chart + sealed year-questions + spine chapter + Day's Record/aura history).
+    if (span === "spine" || span === "month") {
+      const raw = await provider.complete({
+        model: "claude-sonnet-4-6",
+        maxTokens: span === "spine" ? 4000 : 3500,
+        temperature: 0.85,
+        system: span === "spine" ? STANDING_SPINE_METHOD : STANDING_MONTH_METHOD,
+        messages: [{ role: "user", content: JSON.stringify(body.context ?? {}) }],
+      });
+      let text = raw.trim();
+      if (text.startsWith("```")) text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+      try {
+        return NextResponse.json({ ...JSON.parse(text), span, generatedAt: new Date().toISOString() });
+      } catch {
+        return NextResponse.json({ error: "parse_failed" }, { status: 500 });
+      }
+    }
+
+    const { profile, intake, star } = body as {
       profile: Profile;
       intake: { season: string; repeating: string; afraid: string };
       star: SealedStar;
@@ -112,7 +134,7 @@ export async function POST(req: Request) {
 
     const raw = await provider.complete({
       model: "claude-sonnet-4-6",
-      maxTokens: 4000,
+      maxTokens: 5000,
       temperature: 0.85,
       system: READ_METHOD,
       messages: [{ role: "user", content: JSON.stringify(payload) }],
