@@ -32,21 +32,26 @@ export const DAY: Palette = {
   btnInk: "#FBF4E6", star2: "#8a6f30",
 };
 
+// The gold/ivory register from The AstroLab.html — one instrument, unified with the
+// front door (lib/atlas-ui GOLD). Deep-blue ground, gold the earned accent, ivory ink,
+// slate the quiet structure. NIGHT is the only real mode now (the day toggle survives
+// but the design is single-register).
 export const NIGHT: Palette = {
   theme: "night",
-  bg: "radial-gradient(130% 100% at 50% 8%, #1A2150 0%, #121838 44%, #080C20 100%)",
-  ink: "#ECE4D0", inkSoft: "#9698BC", brass: "#CBA456", brassHi: "#EAD08A",
-  accent: "#D9694B", silver: "#C5C8E8", line: "rgba(203,164,86,0.55)",
-  core: "rgba(120,140,255,0.015)", coreHi: "rgba(90,110,220,0.18)", star: "#F3ECD8",
-  starCore: "#FBF4E6", starHalo: "#9DB0FF", panel: "rgba(255,255,255,0.05)", panelLine: "rgba(203,164,86,0.28)",
-  btnInk: "#140E28", star2: "#F3ECD8",
+  bg: "radial-gradient(150% 100% at 50% -25%, #0f1a35 0%, #0a1124 34%, #070b18 64%, #05080f 100%)",
+  ink: "#ece4d2", inkSoft: "#b6b1a3", brass: "#c2a25f", brassHi: "#e3c884",
+  accent: "#c2a25f", silver: "#6f7894", line: "rgba(194,162,95,0.40)",
+  core: "rgba(120,140,255,0.015)", coreHi: "rgba(90,110,220,0.14)", star: "#ece4d2",
+  starCore: "#f3e3bd", starHalo: "#cbb583", panel: "rgba(20,33,66,0.34)", panelLine: "rgba(194,162,95,0.18)",
+  btnInk: "#05080f", star2: "#ece4d2",
 };
 
-// Font CSS variables (set in layout via next/font).
+// Font CSS variables (set in layout via next/font). Gold register: EB Garamond body,
+// IBM Plex Mono labels/numerals — matching the front door.
 export const FD = "var(--font-display)"; // Cormorant Garamond
-export const FT = "var(--font-text)"; // Spectral
-export const FG = "var(--font-glyph)"; // Noto Sans Symbols 2
-export const FN = "var(--font-num)"; // Spectral, tabular
+export const FT = "var(--font-body), var(--font-text)"; // EB Garamond (was Spectral)
+export const FG = "var(--font-glyph)"; // Noto Sans Symbols 2 (astro glyphs)
+export const FN = "var(--font-mono), var(--font-text)"; // IBM Plex Mono (was Spectral)
 
 // Semantic intent — GOLD IS FOR THE EARNED ONLY (ported from ARCHÉ's rule:
 // "gold is for earned inscriptions, never base"). Reach for these intents instead

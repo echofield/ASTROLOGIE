@@ -403,7 +403,7 @@ function Frame({
 }) {
   const t = COPY[lang];
   return (
-    <div style={{ minHeight: "100svh", display: "flex", justifyContent: "center", background: "#0A0D1C" }}>
+    <div style={{ minHeight: "100svh", display: "flex", justifyContent: "center", background: "#05080f" }}>
       <div ref={frameRef} style={{
         position: "relative", width: "100%", maxWidth: 430, minHeight: "100svh", overflow: "hidden",
         background: pal.bg, color: pal.ink, fontFamily: FT, display: "flex", flexDirection: "column",
@@ -716,7 +716,7 @@ export default function Page() {
   }
 
   if (!ready) return (
-    <div style={{ minHeight: "100svh", background: "#0A0D1C", color: NIGHT.inkSoft, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FT }}>
+    <div style={{ minHeight: "100svh", background: "#05080f", color: NIGHT.inkSoft, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FT }}>
       {t.loading}
     </div>
   );
