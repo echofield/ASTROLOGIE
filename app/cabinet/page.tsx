@@ -902,6 +902,74 @@ export default function Page() {
     );
   }
 
+  // ── Cabinet — the gallery wall of kept readings (full-width, its own render) ──
+  if (screen === "cabinet") {
+    const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI"];
+    const galEmblem = (i: number) => {
+      const c = pal.brass;
+      const v = [
+        <g key="a"><circle cx="25" cy="25" r="17" stroke={c} strokeOpacity=".45" /><ellipse cx="25" cy="25" rx="23" ry="9" stroke={c} strokeOpacity=".5" transform="rotate(-20 25 25)" /><circle cx="25" cy="25" r="2.4" fill={c} stroke="none" /></g>,
+        <g key="b"><circle cx="25" cy="25" r="18" stroke={c} strokeOpacity=".5" /><path d="M25 7v36M7 25h36" stroke={c} strokeOpacity=".4" /><circle cx="25" cy="25" r="2.4" fill={c} stroke="none" /></g>,
+        <g key="c"><circle cx="25" cy="25" r="18" stroke={c} strokeOpacity=".5" /><circle cx="25" cy="25" r="9" stroke={c} strokeOpacity=".5" /><circle cx="25" cy="25" r="2" fill={c} stroke="none" /></g>,
+        <g key="d"><path d="M25 6l4.5 13.5L43 25l-13.5 5.5L25 44l-4.5-13.5L7 25l13.5-5.5z" stroke={c} strokeOpacity=".55" /><circle cx="25" cy="25" r="2" fill={c} stroke="none" /></g>,
+      ];
+      return <svg width="50" height="50" viewBox="0 0 50 50" fill="none" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">{v[i % 4]}</svg>;
+    };
+    return (
+      <div style={{ minHeight: "100svh", background: pal.bg, color: pal.ink, fontFamily: FT, position: "relative", overflow: "hidden" }}>
+        <SkyBg pal={pal} night={night} par={par} />
+        <style>{`.gal-card{transition:border-color .5s ease,background .5s ease,transform .5s ease}
+          .gal-card:hover{border-color:${pal.panelLine}!important;transform:translateY(-4px)}
+          .gal-card:hover .gal-q{color:${pal.ink}!important}.gal-card:hover .gal-em{color:${pal.brassHi}!important}`}</style>
+        <div style={{ position: "relative", zIndex: 2, maxWidth: 1160, margin: "0 auto", padding: "clamp(28px,5vh,54px) clamp(20px,5vw,56px) 120px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 30, flexWrap: "wrap", marginBottom: "clamp(34px,6vh,52px)" }}>
+            <div>
+              <div style={{ fontFamily: FN, fontSize: 11.5, letterSpacing: "0.4em", textTransform: "uppercase", color: pal.brass, marginBottom: 16 }}>{lang === "fr" ? "Gardé contre la nuit" : "Kept against the dark"}</div>
+              <div style={{ fontFamily: FD, fontWeight: 400, fontSize: "clamp(40px,4.4vw,62px)", lineHeight: 1, color: pal.ink, letterSpacing: ".5px" }}>{lang === "fr" ? "Le Cabinet" : "The Cabinet"}</div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <span style={{ fontFamily: FD, fontSize: "clamp(38px,4vw,54px)", color: pal.brassHi, lineHeight: 1 }}>{recordedStars.length}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, letterSpacing: ".24em", textTransform: "uppercase", color: pal.silver, lineHeight: 1.7 }}>{lang === "fr" ? <>lectures que le ciel<br />a gardées pour vous</> : <>readings the sky<br />has kept for you</>}</span>
+            </div>
+          </div>
+          {star && !read && (
+            <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", marginBottom: 30, paddingBottom: 30, borderBottom: `1px solid ${pal.panelLine}` }}>
+              <Link href={`/checkout?lang=${lang}`} style={{ display: "inline-flex", alignItems: "center", gap: 13, padding: "15px 28px", border: `1px solid ${pal.brass}`, color: pal.brassHi, fontFamily: FN, fontSize: 12, letterSpacing: "0.28em", textTransform: "uppercase", textDecoration: "none" }}>{t.completeRead.cta} →</Link>
+              <button onClick={() => setIntakeOpen(true)} style={{ background: "none", border: "none", color: pal.inkSoft, fontFamily: FN, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 4 }}>{lang === "fr" ? "Commencer la lecture" : "Begin the Read"}</button>
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(246px,1fr))", gap: 20 }}>
+            {recordedStars.map((s, i) => {
+              const st = ledgerStatus(s, date, lang);
+              return (
+                <button key={s.sealedAt} onClick={() => { saveStar(s); setStar(s); setScreen("star"); }} className="gal-card"
+                  style={{ textAlign: "left", background: "linear-gradient(180deg,rgba(20,33,66,.42),rgba(9,14,30,.2))", border: `1px solid ${pal.panelLine}`, padding: "30px 26px 24px", cursor: "pointer", display: "flex", flexDirection: "column", minHeight: 286, color: pal.ink }}>
+                  <div style={{ fontFamily: FN, fontSize: 11, letterSpacing: ".26em", textTransform: "uppercase", color: pal.brass, marginBottom: 26 }}>No. {ROMAN[i] ?? i + 1}</div>
+                  <div className="gal-em" style={{ color: pal.brass, marginBottom: 26 }}>{galEmblem(i)}</div>
+                  <div className="gal-q" style={{ fontFamily: FD, fontStyle: "italic", fontWeight: 500, fontSize: "clamp(21px,1.6vw,25px)", lineHeight: 1.16, color: pal.inkSoft, flex: 1, letterSpacing: ".3px" }}>{s.must}</div>
+                  <div style={{ marginTop: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: pal.silver }}>{st.stamp}</span>
+                    <span style={{ fontFamily: FN, fontSize: 10, letterSpacing: ".22em", textTransform: "uppercase", color: pal.brass, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ width: 6, height: 6, background: pal.brass, transform: "rotate(45deg)", display: "inline-block" }} />{st.label}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+            <button onClick={startSeal} className="gal-card"
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, minHeight: 286, border: `1px dashed ${pal.panelLine}`, background: "none", color: pal.inkSoft, cursor: "pointer", padding: 26 }}>
+              <span style={{ fontFamily: FD, fontSize: 34, color: pal.brass, lineHeight: 1 }}>+</span>
+              <span style={{ fontFamily: FN, fontSize: 11, letterSpacing: ".24em", textTransform: "uppercase" }}>{t.cabinet.sealStar}</span>
+            </button>
+          </div>
+        </div>
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 3 }}>
+          <TabBar pal={pal} active="cabinet" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
+        </div>
+      </div>
+    );
+  }
+
   // ── shell: compute {visual, detail} per screen ──
   const arch = star ? archetypeForStar(star) : null;
   const liveSubset: LonMap = { moon: liveLon.moon, sun: liveLon.sun, venus: liveLon.venus, mars: liveLon.mars, jupiter: liveLon.jupiter, saturn: liveLon.saturn };
@@ -910,7 +978,9 @@ export default function Page() {
   let visual: ReactNode = null;
   let detail: ReactNode = null;
 
-  if (screen === "cabinet") {
+  // NOTE: the cabinet is rendered above as the full-width gallery; this legacy block
+  // is unreachable (its journal/day-record move to Genius in the next pass).
+  if ((screen as string) === "cabinet") {
     const transit = star && reach
       ? `Moon ${shortPos(liveLon.moon)}. ${t.cabinet.moonFrom(reach.headline, star.name)}`
       : `Moon ${shortPos(liveLon.moon)}. ${t.cabinet.moonSun} ${shortPos(liveLon.sun)}.`;
