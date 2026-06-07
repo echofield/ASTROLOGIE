@@ -11,7 +11,7 @@ export interface RecordEntry { id: string; body: string; created_at: string; }
 function local(): RecordEntry[] { if (typeof window === "undefined") return []; try { return JSON.parse(localStorage.getItem(LKEY) || "[]"); } catch { return []; } }
 function setLocal(rows: RecordEntry[]) { if (typeof window !== "undefined") localStorage.setItem(LKEY, JSON.stringify(rows)); }
 const byNewest = (a: RecordEntry, b: RecordEntry) => b.created_at.localeCompare(a.created_at);
-const uuid = () => (globalThis.crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+const uuid = () => (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 
 export function getEntries(): RecordEntry[] { return [...local()].sort(byNewest); }
 export function entriesSince(iso: string): RecordEntry[] { return getEntries().filter((e) => e.created_at > iso); }
