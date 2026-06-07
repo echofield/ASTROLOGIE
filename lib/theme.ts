@@ -47,3 +47,16 @@ export const FD = "var(--font-display)"; // Cormorant Garamond
 export const FT = "var(--font-text)"; // Spectral
 export const FG = "var(--font-glyph)"; // Noto Sans Symbols 2
 export const FN = "var(--font-num)"; // Spectral, tabular
+
+// Semantic intent — GOLD IS FOR THE EARNED ONLY (ported from ARCHÉ's rule:
+// "gold is for earned inscriptions, never base"). Reach for these intents instead
+// of grabbing `brass` directly, so gold keeps meaning: a sealed Star, a discovered
+// artifact, a verified proof, the one primary action. Everything structural —
+// rings, dividers, schematics, metadata — stays quiet (silver / ink).
+export const intent = (p: Palette) => ({
+  earned: p.brass,      // sealed Star, discovered artifact, primary CTA
+  earnedHi: p.brassHi,  // active / emphasis on something earned
+  structure: p.silver,  // rings, dividers, schematic linework — quiet
+  label: p.inkSoft,     // captions, metadata, secondary text
+  body: p.ink,          // primary reading text
+});
