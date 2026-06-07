@@ -184,9 +184,9 @@ export async function POST(req: Request) {
     };
 
     const raw = await provider.complete({
-      model: "claude-sonnet-4-6",
+      model: "claude-opus-4-8", // best raw voice → fewer judge-fails; ~€2/read is negligible at €59
       maxTokens: 5000,
-      temperature: 0.85,
+      // no temperature — Opus 4.8 deprecates the param; the judge+regen loop is the quality lever
       system: READ_METHOD,
       messages: [{ role: "user", content: JSON.stringify(payload) }],
     });
@@ -207,13 +207,18 @@ export async function POST(req: Request) {
     let lint = await enforce(provider, parsed);
     if (lint.after - lint.kept > 0) return NextResponse.json({ error: "antithesis_unconverged", residual: lint.after - lint.kept }, { status: 502 });
     let current = lint.artifact;
-    lifecycle.push(evt("read_generated", { span: "moment", model: "claude-sonnet-4-6" }));
+    lifecycle.push(evt("read_generated", { span: "moment", model: "claude-opus-4-8" }));
     lifecycle.push(evt("read_lint_passed", { before: lint.before, after: lint.after, kept: lint.kept, passes: lint.passes }));
 
     // L4 — judge the clean artifact; on a section-level fail, regenerate ONLY those
     // sections, re-run the FULL L2/L3 lint on the result (never skip the tic-check),
-    // then re-judge. Hard cap: at most 2 retries, then stop.
-    let verdict = await judge(provider, current);
+    // then re-judge. Cap: up to 5 corrective retries (each is judge-gated & cheap at €59).
+    // forceJudgeFail (READ_OPEN only): forces a fail straight to the held path so the
+    // operator can walk catch → finish → deliver on demand.
+    const FORCE_FAIL = readOpen() && body.forceJudgeFail === true;
+    const FAIL_KEYS = ["signature", "chart", "pattern", "star", "yearAhead", "counsel"];
+    const forcedFail = () => ({ pivotCount: 0, pass: false, sections: FAIL_KEYS.map((k) => ({ section: k, pass: k !== "counsel", failures: k === "counsel" ? [{ test: "NO_COMFORT_CLOSE", quote: "(forced)", why: "forceJudgeFail test hook — exercising the held-state path" }] : [] })) });
+    let verdict = FORCE_FAIL ? forcedFail() : await judge(provider, current);
 
     // Permanent voice-quality regression hook (READ_OPEN only): judge ONCE, no regen.
     // Measures how often raw L1 clears the bar at ~1 gen + 1 judge per read. Returns
@@ -227,7 +232,7 @@ export async function POST(req: Request) {
     }
 
     let regenLintFailed = false;
-    for (let attempt = 0; verdict && !verdict.pass && attempt < 2; attempt++) {
+    for (let attempt = 0; !FORCE_FAIL && verdict && !verdict.pass && attempt < 5; attempt++) {
       for (const s of verdict.sections.filter((x) => !x.pass)) {
         const fresh = await regenSection(provider, payload, s.section, current[s.section] ?? "", s.failures);
         if (fresh) current = { ...current, [s.section]: fresh };
