@@ -72,7 +72,7 @@ export default function AtlasHome() {
         <Sky par={par} n={10} depth={22} rmax={2.6} op={0.5} />
       </>}
       <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
-        background: "radial-gradient(40% 36% at 50% 46%, rgba(90,110,220,0.12) 0%, rgba(90,110,220,0) 70%)" }} />
+        background: "radial-gradient(38% 38% at 50% 50%, rgba(90,110,220,0.10) 0%, rgba(90,110,220,0) 70%)" }} />
 
       {/* header */}
       <Header />
@@ -84,14 +84,9 @@ export default function AtlasHome() {
           <defs>
             {Array.from({ length: 12 }, (_, i) => <clipPath key={i} id={`w${uid}-${i}`}><path d={sector(i, 0, R_OUT)} /></clipPath>)}
             <clipPath id={`hub${uid}`}><circle cx={C} cy={C} r={92} /></clipPath>
-            <radialGradient id={`f${uid}`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#fff" /><stop offset="92%" stopColor="#fff" /><stop offset="100%" stopColor="#000" />
-            </radialGradient>
-            <mask id={`m${uid}`}><rect x="0" y="0" width="400" height="400" fill={`url(#f${uid})`} /></mask>
           </defs>
-          <circle cx={C} cy={C} r={196} fill="rgba(90,110,220,0.12)" style={{ filter: "blur(34px)" }} />
-          <g mask={`url(#m${uid})`}>
-            <image href={WHEEL} x="0" y="0" width="400" height="400" preserveAspectRatio="xMidYMid slice" style={{ filter: "brightness(0.82) saturate(1)" }} />
+          <g>
+            <image href={WHEEL} x="0" y="0" width="400" height="400" preserveAspectRatio="xMidYMid slice" style={{ filter: "saturate(1.04)" }} />
             {Array.from({ length: 12 }, (_, i) => (
               <image key={`r${i}`} href={WHEEL} x="0" y="0" width="400" height="400" preserveAspectRatio="xMidYMid slice"
                 clipPath={`url(#w${uid}-${i})`} opacity={hover === i ? 1 : 0}
@@ -104,7 +99,7 @@ export default function AtlasHome() {
                 fill={pal.star} opacity={rnd(i * 7 + 4) * 0.45 + 0.18} className="astro-twinkle" style={{ animationDelay: `${rnd(i * 7 + 5) * 5}s` }} />
             ))}
           </g>
-          {hover != null && <path d={sector(hover, 0, R_OUT)} fill="none" stroke={pal.brassHi} strokeWidth={1.1} opacity={0.8} mask={`url(#m${uid})`} />}
+          {hover != null && <path d={sector(hover, 0, R_OUT)} fill="none" stroke={pal.brassHi} strokeWidth={1.1} opacity={0.8} />}
 
           {/* hit-zones */}
           {Array.from({ length: 12 }, (_, i) => (
