@@ -29,6 +29,13 @@ export const PATTERNS: Pattern[] = [
     note: "is/was never X / it is Y reversal",
   },
   {
+    name: "never_X_noun_was_Y",
+    // non-pronoun completion: "The numbers were never the missing piece — the signature was."
+    // em-dash + a determiner-led noun subject + a clause-final copula (short Y or elliptical).
+    re: /\b(?:is|are|was|were)\s+never\b[^.!?;—–]*?[—–]\s*(?:the|a|an|this|that|those|these)\s+[a-z]+(?:\s+[a-z]+){0,2}\s+(?:is|are|was|were)\b(?:\s+[a-z]+){0,3}\s*(?=[.!?;]|$)/i,
+    note: "was never X — [noun] was Y reversal (non-pronoun completion)",
+  },
+  {
     name: "not_A_but_B",
     re: /\bnot\s+(from\s+|out\s+of\s+|about\s+|a\s+|an\s+|the\s+)?[^.!?;,—–-]{2,40}?,?\s+but\s+/i,
     note: "not A but B",

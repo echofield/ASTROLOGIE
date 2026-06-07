@@ -214,6 +214,18 @@ export async function POST(req: Request) {
     // sections, re-run the FULL L2/L3 lint on the result (never skip the tic-check),
     // then re-judge. Hard cap: at most 2 retries, then stop.
     let verdict = await judge(provider, current);
+
+    // Permanent voice-quality regression hook (READ_OPEN only): judge ONCE, no regen.
+    // Measures how often raw L1 clears the bar at ~1 gen + 1 judge per read. Returns
+    // the first verdict; never ships to a customer (READ_OPEN is off in production).
+    if (readOpen() && body.judgeOnce === true) {
+      const lp = { before: lint.before, after: lint.after, kept: lint.kept, passes: lint.passes };
+      lifecycle.push(verdict
+        ? evt(verdict.pass ? "read_judged_passed" : "read_judged_failed", { pivotCount: verdict.pivotCount, sections: verdict.sections })
+        : evt("read_judged_skipped", { reason: "judge_unavailable" }));
+      return NextResponse.json({ ...current, generatedAt, _lint: lp, _judge: verdict, _lifecycle: lifecycle });
+    }
+
     let regenLintFailed = false;
     for (let attempt = 0; verdict && !verdict.pass && attempt < 2; attempt++) {
       for (const s of verdict.sections.filter((x) => !x.pass)) {
