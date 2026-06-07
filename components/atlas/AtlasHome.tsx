@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Header from "./Header";
 import { NIGHT, FD, FT, FG } from "@/lib/theme";
 import { SIGN_GLYPH, SIGN_NAME, SIGN_KEY } from "@/lib/chart";
 import { TERRITORIES } from "@/data/territories";
@@ -34,15 +36,6 @@ function Sky({ par, n, depth, rmax, op }: { par: { x: number; y: number }; n: nu
       transform: `translate(${par.x * depth}px, ${par.y * depth}px)`, transition: "transform .5s ease-out" }}>
       {dots.map((d, i) => <circle key={i} cx={`${d.x}%`} cy={`${d.y}%`} r={d.r} fill={pal.star} opacity={d.o} className="astro-twinkle" style={{ animationDelay: `${d.t}s` }} />)}
     </svg>
-  );
-}
-
-function navLink(label: string, href: string, router: ReturnType<typeof useRouter>) {
-  return (
-    <button onClick={() => router.push(href)} style={{
-      fontFamily: FT, fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: pal.inkSoft,
-      background: "transparent", border: "none", cursor: "pointer", padding: "4px 0",
-    }} onMouseEnter={(e) => (e.currentTarget.style.color = pal.brass)} onMouseLeave={(e) => (e.currentTarget.style.color = pal.inkSoft)}>{label}</button>
   );
 }
 
@@ -82,14 +75,7 @@ export default function AtlasHome() {
         background: "radial-gradient(40% 36% at 50% 46%, rgba(90,110,220,0.12) 0%, rgba(90,110,220,0) 70%)" }} />
 
       {/* header */}
-      <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 6, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "26px clamp(20px,4vw,56px)" }}>
-        <span style={{ fontFamily: FD, fontSize: 20, letterSpacing: 2, color: pal.ink }}>ASTROLAB</span>
-        <nav style={{ display: "flex", gap: "clamp(16px,3vw,34px)", alignItems: "center" }}>
-          {navLink("The Atlas", "/", router)}
-          {navLink("Cabinet", "/cabinet", router)}
-          {navLink("The Reading", "/cabinet", router)}
-        </nav>
-      </header>
+      <Header />
 
       {/* the wheel */}
       <div style={{ position: "relative", zIndex: 2, width: "min(92vw, 700px)", aspectRatio: "1",
@@ -157,6 +143,10 @@ export default function AtlasHome() {
       <div style={{ position: "relative", zIndex: 2, marginTop: 16, fontFamily: FD, fontStyle: "italic", fontSize: 13, color: pal.inkSoft, opacity: 0.75 }}>
         Choose a sign to descend.
       </div>
+      <Link href="/reading" style={{ position: "relative", zIndex: 2, marginTop: 18, fontFamily: "var(--font-mono), 'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.24em", textTransform: "uppercase", color: "#8a7140", textDecoration: "none", display: "inline-flex", gap: 10, alignItems: "center" }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "#e3c884")} onMouseLeave={(e) => (e.currentTarget.style.color = "#8a7140")}>
+        Or have a Reading drawn <span>→</span>
+      </Link>
 
       {/* footer colophon */}
       <footer style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 6, textAlign: "center", padding: "18px 24px",

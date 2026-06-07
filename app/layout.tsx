@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Spectral } from "next/font/google";
+import { Cormorant_Garamond, Spectral, EB_Garamond, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { PRODUCT_NAME } from "@/lib/brand";
 import "./globals.css";
@@ -18,6 +18,9 @@ const text = Spectral({
   variable: "--font-text",
   display: "swap",
 });
+// The AstroLab gold register (header / home / offer / reveal): EB Garamond body + IBM Plex Mono labels.
+const bodyFont = EB_Garamond({ subsets: ["latin"], weight: ["400", "500"], style: ["normal", "italic"], variable: "--font-body", display: "swap" });
+const monoFont = IBM_Plex_Mono({ subsets: ["latin"], weight: ["300", "400", "500"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
   title: PRODUCT_NAME,
@@ -51,7 +54,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${display.variable} ${text.variable}`}>{children}<Analytics /></body>
+      <body className={`${display.variable} ${text.variable} ${bodyFont.variable} ${monoFont.variable}`}>{children}<Analytics /></body>
     </html>
   );
 }
