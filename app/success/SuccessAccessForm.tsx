@@ -33,7 +33,8 @@ export default function SuccessAccessForm({ pal, lang, copy }: Props) {
       });
       const data = await res.json();
       if (data.ok) {
-        window.location.href = `/?read=intake&lang=${lang}`;
+        // the read intake/generation lives on /cabinet (the wheel at / ignores ?read=intake)
+        window.location.href = `/cabinet?read=intake&lang=${lang}`;
         return;
       }
       setStatus("denied");
