@@ -29,6 +29,7 @@ import {
   getRead, saveRead, type Profile, type CompleteRead,
 } from "@/lib/storage";
 import { pull as cloudPull, push as cloudPush, wipe as cloudWipe, pullRead as cloudPullRead, pushRead as cloudPushRead } from "@/lib/cloud";
+import { logEvent } from "@/lib/atlas/events";
 import {
   DEFAULT_LANG, DISCLAIMER, LANG_LABEL, LEGAL_LINKS, PRICING, PRODUCT_NAME, type Lang,
 } from "@/lib/brand";
@@ -640,8 +641,13 @@ export default function Page() {
         body: JSON.stringify({ profile, intake, star }),
       });
       const data = await res.json();
+      // Write the lifecycle trail under the user's own session — on success AND on a
+      // judge failure (so read_judged_failed is logged and visible), never user-facing.
+      if (Array.isArray(data._lifecycle)) {
+        for (const e of data._lifecycle) logEvent(e.subject_type, e.subject_id, e.event_type, e.payload, e.idempotency_key);
+      }
       if (!res.ok || data.error) {
-        alert(t.intake.error);
+        alert(t.intake.error); // generic retry only — never a "did not pass" banner
         return;
       }
       const artifact: CompleteRead = {

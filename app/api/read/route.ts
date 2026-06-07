@@ -9,6 +9,7 @@ import type { LLMProvider } from "@/lib/llm/types";
 import { READ_METHOD, STANDING_SPINE_METHOD, STANDING_MONTH_METHOD } from "@/lib/read-method";
 import { lintField } from "@/lib/antithesis";
 import { detect, PIVOT_PATTERNS } from "@/lib/read-lint";
+import { judge, regenSection } from "@/lib/read-judge";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
 import type { Profile } from "@/lib/storage";
 import type { SealedStar } from "@/lib/star";
@@ -193,13 +194,55 @@ export async function POST(req: Request) {
     const parsed = parseReadJson(raw);
     if (!parsed) return NextResponse.json({ error: "parse_failed" }, { status: 500 });
 
-    const { artifact, before, after, passes, kept } = await enforce(provider, parsed);
-    if (after - kept > 0) return NextResponse.json({ error: "antithesis_unconverged", residual: after - kept }, { status: 502 });
-    return NextResponse.json({
-      ...artifact,
-      generatedAt: new Date().toISOString(),
-      _lint: { before, after, kept, passes },
+    const generatedAt = new Date().toISOString();
+    // one immutable subject for the whole lifecycle (reads overwrite in astrolabe_reads;
+    // the event trail keeps them plural). Client writes these under its own session.
+    const evt = (event_type: string, payload: Record<string, unknown>) => ({
+      subject_type: "read" as const, subject_id: generatedAt, event_type, payload,
+      idempotency_key: `${generatedAt}:${event_type}`,
     });
+    const lifecycle: ReturnType<typeof evt>[] = [];
+
+    // L2/L3 — deterministic lint gate (detect → rewrite loop → pivot budget)
+    let lint = await enforce(provider, parsed);
+    if (lint.after - lint.kept > 0) return NextResponse.json({ error: "antithesis_unconverged", residual: lint.after - lint.kept }, { status: 502 });
+    let current = lint.artifact;
+    lifecycle.push(evt("read_generated", { span: "moment", model: "claude-sonnet-4-6" }));
+    lifecycle.push(evt("read_lint_passed", { before: lint.before, after: lint.after, kept: lint.kept, passes: lint.passes }));
+
+    // L4 — judge the clean artifact; on a section-level fail, regenerate ONLY those
+    // sections, re-run the FULL L2/L3 lint on the result (never skip the tic-check),
+    // then re-judge. Hard cap: at most 2 retries, then stop.
+    let verdict = await judge(provider, current);
+    let regenLintFailed = false;
+    for (let attempt = 0; verdict && !verdict.pass && attempt < 2; attempt++) {
+      for (const s of verdict.sections.filter((x) => !x.pass)) {
+        const fresh = await regenSection(provider, payload, s.section, current[s.section] ?? "", s.failures);
+        if (fresh) current = { ...current, [s.section]: fresh };
+      }
+      lint = await enforce(provider, current); // re-lint the whole artifact
+      if (lint.after - lint.kept > 0) { regenLintFailed = true; break; }
+      current = lint.artifact;
+      verdict = await judge(provider, current);
+    }
+    const lintPayload = { before: lint.before, after: lint.after, kept: lint.kept, passes: lint.passes };
+
+    if (regenLintFailed) {
+      lifecycle.push(evt("read_judged_failed", { reason: "antithesis_unconverged_on_regen", residual: lint.after - lint.kept }));
+      return NextResponse.json({ error: "judge_failed", _lifecycle: lifecycle }, { status: 422 });
+    }
+    if (verdict === null) {
+      // judge unavailable (infra/parse) — ship the lint-clean read, but record the skip so it's visible
+      lifecycle.push(evt("read_judged_skipped", { reason: "judge_unavailable" }));
+      return NextResponse.json({ ...current, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
+    }
+    if (!verdict.pass) {
+      // failed after the 2-retry cap — ship NOTHING; record the failure for the operator
+      lifecycle.push(evt("read_judged_failed", { failedSections: verdict.sections.filter((s) => !s.pass) }));
+      return NextResponse.json({ error: "judge_failed", _lifecycle: lifecycle }, { status: 422 });
+    }
+    lifecycle.push(evt("read_judged_passed", { pivotCount: verdict.pivotCount, sections: verdict.sections.map((s) => ({ section: s.section, pass: s.pass })) }));
+    return NextResponse.json({ ...current, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
   } catch (e) {
     console.error("[read] failed:", e);
     return NextResponse.json({ error: "generation_failed" }, { status: 500 });
