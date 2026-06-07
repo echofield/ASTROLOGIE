@@ -413,12 +413,8 @@ function Frame({
         <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", flexDirection: "column",
           padding: withTabs ? "0 20px 104px" : "0 20px 64px" }}>
           <StatusBar pal={pal} date={date} brand={PRODUCT_NAME} />
-          {withToggle && onToggleNight && (
+          {withToggle && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
-              <span style={{ fontFamily: FT, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: pal.inkSoft }}>
-                {night ? t.mode.night : t.mode.day}
-              </span>
-              <ModeToggle night={night} onToggle={onToggleNight} pal={pal} title={t.mode.toggle} />
               <LangSwitch pal={pal} lang={lang} onLang={onLang} />
             </div>
           )}
@@ -496,7 +492,7 @@ export default function Page() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [star, setStar] = useState<SealedStar | null>(null);
   const [read, setRead] = useState<CompleteRead | null>(null);
-  const [night, setNight] = useState(true);
+  const night = true; // single-register (gold); the day/night toggle is retired
   const [lang, setLang] = useState<Lang>(DEFAULT_LANG);
   const [screen, setScreen] = useState<Screen>("cabinet");
   const [hoverSign, setHoverSign] = useState<number | null>(null);
@@ -600,7 +596,7 @@ export default function Page() {
     if (star && !all.some((s) => s.sealedAt === star.sealedAt)) all.push(star);
     return all.sort((a, b) => b.sealedAt.localeCompare(a.sealedAt)).slice(0, 6);
   }, [ledger, star]);
-  const toggleNight = () => setNight((v) => !v);
+  const toggleNight = () => {}; // retired — kept as a no-op for chrome call-sites
   const onTab = (t: Screen) => { setScreen(t); setGReply(null); };
   const startSeal = () => { setRmust(""); setRname(""); setRstep(1); };
 

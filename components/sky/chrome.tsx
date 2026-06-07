@@ -39,18 +39,10 @@ export function StatusBar({ pal, date, brand = "The AstroLab" }: { pal: Palette;
   );
 }
 
-export function ModeToggle({ night, onToggle, pal, title = "Day / Night" }: { night: boolean; onToggle: () => void; pal: Palette; title?: string }) {
-  return (
-    <button onClick={onToggle} title={title} style={{
-      appearance: "none", cursor: "pointer", width: 52, height: 28, borderRadius: 16,
-      border: `1px solid ${pal.panelLine}`, background: pal.panel, position: "relative", flexShrink: 0,
-    }}>
-      <span style={{ position: "absolute", top: 2, left: night ? 26 : 2, width: 22, height: 22, borderRadius: 12,
-        background: night ? pal.brass : pal.accent, transition: "left .35s cubic-bezier(.4,0,.2,1)",
-        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: pal.btnInk,
-        fontFamily: FG }}>{night ? "☽" : "☉"}</span>
-    </button>
-  );
+// The AstroLab is single-register (gold) — the day/night toggle is retired. Kept as a
+// no-op so the chrome call-sites stay valid until the cabinet adopts the unified header.
+export function ModeToggle(_props: { night: boolean; onToggle: () => void; pal: Palette; title?: string }) {
+  return null;
 }
 
 export type TabId = "cabinet" | "theme" | "star" | "genius";

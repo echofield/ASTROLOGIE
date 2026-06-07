@@ -13,7 +13,7 @@ import { getMomentPlate, PLANET_GLYPH, type MomentPlate } from "@/lib/atlas/sky"
 // Resting hub = the live sky (Moment Plate, free/computed). Hovering = the sign.
 // Click = descend into the territory. Myth outside; the true sky waits inside.
 const pal = NIGHT;
-const WHEEL = "/wheel-clean.png";
+const WHEEL = "/wheel.png";
 const C = 200;
 const ang = (i: number) => (-105 + i * 30) * (Math.PI / 180); // painted spoke at top
 const pol = (a: number, r: number): [number, number] => [C + r * Math.cos(a), C + r * Math.sin(a)];
