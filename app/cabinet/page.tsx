@@ -659,10 +659,14 @@ function CabinetPage() {
     if (!profile || !star || generatingRead) return;
     setGeneratingRead(true);
     try {
+      // Held-path test trigger: ?forcefail=1 asks the server to force a judge-fail so the
+      // operator can walk held → /admin/held → deliver. The server only honors it under
+      // READ_OPEN=true, so it is inert in production (READ_OPEN=false).
+      const forceFail = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("forcefail") === "1";
       const res = await fetch("/api/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, intake, star }),
+        body: JSON.stringify({ profile, intake, star, ...(forceFail ? { forceJudgeFail: true } : {}) }),
       });
       const data = await res.json();
       // Write the lifecycle trail under the user's own session — on success AND on a
