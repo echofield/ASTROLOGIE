@@ -25,8 +25,9 @@ export const DISCLAIMER: Record<Lang, string> = {
 };
 
 // Public Stripe Payment Link (safe to expose). Live €60 "The Reading" link; set its
-// post-payment redirect to /success in the Stripe dashboard.
-export const PAYMENT_LINK = "https://buy.stripe.com/bJe00k0pcbI7ggkaXK3Je00";
+// post-payment redirect to /success in the Stripe dashboard. NEXT_PUBLIC_PAYMENT_LINK
+// overrides it (e.g. a Stripe test link for test-card runs); unset → live.
+export const PAYMENT_LINK = process.env.NEXT_PUBLIC_PAYMENT_LINK || "https://buy.stripe.com/bJe00k0pcbI7ggkaXK3Je00";
 
 // The Reading — one reading, drawn for a sealed question, kept in the Cabinet.
 // One price, no anchor, no "lifetime / beta / future features" — we deliver one reading.
