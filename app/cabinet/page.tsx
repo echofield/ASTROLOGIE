@@ -1053,6 +1053,52 @@ export default function Page() {
     );
   }
 
+  // ── Theme — the natal chart, ported verbatim (.duo / .theme-ed / .reading-card) ──
+  if (screen === "theme" && natalLon) {
+    const signs = t.theme.signNames;
+    const sunSign = signs[signOf(natalLon.sun)];
+    const moonSign = signs[signOf(natalLon.moon)];
+    const risingSign = ascVal != null ? signs[signOf(ascVal)] : undefined;
+    const L = lang === "fr" ? { sunIn: "Soleil en", moonIn: "Lune en", rising: "Ascendant" } : { sunIn: "Sun in", moonIn: "Moon in", rising: "Rising" };
+    return (
+      <>
+        <AtlasChrome />
+        <Header />
+        <section className={`stage active${entered ? " enter" : ""}`} id="theme">
+          <div className="surface">
+            <div className="duo">
+              <div className="instr-cell">
+                <SkyWheel pal={pal} size={wide ? 420 : 300} bodies={natalLon} asc={ascVal} houses={ascVal != null} highlight={sel} rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />
+              </div>
+              <div className="theme-ed">
+                <p className="eyebrow em">{lang === "fr" ? <>Votre <b>Thème</b></> : <>Your <b>Theme</b></>}</p>
+                <p className="triad em">{L.sunIn} <b>{sunSign}</b> · {L.moonIn} <b>{moonSign}</b>{risingSign ? <> · {L.rising} <b>{risingSign}</b></> : null}</p>
+                <div className="planet-rail em">
+                  {PLANETS.map((p) => (
+                    <button key={p.key} className={sel === p.key ? "on" : ""} onClick={() => setSel(p.key as DisplayPlanetKey)} aria-label={PLANET_NAME[p.key as DisplayPlanetKey]}>{p.glyph}</button>
+                  ))}
+                </div>
+                <div className="reading-card em">
+                  <div className="rc-head">
+                    <span className="rc-glyph">{PLANET_GLYPH[sel]}</span>
+                    <span className="rc-name">{PLANET_NAME[sel]}</span>
+                    <span className="rc-pos">{shortPos(natalLon[sel])}</span>
+                  </div>
+                  <p className="rc-body">{t.theme.read[sel]}</p>
+                  <span className="rc-deg">{degStr(natalLon[sel])}</span>
+                </div>
+                <p className="theme-cap em">{hoverSign != null ? SIGN_NAME[hoverSign] : t.theme.touchSign}<em>{t.theme.bornUnder}</em></p>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
+          <TabBar pal={pal} active="theme" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
+        </div>
+      </>
+    );
+  }
+
   // ── shell: compute {visual, detail} per screen ──
   const arch = star ? archetypeForStar(star) : null;
   const liveSubset: LonMap = { moon: liveLon.moon, sun: liveLon.sun, venus: liveLon.venus, mars: liveLon.mars, jupiter: liveLon.jupiter, saturn: liveLon.saturn };
