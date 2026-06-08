@@ -12,6 +12,7 @@ import StarField from "@/components/sky/StarField";
 import DayRecord from "@/components/atlas/DayRecord";
 import Header from "@/components/atlas/Header";
 import AtlasChrome from "@/components/atlas/AtlasChrome";
+import AtlasCalendar from "@/components/atlas/AtlasCalendar";
 import { Cap, Btn, StatusBar, ModeToggle, TabBar, type TabId } from "@/components/sky/chrome";
 import { useParallax, useSlowRotation, useSkyClock, useMediaQuery } from "@/components/sky/hooks";
 import { NIGHT, DAY, type Palette, FD, FT, FG, FN } from "@/lib/theme";
@@ -1031,6 +1032,22 @@ export default function Page() {
         </section>
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
           <TabBar pal={pal} active="genius" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
+        </div>
+      </>
+    );
+  }
+
+  // ── Calendar — the almanac, ported verbatim (.cal-*), grounded in our ephemeris ──
+  if (screen === "calendar") {
+    return (
+      <>
+        <AtlasChrome />
+        <Header />
+        <section className={`stage active${entered ? " enter" : ""}`} id="calendar">
+          <AtlasCalendar lang={lang} birthISO={profile?.birthISO ?? null} />
+        </section>
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
+          <TabBar pal={pal} active={screen as TabId} labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
         </div>
       </>
     );
