@@ -30,7 +30,7 @@ export default function Header() {
           </button>
           <div className="nav-menu">
             <Link className="menu-item" href="/cabinet?screen=calendar" onClick={() => setOpen(false)}>Calendar</Link>
-            <Link className="menu-item" href="/" onClick={() => setOpen(false)}>Atlas</Link>
+            <Link className="menu-item" href="/atlas" onClick={() => setOpen(false)}>Atlas</Link>
           </div>
         </div>
         <Link className={`place${on("/cabinet") ? " on" : ""}`} href="/cabinet">Cabinet</Link>

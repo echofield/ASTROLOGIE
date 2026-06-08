@@ -28,7 +28,7 @@ function doorPath(i: number) {
 export default function AtlasHome() {
   const router = useRouter();
   const [hover, setHover] = useState<number | null>(null);
-  const go = (i: number) => router.push(`/sign/${SIGN_KEY[i]}`);
+  const go = (i: number) => router.push(`/atlas?sign=${SIGN_KEY[i]}`);
 
   return (
     <>
