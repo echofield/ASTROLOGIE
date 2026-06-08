@@ -152,6 +152,10 @@ const COPY = {
     genius: {
       heldBy: "held by the",
       today: "today",
+      record: "The day's record",
+      keep: "keep this line",
+      emptyRecord: "Nothing kept yet today. Leave the first line.",
+      awaiting: "Awaiting your star",
       closed: "The Genius is closed till tomorrow.",
       wake: "Seal a star, and I will wake.",
       placeholder: "what moves in you tonight…",
@@ -275,6 +279,10 @@ const COPY = {
     genius: {
       heldBy: "tenu par le",
       today: "aujourd'hui",
+      record: "Le registre du jour",
+      keep: "garder cette ligne",
+      emptyRecord: "Rien de gardé aujourd'hui. Laissez la première ligne.",
+      awaiting: "En attente de votre étoile",
       closed: "Genius est fermé jusqu'à demain.",
       wake: "Scellez une étoile, et je m'éveillerai.",
       placeholder: "ce qui bouge en vous ce soir…",
@@ -975,6 +983,59 @@ export default function Page() {
     );
   }
 
+  // ── Genius — the day's record, ported verbatim (.genius-ed / .record / .rec-*) ──
+  if (screen === "genius") {
+    const garch = star ? archetypeForStar(star) : null;
+    const gClosed = remaining <= 0;
+    const now = new Date().toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+    const oracle = gReply ?? (star && gClosed ? t.genius.closed : star && reach ? localGeniusLine(lang, star, reach, fulfilled) : t.genius.wake);
+    return (
+      <>
+        <AtlasChrome />
+        <Header />
+        <section className={`stage active${entered ? " enter" : ""}`} id="genius">
+          <div className="surface">
+            <div className="duo">
+              <div className="instr-cell"><div className="instr-slot em"><PlanetMedallion pal={pal} glyph={star ? star.glyph : "◎"} size={232} /></div></div>
+              <div className="genius-ed">
+                <p className="eyebrow em">{lang === "fr" ? <>Votre <b>Genius</b></> : <>Your <b>Genius</b></>}</p>
+                <div className="state-line em">
+                  <span>{star && garch ? `${t.genius.heldBy} ${garch.name}` : t.genius.awaiting}</span>
+                  <span className="rule" />
+                  <span className="tally">{remaining} / {DAILY_EXCHANGE_LIMIT} {t.genius.today}</span>
+                </div>
+                <p className="oracle em">{oracle}</p>
+                <div className="record em">
+                  <p className="record-head">{t.genius.record}</p>
+                  <form className="rec-write" autoComplete="off" onSubmit={(e) => { e.preventDefault(); if (star && !gClosed && gInput.trim()) askDaily(); }}>
+                    <span className="rec-time rec-now">{now}</span>
+                    <input className="rec-input" maxLength={180} value={gInput} disabled={!star || gSending || gClosed}
+                      placeholder={gClosed ? t.genius.closedPlaceholder : t.genius.placeholder}
+                      onChange={(e) => setGInput(e.target.value)} />
+                    <button type="submit" className="rec-commit" aria-label={t.genius.keep} disabled={!star || gSending || gClosed}>↵</button>
+                  </form>
+                  <div className="rec-list">
+                    {journal.length ? journal.map((m) => (
+                      <div className="rec-entry" key={`${m.createdAt ?? ""}${m.content}`}>
+                        <span className="rec-time">{recordTime(m.createdAt)}</span>
+                        <p className="rec-text">{m.content}</p>
+                      </div>
+                    )) : (
+                      <div className="rec-entry"><span className="rec-time">—</span><p className="rec-text"><em>{t.genius.emptyRecord}</em></p></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
+          <TabBar pal={pal} active="genius" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
+        </div>
+      </>
+    );
+  }
+
   // ── shell: compute {visual, detail} per screen ──
   const arch = star ? archetypeForStar(star) : null;
   const liveSubset: LonMap = { moon: liveLon.moon, sun: liveLon.sun, venus: liveLon.venus, mars: liveLon.mars, jupiter: liveLon.jupiter, saturn: liveLon.saturn };
@@ -1157,31 +1218,6 @@ export default function Page() {
         </div>
       );
     }
-  } else if (screen === "genius") {
-    const closed = remaining <= 0;
-    visual = <PlanetMedallion pal={pal} glyph={star ? star.glyph : "◎"} size={wide ? 230 : 150} />;
-    detail = (
-      <div style={{ textAlign: wide ? "left" : "center", display: "flex", flexDirection: "column", height: "100%" }}>
-        {star && arch && (
-          <div style={{ display: "flex", justifyContent: wide ? "space-between" : "center", alignItems: "baseline", gap: 12 }}>
-            <Cap pal={pal}>{t.genius.heldBy} {arch.name}</Cap>
-            <span style={{ fontFamily: FN, fontSize: 10.5, color: pal.inkSoft }}>{remaining}/{DAILY_EXCHANGE_LIMIT} {t.genius.today}</span>
-          </div>
-        )}
-        <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 21, color: pal.ink, marginTop: 14, maxWidth: 340, lineHeight: 1.4 }}>
-          {gReply ?? (star && closed ? t.genius.closed : star && reach ? localGeniusLine(lang, star, reach, fulfilled) : t.genius.wake)}
-        </div>
-        {star && (
-          <div style={{ marginTop: 22, width: "100%" }}>
-            <input value={gInput} placeholder={closed ? t.genius.closedPlaceholder : t.genius.placeholder} disabled={gSending || closed}
-              onChange={(e) => setGInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !closed) askDaily(); }}
-              style={{ width: "100%", textAlign: wide ? "left" : "center", background: "transparent", border: "none",
-                borderBottom: `1px solid ${pal.panelLine}`, color: pal.ink, fontFamily: FD, fontStyle: "italic", fontSize: 17, padding: "10px 2px", outline: "none" }} />
-            <div style={{ marginTop: 16 }}><Btn pal={pal} disabled={gSending || closed || !gInput.trim()} onClick={askDaily}>{closed ? t.genius.closedButton : gSending ? t.genius.listening : t.genius.reflect}</Btn></div>
-          </div>
-        )}
-      </div>
-    );
   }
 
   if (wide) {
