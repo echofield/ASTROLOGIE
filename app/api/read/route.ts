@@ -16,6 +16,11 @@ import type { SealedStar } from "@/lib/star";
 import { computeYearAhead, tightestNatalAspects } from "@/lib/transits";
 
 export const runtime = "nodejs";
+// Let Opus run. A read is L1 + lint + judge + up to 5 judge-gated regen cycles — minutes,
+// not seconds. Without this the request dies at Vercel's ~10s default, mid-generation.
+// 800s is the platform ceiling (Pro + Fluid Compute); Vercel clamps to your plan's max
+// otherwise (300s Pro / 60s Hobby). The true home for 10-min reads is async delivery.
+export const maxDuration = 800;
 
 function hasAccess(cookieVal: string | undefined): boolean {
   if (readOpen()) return true;
@@ -183,8 +188,10 @@ export async function POST(req: Request) {
       archetype: { name: arch.name, essence: arch.essence },
     };
 
+    // READ_OPEN-gated diagnostic: L1 model override (A/B voice tests). Default Opus 4.8.
+    const L1_MODEL = readOpen() && typeof body.model === "string" && body.model ? body.model : "claude-opus-4-8";
     const raw = await provider.complete({
-      model: "claude-opus-4-8", // best raw voice → fewer judge-fails; ~€2/read is negligible at €59
+      model: L1_MODEL, // best raw voice → fewer judge-fails; ~€2/read is negligible at €59
       maxTokens: 5000,
       // no temperature — Opus 4.8 deprecates the param; the judge+regen loop is the quality lever
       system: READ_METHOD,
@@ -193,6 +200,10 @@ export async function POST(req: Request) {
 
     const parsed = parseReadJson(raw);
     if (!parsed) return NextResponse.json({ error: "parse_failed" }, { status: 500 });
+    // READ_OPEN-gated diagnostic: pure L1 voice per model, before lint/judge touch it.
+    if (readOpen() && body.raw === true) {
+      return NextResponse.json({ ...parsed, generatedAt: new Date().toISOString(), _model: L1_MODEL, _raw: true });
+    }
 
     const generatedAt = new Date().toISOString();
     // one immutable subject for the whole lifecycle (reads overwrite in astrolabe_reads;
