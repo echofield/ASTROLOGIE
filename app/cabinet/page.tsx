@@ -961,6 +961,11 @@ function CabinetPage() {
                 <span className="cab-tally-l">{lang === "fr" ? <>lectures que le ciel<br />a gardées</> : <>readings the sky<br />has kept for you</>}</span>
               </div>
             </div>
+            {star && !read && (
+              <div className="em" style={{ marginBottom: 34 }}>
+                <Link href="/checkout" className="plaque">{lang === "fr" ? "Faire tirer votre Lecture" : "Have your Reading drawn"} <span className="ar">→</span></Link>
+              </div>
+            )}
             <div className="cab-grid em">
               {recordedStars.map((s, i) => {
                 const opened = !!s.fulfilledAt;
@@ -1131,7 +1136,7 @@ function CabinetPage() {
                     {!fulfilled
                       ? <button className="plaque" onClick={keepStar}>{t.star.keep} <span className="ar">→</span></button>
                       : <span style={{ fontFamily: "var(--body)", fontSize: 15, color: "var(--slate)" }}>{t.star.keptOn} {recordDate(star.fulfilledAt, lang, t.status.undated)}.</span>}
-                    <Link className="plaque quiet" href="/reading">{lang === "fr" ? "Faire tirer la Lecture" : "Have the Reading drawn"} <span className="ar">→</span></Link>
+                    <Link className="plaque quiet" href="/checkout">{lang === "fr" ? "Faire tirer la Lecture" : "Have the Reading drawn"} <span className="ar">→</span></Link>
                   </div>
                   {natalLon && <button type="button" onClick={() => setScreen("theme")} style={{ marginTop: 22, background: "none", border: 0, padding: 0, cursor: "pointer", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: ".22em", textTransform: "uppercase", color: "var(--gold-deep)" }}>{lang === "fr" ? "Voir votre thème" : "See your chart"} →</button>}
                 </div>

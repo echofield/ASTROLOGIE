@@ -57,7 +57,7 @@ export default function ReadingOffer() {
             <p style={{ ...label, color: G.goldDeep, marginTop: 8 }}>A single moment</p>
             <p style={{ ...price, color: G.goldBright }}>{PRICING.currency}{PRICING.offer}</p>
             <p style={{ ...line, color: G.ivoryDim }}>A single reading, drawn against the sky of one moment and kept in your Cabinet — yours to return to.</p>
-            <Link className="alab-plaque" href="/cabinet">Have it drawn <span className="ar">→</span></Link>
+            <Link className="alab-plaque" href="/checkout">Have it drawn <span className="ar">→</span></Link>
           </article>
           {/* The Year — parked */}
           <article className="alab-parked" style={{ padding: "38px clamp(24px,3vw,38px) 34px", display: "flex", flexDirection: "column", alignItems: "flex-start", minHeight: 360, borderLeft: `1px solid ${G.ruleSoft}`, opacity: 0.6 }}>
