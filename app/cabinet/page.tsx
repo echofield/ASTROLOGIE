@@ -586,13 +586,18 @@ function CabinetPage() {
   }, []);
 
   useEffect(() => {
-    if (!ready || read) return;
+    if (!ready) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("read") === "intake" && star) {
-      setIntakeOpen(true);
-      setScreen("cabinet");
-    }
-  }, [ready, read, star]);
+    if (params.get("read") !== "intake") return;
+    // Post-pay signal: open the intake even if a prior read exists (a new purchase is a
+    // new reading — it overwrites). Ensure an active star (the most recent sealed) so the
+    // reading has a question to be drawn for.
+    const active = star ?? (ledger.length ? ledger[ledger.length - 1] : null);
+    if (!active) return; // no sealed question yet — nothing to draw for
+    if (!star) { saveStar(active); setStar(active); }
+    setIntakeOpen(true);
+    setScreen("cabinet");
+  }, [ready, star, ledger]);
 
   function changeLang(next: Lang) {
     setLang(next);
@@ -797,8 +802,8 @@ function CabinetPage() {
     );
   }
 
-  // ── intake overlay (Complete Read) ──
-  if (intakeOpen && profile && star && !read) {
+  // ── intake overlay (Complete Read) — intakeOpen is the gate; a prior read no longer blocks it ──
+  if (intakeOpen && profile && star) {
     return (
       <div ref={frameRef} style={{ position: "relative", minHeight: "100svh", overflow: "hidden", background: pal.bg, color: pal.ink, fontFamily: FT, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
         <SkyBg pal={pal} night={night} par={par} />
