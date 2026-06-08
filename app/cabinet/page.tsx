@@ -32,7 +32,7 @@ import {
   getProfile, saveProfile, getStar, saveStar, getStarLedger, saveStarLedger, recordStar, resetAll,
   getRead, saveRead, type Profile, type CompleteRead,
 } from "@/lib/storage";
-import { pull as cloudPull, push as cloudPush, wipe as cloudWipe, pullRead as cloudPullRead, pushRead as cloudPushRead } from "@/lib/cloud";
+import { pull as cloudPull, push as cloudPush, wipe as cloudWipe, pullRead as cloudPullRead, pushRead as cloudPushRead, userId as cloudUserId } from "@/lib/cloud";
 import { logEvent } from "@/lib/atlas/events";
 import {
   DEFAULT_LANG, DISCLAIMER, LANG_LABEL, LEGAL_LINKS, PRICING, PRODUCT_NAME, type Lang,
@@ -668,10 +668,12 @@ function CabinetPage() {
       // operator can walk held → /admin/held → deliver. The server only honors it under
       // READ_OPEN=true, so it is inert in production (READ_OPEN=false).
       const forceFail = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("forcefail") === "1";
+      // uid lets the server persist the read + fire the "ready" email even if this tab closes.
+      const uid = await cloudUserId();
       const res = await fetch("/api/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, intake, star, ...(forceFail ? { forceJudgeFail: true } : {}) }),
+        body: JSON.stringify({ profile, intake, star, ...(uid ? { uid } : {}), ...(forceFail ? { forceJudgeFail: true } : {}) }),
       });
       const data = await res.json();
       // Write the lifecycle trail under the user's own session — on success AND on a
@@ -816,8 +818,24 @@ function CabinetPage() {
             <CastingScreen pal={pal} par={par}
               cap={lang === "fr" ? "On trace ton ciel" : "Casting your sky"}
               lines={lang === "fr"
-                ? ["On lit le ciel de ta naissance…", "On aligne le ciel mobile…", "On mesure la Lune face à ton étoile…", "On laisse le Genius trouver les mots…"]
-                : ["Reading the sky you were born under…", "Aligning the moving heavens…", "Measuring the Moon against your star…", "Letting the Genius find the words…"]} />
+                ? ["Le ciel est lu face à ta question.", "La lecture prend une nuit. C'est cette nuit.", "Ta question est scellée. La réponse se trace.", "Le ciel de ta naissance se pose sur le ciel de ce soir.", "Rien de vrai ne se presse. Ceci se fait lentement.", "L'instrument tourne. Laisse-le tourner.", "Les étoiles gardent leur propre temps, et ce qu'elles disent de toi aussi.", "Ce qui s'écrit cette nuit durera plus que l'attente."]
+                : ["The sky is being read against your question.", "The reading takes a night. This is the night.", "Your question is sealed. The answer is being drawn.", "The sky you were born under is being laid over the sky tonight.", "Nothing true is hurried. This is being made slowly.", "The instrument is turning. Let it turn.", "The stars keep their own time, and so does what they say of you.", "What is written tonight will outlast the waiting for it."]}
+              footer={(() => {
+                const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                const when = d.toLocaleString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true });
+                const em = typeof window !== "undefined" ? window.localStorage.getItem("the-astrolab.email") : null;
+                return (
+                  <div style={{ maxWidth: 400, margin: "42px auto 0", paddingTop: 22, borderTop: `1px solid ${pal.panelLine}` }}>
+                    <div style={{ fontFamily: FN, fontSize: 11, letterSpacing: ".2em", textTransform: "uppercase", color: pal.silver, lineHeight: 1.9 }}>
+                      {lang === "fr" ? <>Elle te parvient d&apos;ici <span style={{ color: pal.brassHi }}>{when}</span>.</> : <>It reaches you by <span style={{ color: pal.brassHi }}>{when}</span>.</>}
+                      {em && <><br />{lang === "fr" ? "Nous l'envoyons à " : "We'll send it to "}<span style={{ color: pal.brass }}>{em}</span>.</>}
+                    </div>
+                    <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 15.5, color: pal.inkSoft, marginTop: 13 }}>
+                      {lang === "fr" ? "Tu peux fermer cette page. Le ciel continue de lire." : "You can close this page. The sky keeps reading."}
+                    </div>
+                  </div>
+                );
+              })()} />
           ) : (
             <IntakeForm
               pal={pal}

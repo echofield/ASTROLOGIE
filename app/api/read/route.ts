@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { sendEmail, beingDrawnEmail, readyEmail } from "@/lib/email";
 import { ascendant, equalHouses, houseOf, midheaven } from "@/lib/ascendant";
 import { archetypeForStar } from "@/lib/archetypes";
 import { ACCESS_COOKIE, readOpen, verifyAccess } from "@/lib/access";
@@ -88,6 +89,26 @@ async function enforce<T extends Record<string, unknown>>(
   }
   // `after` still counts the budgeted pivot if one was kept; violations excludes it.
   return { artifact: out as T, before, after, passes, kept: protect ? 1 : 0 };
+}
+
+// Server-side persistence (service role) — so the read + its event trail land even if
+// the customer closed the tab waiting. Mirrors the Stripe webhook's REST approach.
+async function svcWrite(table: string, rows: unknown, onConflict?: string): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return;
+  try {
+    await fetch(`${url}/rest/v1/${table}${onConflict ? `?on_conflict=${onConflict}` : ""}`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify(rows),
+    });
+  } catch (e) { console.error(`[read] svcWrite ${table} failed:`, e); }
+}
+
+// one fixed moment, ~24h out — "9 June, 11:00 PM" — a marker, not a ticking clock
+function formatDeliverBy(d: Date): string {
+  return d.toLocaleString("en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true });
 }
 
 export async function POST(req: Request) {
@@ -188,6 +209,15 @@ export async function POST(req: Request) {
       archetype: { name: arch.name, essence: arch.essence },
     };
 
+    // The customer may leave while it draws. Confirm by email now; the read finishes and
+    // persists server-side regardless. email = the paid email from the cookie; uid = the
+    // client's session, so the Cabinet reads the row back. Diagnostics skip the email.
+    const isDiag = readOpen() && (body.raw === true || body.judgeOnce === true);
+    const email = !isDiag ? (verifyAccess(cookieVal ?? "").email ?? null) : null;
+    const uid = typeof body.uid === "string" && body.uid ? body.uid : null;
+    const deliverBy = formatDeliverBy(new Date(Date.now() + 24 * 60 * 60 * 1000));
+    if (email) { const e = beingDrawnEmail(deliverBy); void sendEmail({ to: email, subject: e.subject, html: e.html }); }
+
     // READ_OPEN-gated diagnostic: L1 model override (A/B voice tests). Default Opus 4.8.
     const L1_MODEL = readOpen() && typeof body.model === "string" && body.model ? body.model : "claude-opus-4-8";
     const raw = await provider.complete({
@@ -259,21 +289,38 @@ export async function POST(req: Request) {
     // under the customer's uid) so the admin held-reads page can recover + deliver it.
     const held = { draft: current, profile, intake, star, generatedAt };
 
+    // Persist server-side (service role), in after() so it survives a closed tab: the read
+    // row the Cabinet reads back, the event trail, and the "ready" email that pulls them in.
+    const persistRead = (artifact: Record<string, string>) => after(async () => {
+      if (uid) {
+        await svcWrite("astrolabe_reads", { user_id: uid, read: { ...artifact, generatedAt }, created_at: generatedAt }, "user_id");
+        await svcWrite("astrolabe_events", lifecycle.map((e) => ({ ...e, user_id: uid })), "user_id,idempotency_key");
+      }
+      if (email) { const e = readyEmail(); await sendEmail({ to: email, subject: e.subject, html: e.html }); }
+    });
+    const persistHeld = () => after(async () => {
+      if (uid) await svcWrite("astrolabe_events", lifecycle.map((e) => ({ ...e, user_id: uid })), "user_id,idempotency_key");
+    });
+
     if (regenLintFailed) {
       lifecycle.push(evt("read_judged_failed", { reason: "antithesis_unconverged_on_regen", residual: lint.after - lint.kept, held }));
+      persistHeld();
       return NextResponse.json({ error: "judge_failed", _lifecycle: lifecycle }, { status: 422 });
     }
     if (verdict === null) {
       // judge unavailable (infra/parse) — ship the lint-clean read, but record the skip so it's visible
       lifecycle.push(evt("read_judged_skipped", { reason: "judge_unavailable" }));
+      persistRead(current);
       return NextResponse.json({ ...current, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
     }
     if (!verdict.pass) {
       // failed after the retry cap — ship NOTHING; record the failure + held context for the operator
       lifecycle.push(evt("read_judged_failed", { failedSections: verdict.sections.filter((s) => !s.pass), held }));
+      persistHeld();
       return NextResponse.json({ error: "judge_failed", _lifecycle: lifecycle }, { status: 422 });
     }
     lifecycle.push(evt("read_judged_passed", { pivotCount: verdict.pivotCount, sections: verdict.sections.map((s) => ({ section: s.section, pass: s.pass })) }));
+    persistRead(current);
     return NextResponse.json({ ...current, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
   } catch (e) {
     console.error("[read] failed:", e);

@@ -26,7 +26,7 @@ export function cloudEnabled(): boolean {
   return getClient() !== null;
 }
 
-async function userId(): Promise<string | null> {
+export async function userId(): Promise<string | null> {
   const c = getClient();
   if (!c) return null;
   try {

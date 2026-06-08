@@ -33,6 +33,8 @@ export default function SuccessAccessForm({ pal, lang, copy }: Props) {
       });
       const data = await res.json();
       if (data.ok) {
+        // remember the email so the "being drawn" ceremony can show where it'll be sent
+        try { window.localStorage.setItem("the-astrolab.email", val); } catch {}
         // the read intake/generation lives on /cabinet (the wheel at / ignores ?read=intake)
         window.location.href = `/cabinet?read=intake&lang=${lang}`;
         return;
