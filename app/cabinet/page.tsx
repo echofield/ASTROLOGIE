@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject, type ReactNode } from "react";
 import IntakeForm from "@/components/read/IntakeForm";
 import ReadArtifact from "@/components/read/ReadArtifact";
 import CastingScreen from "@/components/read/CastingScreen";
@@ -498,14 +499,20 @@ function DesktopShell({
   );
 }
 
-export default function Page() {
+function CabinetPage() {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [star, setStar] = useState<SealedStar | null>(null);
   const [read, setRead] = useState<CompleteRead | null>(null);
   const night = true; // single-register (gold); the day/night toggle is retired
   const [lang, setLang] = useState<Lang>(DEFAULT_LANG);
-  const [screen, setScreen] = useState<Screen>("cabinet");
+  // surface is URL-driven: the header's ?screen= links and in-flow setScreen calls
+  // both move through the URL, so they never fall out of sync (in-flow nav model).
+  const sp = useSearchParams();
+  const router = useRouter();
+  const rawScreen = sp.get("screen");
+  const screen: Screen = rawScreen === "theme" || rawScreen === "star" || rawScreen === "genius" || rawScreen === "calendar" ? rawScreen : "cabinet";
+  const setScreen = useCallback((s: Screen) => { router.replace(s === "cabinet" ? "/cabinet" : `/cabinet?screen=${s}`, { scroll: false }); }, [router]);
   const [hoverSign, setHoverSign] = useState<number | null>(null);
   const [sel, setSel] = useState<DisplayPlanetKey>("moon");
 
@@ -619,11 +626,6 @@ export default function Page() {
     const r1 = requestAnimationFrame(() => { r2 = requestAnimationFrame(() => setEntered(true)); });
     return () => { cancelAnimationFrame(r1); cancelAnimationFrame(r2); };
   }, [screen]);
-  // deep-link a surface (the header routes Genius/Calendar via ?screen=)
-  useEffect(() => {
-    const s = new URLSearchParams(window.location.search).get("screen");
-    if (s === "genius" || s === "calendar" || s === "theme" || s === "star" || s === "cabinet") setScreen(s as Screen);
-  }, []);
 
   async function castSky() {
     if (!bday || casting) return;
@@ -948,6 +950,7 @@ export default function Page() {
               <div>
                 <p className="cab-kicker">{lang === "fr" ? "Gardé contre la nuit" : "Kept against the dark"}</p>
                 <h1 className="cab-title">{lang === "fr" ? "Le Cabinet" : "The Cabinet"}</h1>
+                {natalLon && <button type="button" onClick={() => setScreen("theme")} style={{ marginTop: 16, background: "none", border: 0, padding: 0, cursor: "pointer", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: ".24em", textTransform: "uppercase", color: "var(--gold-deep)" }}>{lang === "fr" ? "Voir votre thème" : "See your chart"} →</button>}
               </div>
               <div className="cab-tally">
                 <span className="cab-tally-n">{recordedStars.length}</span>
@@ -977,9 +980,6 @@ export default function Page() {
             </div>
           </div>
         </section>
-        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
-          <TabBar pal={pal} active="cabinet" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
-        </div>
       </>
     );
   }
@@ -1030,9 +1030,6 @@ export default function Page() {
             </div>
           </div>
         </section>
-        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
-          <TabBar pal={pal} active="genius" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
-        </div>
       </>
     );
   }
@@ -1046,9 +1043,6 @@ export default function Page() {
         <section className={`stage active${entered ? " enter" : ""}`} id="calendar">
           <AtlasCalendar lang={lang} birthISO={profile?.birthISO ?? null} />
         </section>
-        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
-          <TabBar pal={pal} active={screen as TabId} labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
-        </div>
       </>
     );
   }
@@ -1092,9 +1086,6 @@ export default function Page() {
             </div>
           </div>
         </section>
-        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
-          <TabBar pal={pal} active="theme" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
-        </div>
       </>
     );
   }
@@ -1138,6 +1129,7 @@ export default function Page() {
                       : <span style={{ fontFamily: "var(--body)", fontSize: 15, color: "var(--slate)" }}>{t.star.keptOn} {recordDate(star.fulfilledAt, lang, t.status.undated)}.</span>}
                     <Link className="plaque quiet" href="/reading">{lang === "fr" ? "Faire tirer la Lecture" : "Have the Reading drawn"} <span className="ar">→</span></Link>
                   </div>
+                  {natalLon && <button type="button" onClick={() => setScreen("theme")} style={{ marginTop: 22, background: "none", border: 0, padding: 0, cursor: "pointer", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: ".22em", textTransform: "uppercase", color: "var(--gold-deep)" }}>{lang === "fr" ? "Voir votre thème" : "See your chart"} →</button>}
                 </div>
               </div>
             ) : (
@@ -1153,9 +1145,6 @@ export default function Page() {
             )}
           </div>
         </section>
-        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
-          <TabBar pal={pal} active="star" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
-        </div>
       </>
     );
   }
@@ -1317,5 +1306,14 @@ export default function Page() {
         <div style={{ marginTop: 10, flex: 1, display: "flex", flexDirection: "column" }}>{detail}</div>
       </div>
     </Frame>
+  );
+}
+
+export default function Page() {
+  // Suspense boundary for useSearchParams (URL-driven surface).
+  return (
+    <Suspense fallback={null}>
+      <CabinetPage />
+    </Suspense>
   );
 }
