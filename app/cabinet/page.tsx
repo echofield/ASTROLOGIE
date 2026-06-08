@@ -1099,10 +1099,71 @@ export default function Page() {
     );
   }
 
+  // ── Star — the sealed star, ported verbatim (.duo / .star-ed / .artifact grammar) ──
+  if (screen === "star") {
+    const sub: LonMap = { moon: liveLon.moon, sun: liveLon.sun, venus: liveLon.venus, mars: liveLon.mars, jupiter: liveLon.jupiter, saturn: liveLon.saturn };
+    const size = wide ? 420 : 300;
+    const metaRow = { display: "flex", gap: 10, alignItems: "baseline", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: ".1em", color: "var(--slate)", margin: "2px 0 18px" } as const;
+    return (
+      <>
+        <AtlasChrome />
+        <Header />
+        <section className={`stage active${entered ? " enter" : ""}`} id="star">
+          <div className="surface">
+            {star && reach ? (
+              <div className="duo">
+                <div className="instr-cell">
+                  <SkyWheel pal={pal} size={size} bodies={sub} highlight="moon" sealedLon={star.lon} showArc rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />
+                </div>
+                <div className="star-ed">
+                  <p className="eyebrow em">{lang === "fr" ? <>Votre <b>Étoile</b></> : <>Your <b>Star</b></>}</p>
+                  <p className="art-eyebrow em">{fulfilled ? (lang === "fr" ? "Une étoile, gardée" : "A star, kept") : (lang === "fr" ? "Une étoile est scellée" : "A star is sealed")}</p>
+                  <p className="art-word em">{star.name}</p>
+                  <div className="state-line em">
+                    <span>{t.star.in} {reach.headline}</span>
+                    <span className="rule" />
+                    <span className="tally">{reach.gap.toFixed(1)}° {t.star.toGo}</span>
+                  </div>
+                  <p className="star-quote em">{t.star.moonWillReach} <span style={{ color: "var(--gold-bright)" }}>{star.name}</span>.</p>
+                  <div className="em" style={metaRow}>
+                    <span>☽ {shortPos(liveLon.moon)}</span><span style={{ color: "var(--gold-deep)" }}>·</span>
+                    <span>{star.glyph} {shortPos(star.lon)}</span><span style={{ color: "var(--gold-deep)" }}>·</span>
+                    <span>{offsetDays === 0 ? t.star.today : `+${offsetDays}d`} · {date.toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" })}</span>
+                  </div>
+                  <input type="range" min={0} max={40} value={offsetDays} onChange={(e) => setOffsetDays(+e.target.value)} aria-label={t.star.advance}
+                    className="em" style={{ width: "min(42ch,100%)", accentColor: "var(--gold)", marginBottom: 26 }} />
+                  <div className="art-actions em" style={{ justifyContent: "flex-start" }}>
+                    {!fulfilled
+                      ? <button className="plaque" onClick={keepStar}>{t.star.keep} <span className="ar">→</span></button>
+                      : <span style={{ fontFamily: "var(--body)", fontSize: 15, color: "var(--slate)" }}>{t.star.keptOn} {recordDate(star.fulfilledAt, lang, t.status.undated)}.</span>}
+                    <Link className="plaque quiet" href="/reading">{lang === "fr" ? "Faire tirer la Lecture" : "Have the Reading drawn"} <span className="ar">→</span></Link>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="duo">
+                <div className="instr-cell"><div className="instr-slot em"><PlanetMedallion pal={pal} glyph="✦" size={Math.round(size * 0.6)} /></div></div>
+                <div className="star-ed">
+                  <p className="eyebrow em">{lang === "fr" ? <>Votre <b>Étoile</b></> : <>Your <b>Star</b></>}</p>
+                  <div className="state-line em"><span>{t.star.darkCap}</span><span className="rule" /></div>
+                  <p className="star-quote em">{t.star.darkBody}</p>
+                  <button className="plaque em" onClick={startSeal}>{t.cabinet.sealStar} <span className="ar">→</span></button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30 }}>
+          <TabBar pal={pal} active="star" labels={t.tabs} onTab={(tab) => onTab(tab as Screen)} />
+        </div>
+      </>
+    );
+  }
+
   // ── shell: compute {visual, detail} per screen ──
   const arch = star ? archetypeForStar(star) : null;
   const liveSubset: LonMap = { moon: liveLon.moon, sun: liveLon.sun, venus: liveLon.venus, mars: liveLon.mars, jupiter: liveLon.jupiter, saturn: liveLon.saturn };
-  const wheelSize = wide ? 340 : screen === "star" ? 280 : 262;
+  const wheelSize = wide ? 340 : 262; // shell is legacy/unreachable now (all surfaces early-return)
 
   let visual: ReactNode = null;
   let detail: ReactNode = null;
@@ -1237,50 +1298,6 @@ export default function Page() {
         </div>
       </div>
     );
-  } else if (screen === "star") {
-    if (star && reach) {
-      visual = <SkyWheel pal={pal} size={wheelSize} bodies={liveSubset} highlight="moon" sealedLon={star.lon} showArc rotation={rotation} hoverSign={hoverSign} onSign={setHoverSign} />;
-      detail = (
-        <div>
-          <div style={{ textAlign: wide ? "left" : "center" }}>
-            <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 36, color: pal.ink }}>{t.star.in} </span>
-            <span style={{ fontFamily: FD, fontWeight: 600, fontSize: 36, color: pal.accent }}>{reach.headline}</span>
-            <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 16, color: pal.inkSoft }}>{t.star.moonWillReach} <span style={{ color: pal.accent }}>{star.name}</span></div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: FN, fontSize: 11, color: pal.inkSoft, padding: "0 4px", margin: "16px 0 8px" }}>
-            <span>☽ {shortPos(liveLon.moon)}</span>
-            <span style={{ color: pal.accent }}>{reach.gap.toFixed(1)}° {t.star.toGo}</span>
-            <span>{star.glyph} {shortPos(star.lon)}</span>
-          </div>
-          <div style={{ padding: "10px 14px", background: pal.panel, border: `1px solid ${pal.panelLine}`, borderRadius: 3 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <Cap pal={pal} style={{ color: pal.inkSoft }}>{t.star.advance}</Cap>
-              <span style={{ fontFamily: FN, fontSize: 11, color: pal.ink }}>{offsetDays === 0 ? t.star.today : `+${offsetDays}d`} · {date.toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" })}</span>
-            </div>
-            <input type="range" min={0} max={40} value={offsetDays} onChange={(e) => setOffsetDays(+e.target.value)} style={{ width: "100%", accentColor: pal.accent }} />
-          </div>
-          {!fulfilled && (
-            <div style={{ marginTop: 16, textAlign: wide ? "left" : "center" }}>
-              <Btn pal={pal} onClick={keepStar}>{t.star.keep}</Btn>
-            </div>
-          )}
-          {fulfilled && (
-            <div style={{ marginTop: 14, fontFamily: FT, fontSize: 13, color: pal.inkSoft, textAlign: wide ? "left" : "center" }}>
-              {t.star.keptOn} {recordDate(star.fulfilledAt, lang, t.status.undated)}.
-            </div>
-          )}
-        </div>
-      );
-    } else {
-      visual = <PlanetMedallion pal={pal} glyph="✦" size={wide ? 240 : 172} />;
-      detail = (
-        <div style={{ textAlign: wide ? "left" : "center" }}>
-          <Cap pal={pal}>{t.star.darkCap}</Cap>
-          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 22, color: pal.ink, marginTop: 8, maxWidth: 280, lineHeight: 1.3 }}>{t.star.darkBody}</div>
-          <div style={{ marginTop: 26 }}><Btn pal={pal} solid onClick={startSeal}>{t.cabinet.sealStar}</Btn></div>
-        </div>
-      );
-    }
   }
 
   if (wide) {
