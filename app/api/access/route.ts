@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { accessCookieOptions, readOpen, signAccess } from "@/lib/access";
+import { rateLimit, clientKey } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,14 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (!data) return NextResponse.json({ ok: false });
+
+    // H2 — cap access GRANTS at 3 per IP per hour. Checked only once the order is confirmed, so
+    // M1's race-retry (which polls while the order is still missing) never burns the cap — this
+    // throttles only the abuse case: repeatedly minting access from known paid emails.
+    const rl = rateLimit(`access:${clientKey(req)}`, 3, 60 * 60 * 1000);
+    if (!rl.ok) {
+      return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429, headers: { "retry-after": String(rl.retryAfter) } });
+    }
 
     const token = signAccess(normalized);
     if (!token) return NextResponse.json({ ok: false });
