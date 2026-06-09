@@ -76,7 +76,7 @@ SECTIONS — each 2–4 dense paragraphs; signature and star are the showpieces.
 - pattern: what repeats. Cross their own words for what keeps repeating and what they fear with the hardest aspect in the chart, and show them the loop from above. The section that must make them set the screen down.
 - star: a deep reading of the intention they sealed — why this, why now, what in the chart it answers, what it will cost them, and the real window in the year's transits when the sky actually backs it.
 - yearAhead: the major real transits across the next twelve months, in order, each by its date, each a turning point in plain human terms — what arrives, what it asks, what to set down.
-- counsel: one sentence to keep. True, spare, unforgettable — a direct claim, never a "not X, it's Y" reversal or any disguise of it (rule 13 is absolute here).
+- counsel: ONE sentence — the single most shareable line in the whole reading, the one they screenshot. HARD RULE: exactly one sentence, under 25 words, no setup line before it and no second sentence after it. Open on the claim and stop. If you find yourself writing a second sentence, delete the rest and keep only the strongest line. A multi-sentence counsel fails the section, however good the extra sentences are. True, spare, unforgettable — a direct claim, never a "not X, it's Y" reversal or any disguise of it (rule 13 is absolute here).
 
 OUTPUT
 Return ONLY a JSON object with exactly these six markdown-string keys: signature, chart, pattern, star, yearAhead, counsel. No prose outside the JSON.`;
