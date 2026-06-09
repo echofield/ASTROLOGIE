@@ -25,26 +25,31 @@ export default function SuccessAccessForm({ pal, lang, copy }: Props) {
     const val = email.trim();
     if (!val) return;
     setStatus("loading");
-    try {
-      const res = await fetch("/api/access", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: val }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        // remember the email so the "being drawn" ceremony can show where it'll be sent
-        try { window.localStorage.setItem("the-astrolab.email", val); } catch {}
-        // a reading already drawn for this email (cross-device re-claim) → straight to the
-        // Cabinet, where it loads by email. A fresh purchase → the intake to draw it.
-        // (the wheel at / ignores ?read=intake; both land on /cabinet)
-        window.location.href = data.hasRead ? `/cabinet?lang=${lang}` : `/cabinet?read=intake&lang=${lang}`;
-        return;
-      }
-      setStatus("denied");
-    } catch {
-      setStatus("denied");
+    // The Stripe webhook that records the order can land a beat after the redirect here, so a
+    // fast customer may submit before it arrives. Poll a few times (3s apart) before showing an
+    // error — silent beyond a brief wait. Grants are rate-limited server-side but only on
+    // success, so these race-polls don't count against the cap.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        const res = await fetch("/api/access", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: val }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          // remember the email so the "being drawn" ceremony can show where it'll be sent
+          try { window.localStorage.setItem("the-astrolab.email", val); } catch {}
+          // a reading already drawn for this email (cross-device re-claim) → straight to the
+          // Cabinet, where it loads by email. A fresh purchase → the intake to draw it.
+          // (the wheel at / ignores ?read=intake; both land on /cabinet)
+          window.location.href = data.hasRead ? `/cabinet?lang=${lang}` : `/cabinet?read=intake&lang=${lang}`;
+          return;
+        }
+      } catch { /* network blip — fall through to retry */ }
+      if (attempt < 4) await new Promise((r) => setTimeout(r, 3000));
     }
+    setStatus("denied");
   }
 
   return (
