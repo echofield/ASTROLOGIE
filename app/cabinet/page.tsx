@@ -110,7 +110,7 @@ const COPY = {
       afraid: "What are you afraid to want?",
       submit: "Generate my read",
       generating: "Writing your read…",
-      error: "The read could not be generated. Try again shortly.",
+      error: "The sky didn't answer this time. Try again, or write to us at contact@symi.io.",
     },
     read: {
       signature: "Signature",
@@ -237,7 +237,7 @@ const COPY = {
       afraid: "Qu'avez-vous peur de vouloir ?",
       submit: "Générer ma lecture",
       generating: "Rédaction de votre lecture…",
-      error: "La lecture n'a pas pu être générée. Réessayez dans un instant.",
+      error: "Le ciel n'a pas répondu cette fois. Réessayez, ou écrivez-nous à contact@symi.io.",
     },
     read: {
       signature: "Signature",
@@ -533,6 +533,7 @@ function CabinetPage() {
   const [casting, setCasting] = useState(false);
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [generatingRead, setGeneratingRead] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null); // inline failure note — never an alert()
   const [ceremony, setCeremony] = useState(false);
   const [reviewing, setReviewing] = useState(false); // re-open a kept reading from the Cabinet
   const [held, setHeld] = useState(false); // judge-fail → ceremonial held state, never an error
@@ -675,6 +676,7 @@ function CabinetPage() {
 
   async function generateRead(intake: { season: string; repeating: string; afraid: string }) {
     if (!profile || !star || generatingRead) return;
+    setGenError(null);
     setGeneratingRead(true);
     try {
       // Held-path test trigger: ?forcefail=1 asks the server to force a judge-fail so the
@@ -698,7 +700,7 @@ function CabinetPage() {
         // A judge-fail must NEVER dead-end a paying customer: hold gracefully (the read
         // is being hand-fulfilled from the admin held-reads page → lands in the Cabinet).
         if (data.error === "judge_failed") { setIntakeOpen(false); setHeld(true); return; }
-        alert(t.intake.error); // generic retry for true infra errors only
+        setGenError(t.intake.error); // inline, in-register — never an alert on the €60 surface
         return;
       }
       const artifact: CompleteRead = {
@@ -717,7 +719,7 @@ function CabinetPage() {
       setIntakeOpen(false);
       setCeremony(true); // first viewing = the arrival ceremony, then it settles into the Cabinet
     } catch {
-      alert(t.intake.error);
+      setGenError(t.intake.error);
     } finally {
       setGeneratingRead(false);
     }
@@ -851,20 +853,25 @@ function CabinetPage() {
                 );
               })()} />
           ) : (
-            <IntakeForm
-              pal={pal}
-              copy={{
-                cap: t.intake.cap,
-                title: t.intake.title,
-                season: t.intake.season,
-                repeating: t.intake.repeating,
-                afraid: t.intake.afraid,
-                submit: t.intake.submit,
-                generating: t.intake.generating,
-              }}
-              generating={generatingRead}
-              onSubmit={(answers) => void generateRead(answers)}
-            />
+            <>
+              <IntakeForm
+                pal={pal}
+                copy={{
+                  cap: t.intake.cap,
+                  title: t.intake.title,
+                  season: t.intake.season,
+                  repeating: t.intake.repeating,
+                  afraid: t.intake.afraid,
+                  submit: t.intake.submit,
+                  generating: t.intake.generating,
+                }}
+                generating={generatingRead}
+                onSubmit={(answers) => void generateRead(answers)}
+              />
+              {genError && (
+                <p style={{ maxWidth: 420, margin: "24px auto 0", textAlign: "center", fontFamily: FD, fontStyle: "italic", fontSize: 15, color: pal.inkSoft, lineHeight: 1.55 }}>{genError}</p>
+              )}
+            </>
           )}
         </div>
         <div style={{ position: "absolute", left: 14, right: 14, bottom: 20, zIndex: 3 }}>
