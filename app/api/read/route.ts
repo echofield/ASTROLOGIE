@@ -317,7 +317,14 @@ export async function POST(req: Request) {
         await svcWrite("astrolabe_reads", { user_id: uid, email, read: { ...artifact, question, generatedAt }, created_at: generatedAt }, "user_id");
         await svcWrite("astrolabe_events", lifecycle.map((e) => ({ ...e, user_id: uid })), "user_id,idempotency_key");
       }
-      if (email) { const e = readyEmail(); await sendEmail({ to: email, subject: e.subject, html: e.html }); }
+      if (email) {
+        // M3 — the wait is the ceremony. The read is already in the Cabinet (same-device users
+        // can open it now); the "ready" note is held ~23h out, honoring the "by tomorrow" promise
+        // of the "being drawn" mail instead of contradicting it sixty seconds later.
+        const e = readyEmail();
+        const scheduledAt = new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString();
+        await sendEmail({ to: email, subject: e.subject, html: e.html, scheduledAt });
+      }
     });
     const persistHeld = () => after(async () => {
       if (uid) await svcWrite("astrolabe_events", lifecycle.map((e) => ({ ...e, user_id: uid })), "user_id,idempotency_key");
