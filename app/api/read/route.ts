@@ -239,11 +239,13 @@ export async function POST(req: Request) {
     // anywhere inside still queues the read for hand-fulfilment before the 500.
     try {
 
-    // READ_OPEN-gated diagnostic: L1 model override (A/B voice tests). Default Opus 4.8.
-    const L1_MODEL = readOpen() && typeof body.model === "string" && body.model ? body.model : "claude-opus-4-8";
+    // READ_OPEN-gated diagnostic: L1 model override (A/B voice tests). Default Fable 5 — a
+    // 3-chart bake-off (3/3 complete, judge-passed first try, lint-clean) put it ahead of Opus 4.8
+    // on structural sharpness. Fable reasons ~3k tokens before writing, hence the 12k cap below.
+    const L1_MODEL = readOpen() && typeof body.model === "string" && body.model ? body.model : "claude-fable-5";
     const raw = await provider.complete({
-      model: L1_MODEL, // best raw voice → fewer judge-fails; ~€2/read is negligible at €59
-      maxTokens: 5000,
+      model: L1_MODEL, // sharpest raw voice + lint-clean; thinking model, ~€5/read, negligible at €60
+      maxTokens: 12000, // headroom for thinking models (Fable reasons ~3k before writing); Opus stops well under this
       // no temperature — Opus 4.8 deprecates the param; the judge+regen loop is the quality lever
       system: READ_METHOD,
       messages: [{ role: "user", content: JSON.stringify(payload) }],
@@ -269,7 +271,7 @@ export async function POST(req: Request) {
     let lint = await enforce(provider, parsed);
     if (lint.after - lint.kept > 0) { queueFail("antithesis_unconverged", parsed); return NextResponse.json({ error: "antithesis_unconverged", residual: lint.after - lint.kept }, { status: 502 }); }
     let current = lint.artifact;
-    lifecycle.push(evt("read_generated", { span: "moment", model: "claude-opus-4-8" }));
+    lifecycle.push(evt("read_generated", { span: "moment", model: L1_MODEL }));
     lifecycle.push(evt("read_lint_passed", { before: lint.before, after: lint.after, kept: lint.kept, passes: lint.passes }));
 
     // L4 — judge the clean artifact; on a section-level fail, regenerate ONLY those
