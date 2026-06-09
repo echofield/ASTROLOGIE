@@ -21,6 +21,7 @@ export interface CompleteRead {
   yearAhead: string;
   counsel: string;
   generatedAt: string;
+  question?: string; // the sealed must the read was drawn for — needed to re-open the reveal
 }
 
 const KEY = {

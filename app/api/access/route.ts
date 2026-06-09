@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
     if (readOpen()) {
       const token = signAccess(normalized) ?? "open";
-      const res = NextResponse.json({ ok: true });
+      const res = NextResponse.json({ ok: true, hasRead: false });
       res.cookies.set(accessCookieOptions(token));
       return res;
     }
@@ -34,7 +34,16 @@ export async function POST(req: Request) {
     const token = signAccess(normalized);
     if (!token) return NextResponse.json({ ok: false });
 
-    const res = NextResponse.json({ ok: true });
+    // Is a reading already drawn for this email? If so, /success routes straight to it
+    // (cross-device re-claim) instead of opening a fresh intake.
+    const { data: existingRead } = await supabase
+      .from("astrolabe_reads")
+      .select("email")
+      .ilike("email", normalized)
+      .limit(1)
+      .maybeSingle();
+
+    const res = NextResponse.json({ ok: true, hasRead: !!existingRead });
     res.cookies.set(accessCookieOptions(token));
     return res;
   } catch {

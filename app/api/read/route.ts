@@ -163,6 +163,7 @@ export async function POST(req: Request) {
       star: SealedStar;
     };
 
+    const question = star.must; // the sealed must the read is drawn for — stored for re-open
     const birth = new Date(profile.birthISO);
     const natal = displaySky(birth);
     let asc: number | null = null;
@@ -218,6 +219,26 @@ export async function POST(req: Request) {
     const deliverBy = formatDeliverBy(new Date(Date.now() + 24 * 60 * 60 * 1000));
     if (email) { const e = beingDrawnEmail(deliverBy); void sendEmail({ to: email, subject: e.subject, html: e.html }); }
 
+    // M2 — a paid read must never silently vanish. Any terminal failure queues the held
+    // context to /admin/held (which reads read_judged_failed events carrying `held`), so a
+    // parse / lint / generation failure becomes a hand-fulfilment, honouring the "by tomorrow"
+    // note the customer was just sent, rather than a 500 into the void.
+    const queueFail = (reason: string, draft: Record<string, string> | null) => {
+      if (!uid) return;
+      const at = new Date().toISOString();
+      const heldCtx = { draft: draft ?? {}, profile, intake, star, generatedAt: at };
+      after(async () => {
+        await svcWrite("astrolabe_events", [{
+          user_id: uid, subject_type: "read", subject_id: at, event_type: "read_judged_failed",
+          payload: { reason, held: heldCtx }, idempotency_key: `${at}:read_judged_failed`,
+        }], "user_id,idempotency_key");
+      });
+    };
+
+    // The generation pipeline (L1 → lint → judge → regen). Wrapped so an unexpected throw
+    // anywhere inside still queues the read for hand-fulfilment before the 500.
+    try {
+
     // READ_OPEN-gated diagnostic: L1 model override (A/B voice tests). Default Opus 4.8.
     const L1_MODEL = readOpen() && typeof body.model === "string" && body.model ? body.model : "claude-opus-4-8";
     const raw = await provider.complete({
@@ -229,7 +250,7 @@ export async function POST(req: Request) {
     });
 
     const parsed = parseReadJson(raw);
-    if (!parsed) return NextResponse.json({ error: "parse_failed" }, { status: 500 });
+    if (!parsed) { queueFail("parse_failed", null); return NextResponse.json({ error: "parse_failed" }, { status: 500 }); }
     // READ_OPEN-gated diagnostic: pure L1 voice per model, before lint/judge touch it.
     if (readOpen() && body.raw === true) {
       return NextResponse.json({ ...parsed, generatedAt: new Date().toISOString(), _model: L1_MODEL, _raw: true });
@@ -246,7 +267,7 @@ export async function POST(req: Request) {
 
     // L2/L3 — deterministic lint gate (detect → rewrite loop → pivot budget)
     let lint = await enforce(provider, parsed);
-    if (lint.after - lint.kept > 0) return NextResponse.json({ error: "antithesis_unconverged", residual: lint.after - lint.kept }, { status: 502 });
+    if (lint.after - lint.kept > 0) { queueFail("antithesis_unconverged", parsed); return NextResponse.json({ error: "antithesis_unconverged", residual: lint.after - lint.kept }, { status: 502 }); }
     let current = lint.artifact;
     lifecycle.push(evt("read_generated", { span: "moment", model: "claude-opus-4-8" }));
     lifecycle.push(evt("read_lint_passed", { before: lint.before, after: lint.after, kept: lint.kept, passes: lint.passes }));
@@ -293,7 +314,7 @@ export async function POST(req: Request) {
     // row the Cabinet reads back, the event trail, and the "ready" email that pulls them in.
     const persistRead = (artifact: Record<string, string>) => after(async () => {
       if (uid) {
-        await svcWrite("astrolabe_reads", { user_id: uid, read: { ...artifact, generatedAt }, created_at: generatedAt }, "user_id");
+        await svcWrite("astrolabe_reads", { user_id: uid, email, read: { ...artifact, question, generatedAt }, created_at: generatedAt }, "user_id");
         await svcWrite("astrolabe_events", lifecycle.map((e) => ({ ...e, user_id: uid })), "user_id,idempotency_key");
       }
       if (email) { const e = readyEmail(); await sendEmail({ to: email, subject: e.subject, html: e.html }); }
@@ -311,7 +332,7 @@ export async function POST(req: Request) {
       // judge unavailable (infra/parse) — ship the lint-clean read, but record the skip so it's visible
       lifecycle.push(evt("read_judged_skipped", { reason: "judge_unavailable" }));
       persistRead(current);
-      return NextResponse.json({ ...current, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
+      return NextResponse.json({ ...current, question, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
     }
     if (!verdict.pass) {
       // failed after the retry cap — ship NOTHING; record the failure + held context for the operator
@@ -321,7 +342,13 @@ export async function POST(req: Request) {
     }
     lifecycle.push(evt("read_judged_passed", { pivotCount: verdict.pivotCount, sections: verdict.sections.map((s) => ({ section: s.section, pass: s.pass })) }));
     persistRead(current);
-    return NextResponse.json({ ...current, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
+    return NextResponse.json({ ...current, question, generatedAt, _lint: lintPayload, _lifecycle: lifecycle });
+    } catch (pipeErr) {
+      // unexpected throw mid-pipeline (provider/network) — queue it, don't lose it
+      console.error("[read] pipeline failed:", pipeErr);
+      queueFail("generation_failed", null);
+      return NextResponse.json({ error: "generation_failed" }, { status: 500 });
+    }
   } catch (e) {
     console.error("[read] failed:", e);
     return NextResponse.json({ error: "generation_failed" }, { status: 500 });

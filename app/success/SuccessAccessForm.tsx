@@ -35,8 +35,10 @@ export default function SuccessAccessForm({ pal, lang, copy }: Props) {
       if (data.ok) {
         // remember the email so the "being drawn" ceremony can show where it'll be sent
         try { window.localStorage.setItem("the-astrolab.email", val); } catch {}
-        // the read intake/generation lives on /cabinet (the wheel at / ignores ?read=intake)
-        window.location.href = `/cabinet?read=intake&lang=${lang}`;
+        // a reading already drawn for this email (cross-device re-claim) → straight to the
+        // Cabinet, where it loads by email. A fresh purchase → the intake to draw it.
+        // (the wheel at / ignores ?read=intake; both land on /cabinet)
+        window.location.href = data.hasRead ? `/cabinet?lang=${lang}` : `/cabinet?read=intake&lang=${lang}`;
         return;
       }
       setStatus("denied");

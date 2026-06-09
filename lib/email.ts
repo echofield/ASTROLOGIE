@@ -65,7 +65,9 @@ export function readyEmail(): { subject: string; html: string } {
       "A reading, drawn",
       "The sky has been read. Your reading is ready.",
       "It is drawn and waiting in your Cabinet — your sky, your star, and the year ahead, read for the question you sealed. Open it when the night is quiet.",
-      "Open your reading", `${SITE}/cabinet`,
+      // routes through /success so a new device confirms the paid email → access cookie → the
+      // reading loads by email (cross-device). On the original device it's a one-tap re-entry.
+      "Open your reading", `${SITE}/success`,
       "The AstroLab &middot; kept in your Cabinet, yours to return to",
     ),
   };

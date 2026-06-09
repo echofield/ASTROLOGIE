@@ -534,6 +534,7 @@ function CabinetPage() {
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [generatingRead, setGeneratingRead] = useState(false);
   const [ceremony, setCeremony] = useState(false);
+  const [reviewing, setReviewing] = useState(false); // re-open a kept reading from the Cabinet
   const [held, setHeld] = useState(false); // judge-fail → ceremonial held state, never an error
   const [gInput, setGInput] = useState("");
   const [gReply, setGReply] = useState<string | null>(null);
@@ -562,6 +563,18 @@ function CabinetPage() {
       if (alive && remoteRead) {
         saveRead(remoteRead);
         setRead(remoteRead);
+      }
+
+      // Cross-device: if this browser holds the paid-access cookie but the read isn't here
+      // (new device / cleared storage), pull it by the paid email it was stamped with.
+      if (alive && !localRead && !remoteRead) {
+        try {
+          const mineRes = await fetch("/api/read/mine");
+          if (alive && mineRes.ok) {
+            const { read: mineRead } = await mineRes.json();
+            if (mineRead && typeof mineRead.signature === "string") { saveRead(mineRead); setRead(mineRead); }
+          }
+        } catch { /* stay local */ }
       }
 
       const remote = await cloudPull();
@@ -696,6 +709,7 @@ function CabinetPage() {
         yearAhead: data.yearAhead,
         counsel: data.counsel,
         generatedAt: data.generatedAt ?? new Date().toISOString(),
+        question: data.question ?? star?.must ?? "",
       };
       saveRead(artifact);
       setRead(artifact);
@@ -880,13 +894,13 @@ function CabinetPage() {
   }
 
   // ── the reveal — sealed letter → break the seal → descent → the reading surfaces ──
-  if (ceremony && read && profile) {
+  if ((ceremony || reviewing) && read && profile) {
     return (
       <ReadReveal
         read={read}
-        question={star?.must ?? ""}
+        question={read.question ?? star?.must ?? ""}
         lang={lang}
-        onClose={() => { setCeremony(false); setScreen("cabinet"); }}
+        onClose={() => { setCeremony(false); setReviewing(false); setScreen("cabinet"); }}
       />
     );
   }
@@ -984,6 +998,21 @@ function CabinetPage() {
                 <span className="cab-tally-l">{lang === "fr" ? <>lectures que le ciel<br />a gardées</> : <>readings the sky<br />has kept for you</>}</span>
               </div>
             </div>
+            {read && (
+              <div className="em" style={{ marginBottom: 34 }}>
+                <button type="button" className="gal-card read cab-reading" onClick={() => setReviewing(true)}
+                  style={{ width: "100%", flexDirection: "row", alignItems: "center", gap: 26, minHeight: 0, cursor: "pointer" }}>
+                  <span className="gal-emblem" style={{ margin: 0, flex: "none" }}>
+                    <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="21" /><circle cx="30" cy="30" r="12" /><circle cx="30" cy="30" r="2" /><path d="M30 9v5M30 46v5M9 30h5M46 30h5" /></svg>
+                  </span>
+                  <span style={{ flex: 1, textAlign: "left", display: "block" }}>
+                    <span className="gal-no" style={{ display: "block", marginBottom: 10 }}>{lang === "fr" ? "Votre Lecture" : "Your Reading"}</span>
+                    <span className="gal-q" style={{ display: "block" }}>{read.question || (lang === "fr" ? "La lecture que vous avez scellée" : "The reading you sealed")}</span>
+                    <span className="gal-status" style={{ marginTop: 16 }}><span className="gal-dot" />{lang === "fr" ? "Scellée — touchez pour l'ouvrir" : "Sealed — open to read"}</span>
+                  </span>
+                </button>
+              </div>
+            )}
             {star && !read && (
               <div className="em" style={{ marginBottom: 34 }}>
                 <Link href="/checkout" className="plaque">{lang === "fr" ? "Faire tirer votre Lecture" : "Have your Reading drawn"} <span className="ar">→</span></Link>
