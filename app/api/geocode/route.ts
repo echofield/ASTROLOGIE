@@ -1,10 +1,27 @@
 import { NextResponse } from "next/server";
 import { lookupCity } from "@/lib/cities";
+import { rateLimit, clientKey } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
 const CACHE = new Map<string, { lat: number; lon: number; label: string; at: number }>();
-const TTL_MS = 60 * 60 * 1000;
+const TTL_MS = 24 * 60 * 60 * 1000; // 24h — repeat birth cities never re-hit Nominatim
+
+// Serialize outbound Nominatim calls to <=1/s (their usage policy) so the production IP is never
+// flagged or banned — which would break house calculations for everyone. Per-instance; the
+// bundled-cities and cache layers keep real traffic far below this rate to begin with.
+let lastNominatimAt = 0;
+let nominatimGate: Promise<unknown> = Promise.resolve();
+function throttledNominatim(url: string, init: RequestInit): Promise<Response> {
+  const run = nominatimGate.then(async () => {
+    const wait = 1000 - (Date.now() - lastNominatimAt);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastNominatimAt = Date.now();
+    return fetch(url, init);
+  });
+  nominatimGate = run.then(() => {}, () => {}); // next call waits behind this one's spacing
+  return run;
+}
 
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams.get("q")?.trim();
@@ -14,17 +31,23 @@ export async function GET(req: Request) {
   const bundled = lookupCity(q);
   if (bundled) return NextResponse.json({ lat: bundled.lat, lon: bundled.lon, label: bundled.label });
 
+  // 2) in-memory cache (city string → coords, 24h)
   const key = q.toLowerCase();
   const hit = CACHE.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) {
     return NextResponse.json({ lat: hit.lat, lon: hit.lon, label: hit.label });
   }
 
+  // cap the public endpoint per IP so a flood of distinct misses can't tie up the Nominatim gate
+  const rl = rateLimit(`geocode:${clientKey(req)}`, 20, 60_000);
+  if (!rl.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { "retry-after": String(rl.retryAfter) } });
+
+  // 3) Nominatim — throttled to <=1/s, with Next's data cache as a cross-instance layer
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "the-astrolab/1.0 (contact: hello@the-astrolab.app)" },
-      next: { revalidate: 3600 },
+    const res = await throttledNominatim(url, {
+      headers: { "User-Agent": "the-astrolab/1.0 (contact: contact@symi.io)" },
+      next: { revalidate: 86400 },
     });
     if (!res.ok) return NextResponse.json({ error: "geocode failed" }, { status: 502 });
 
