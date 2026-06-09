@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProvider } from "@/lib/llm";
-import { rateLimit, clientKey } from "@/lib/ratelimit";
+import { durableLimit, clientKey } from "@/lib/ratelimit";
 import { PRODUCT_NAME } from "@/lib/brand";
 
 export const runtime = "nodejs";
@@ -33,7 +33,7 @@ function moment(phase: string, reach: { gap: number; days: number }): string {
 const dev = process.env.NODE_ENV !== "production";
 
 export async function POST(req: Request) {
-  const { ok, retryAfter } = rateLimit(`voice:${clientKey(req)}`, 40, 60_000);
+  const { ok, retryAfter } = await durableLimit(`voice:${clientKey(req)}`, 60, 60 * 60 * 1000);
   if (!ok) {
     return NextResponse.json(
       { line: null, ...(dev && { reason: `rate limited — retry in ${retryAfter}s` }) },

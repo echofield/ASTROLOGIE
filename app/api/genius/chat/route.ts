@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProvider } from "@/lib/llm";
 import type { ChatMessage } from "@/lib/llm/types";
-import { rateLimit, clientKey } from "@/lib/ratelimit";
+import { durableLimit, clientKey } from "@/lib/ratelimit";
 import { lintLight } from "@/lib/antithesis";
 import { PRODUCT_NAME } from "@/lib/brand";
 
@@ -38,7 +38,7 @@ interface Body {
 const dev = process.env.NODE_ENV !== "production";
 
 export async function POST(req: Request) {
-  const { ok, retryAfter } = rateLimit(`chat:${clientKey(req)}`, 20, 60_000);
+  const { ok, retryAfter } = await durableLimit(`chat:${clientKey(req)}`, 40, 60 * 60 * 1000);
   if (!ok) {
     return NextResponse.json(
       { reply: null, ...(dev && { reason: `rate limited — retry in ${retryAfter}s` }) },
