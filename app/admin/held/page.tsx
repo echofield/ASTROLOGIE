@@ -1,56 +1,61 @@
-import { createClient } from "@supabase/supabase-js";
+"use client";
+
+import { useState } from "react";
 import AdminHeldClient, { type HeldRead } from "./AdminHeldClient";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+// The held-reads console gate. The admin secret is entered in a password field and sent in the
+// POST body to /api/admin/held — never in the URL query (which would leak to logs, browser
+// history, and Referer headers). Once authorized, the same key flows to /api/admin/deliver.
+const C = { bg: "#0d0f14", ink: "#e8e6df", soft: "#9aa0ac", line: "#2a2f3a", gold: "#c2a25f", warn: "#e0a26a" };
 
-// The held-reads console. A judge-fail is logged (client-side, under the customer's
-// uid) on read_judged_failed with the full held context. This page (service role)
-// lists the un-delivered ones so the operator can edit/regenerate and deliver.
-async function loadHeld(): Promise<HeldRead[]> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !svc) return [];
-  const sb = createClient(url, svc);
+export default function AdminHeldPage() {
+  const [key, setKey] = useState("");
+  const [held, setHeld] = useState<HeldRead[] | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "denied">("idle");
 
-  const { data: fails } = await sb.from("astrolabe_events")
-    .select("id, user_id, subject_id, payload, created_at")
-    .eq("event_type", "read_judged_failed")
-    .order("created_at", { ascending: false })
-    .limit(80);
-  const { data: delivered } = await sb.from("astrolabe_events")
-    .select("user_id, subject_id").eq("event_type", "read_delivered");
-  const done = new Set((delivered ?? []).map((d) => `${d.user_id}:${d.subject_id}`));
+  async function enter() {
+    const k = key.trim();
+    if (!k) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/admin/held", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: k }),
+      });
+      const data = await res.json();
+      if (data.ok) { setHeld(data.held as HeldRead[]); return; }
+      setStatus("denied");
+    } catch {
+      setStatus("denied");
+    }
+  }
 
-  return (fails ?? [])
-    .filter((r) => (r.payload as Record<string, unknown>)?.held && !done.has(`${r.user_id}:${r.subject_id}`))
-    .map((r) => {
-      const p = r.payload as Record<string, unknown>;
-      const held = p.held as { draft?: Record<string, string>; star?: { must?: string; name?: string }; intake?: Record<string, string>; profile?: { place?: string; birthISO?: string } };
-      return {
-        eventId: r.id as string,
-        uid: r.user_id as string,
-        subjectId: r.subject_id as string,
-        createdAt: r.created_at as string,
-        question: held.star?.must ?? "(no question)",
-        starName: held.star?.name ?? "",
-        place: held.profile?.place ?? "",
-        birthISO: held.profile?.birthISO ?? "",
-        intake: held.intake ?? {},
-        reasons: (p.failedSections as { section: string; failures?: { test: string; quote: string; why: string }[] }[]) ?? [],
-        draft: held.draft ?? {},
-      } satisfies HeldRead;
-    });
-}
+  if (held) return <AdminHeldClient adminKey={key.trim()} initial={held} />;
 
-export default async function AdminHeldPage({ searchParams }: { searchParams: Promise<{ key?: string }> }) {
-  const key = (await searchParams).key ?? "";
-  const secret = process.env.ADMIN_SECRET;
-  const wrap: React.CSSProperties = { minHeight: "100svh", background: "#0d0f14", color: "#e8e6df", fontFamily: "ui-monospace, monospace", padding: "40px 28px" };
-
-  if (!secret) return <main style={wrap}>ADMIN_SECRET is not set — the held-reads console is disabled.</main>;
-  if (key !== secret) return <main style={wrap}>Forbidden. Append ?key=… to access the held-reads console.</main>;
-
-  const held = await loadHeld();
-  return <AdminHeldClient adminKey={key} initial={held} />;
+  return (
+    <main style={{ minHeight: "100svh", background: C.bg, color: C.ink, fontFamily: "ui-monospace, SFMono-Regular, monospace", display: "flex", alignItems: "center", justifyContent: "center", padding: 28 }}>
+      <div style={{ width: "100%", maxWidth: 360 }}>
+        <h1 style={{ fontSize: 16, letterSpacing: 1, margin: 0 }}>Held-reads console</h1>
+        <p style={{ color: C.soft, fontSize: 12.5, marginTop: 8 }}>Operator access.</p>
+        <input
+          type="password"
+          value={key}
+          placeholder="admin key"
+          autoFocus
+          onChange={(e) => { setKey(e.target.value); setStatus("idle"); }}
+          onKeyDown={(e) => { if (e.key === "Enter") void enter(); }}
+          style={{ width: "100%", marginTop: 16, background: "#0b0d12", color: C.ink, border: `1px solid ${C.line}`, borderRadius: 4, padding: "11px 13px", fontFamily: "inherit", fontSize: 14, outline: "none" }}
+        />
+        <button
+          onClick={() => void enter()}
+          disabled={!key.trim() || status === "loading"}
+          style={{ marginTop: 14, background: C.gold, color: "#0b0d12", border: "none", borderRadius: 4, padding: "10px 22px", fontFamily: "inherit", fontSize: 12.5, letterSpacing: 1, textTransform: "uppercase", cursor: !key.trim() || status === "loading" ? "default" : "pointer", opacity: !key.trim() || status === "loading" ? 0.6 : 1 }}
+        >
+          {status === "loading" ? "…" : "Enter"}
+        </button>
+        {status === "denied" && <p style={{ color: C.warn, fontSize: 12, marginTop: 12 }}>Forbidden.</p>}
+      </div>
+    </main>
+  );
 }
