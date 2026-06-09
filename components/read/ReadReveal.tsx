@@ -29,10 +29,34 @@ export default function ReadReveal({ read, question, lang = "en", onClose }: { r
   const [gone, setGone] = useState(false);
   const [up, setUp] = useState(0);
   const [exit, setExit] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function savePdf() {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const res = await fetch("/api/read/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ read, question }) });
+      if (!res.ok) throw new Error("pdf");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "the-reading.pdf";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { /* the reading is still on screen — never a dead end */ } finally { setPdfBusy(false); }
+  }
+  function copyQuote() {
+    const c = (read.counsel || "").trim();
+    const first = c.match(/^[^.!?]+[.!?]+/);
+    const line = (first ? first[0] : c).trim();
+    const text = `“${line}”\n\n— a reading from The AstroLab\nthe-astrolab.app`;
+    navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2200); }).catch(() => {});
+  }
 
   const t = lang === "fr"
-    ? { sealed: "Une lecture scellée", line: "Le ciel a vu cette question la nuit où vous l'avez scellée — et garde sa réponse, close, depuis lors.", brk: "Briser le sceau", eyebrow: "La Lecture", kicker: "Tirée pour la question que vous portiez", asked: "Vous avez demandé", labels: { signature: "Signature", chart: "Thème", pattern: "Motif", star: "Votre étoile", yearAhead: "L'année à venir", counsel: "Conseil" }, colophon: "Scellée par The AstroLab — lue une fois", close: "Fermer la lecture" }
-    : { sealed: "A sealed reading", line: "The sky witnessed this question the night you sealed it — and has held its answer, unopened, ever since.", brk: "Break the seal", eyebrow: "The Reading", kicker: "Drawn for the question you carried", asked: "You asked", labels: { signature: "Signature", chart: "Chart", pattern: "Pattern", star: "Your star", yearAhead: "Year ahead", counsel: "Counsel" }, colophon: "Sealed by The AstroLab — read once", close: "Close the reading" };
+    ? { sealed: "Une lecture scellée", line: "Le ciel a vu cette question la nuit où vous l'avez scellée — et garde sa réponse, close, depuis lors.", brk: "Briser le sceau", eyebrow: "La Lecture", kicker: "Tirée pour la question que vous portiez", asked: "Vous avez demandé", labels: { signature: "Signature", chart: "Thème", pattern: "Motif", star: "Votre étoile", yearAhead: "L'année à venir", counsel: "Conseil" }, colophon: "Scellée par The AstroLab — lue une fois", savePdf: "Enregistrer en PDF", copyQuote: "Copier une ligne", copied: "Copié", close: "Fermer la lecture" }
+    : { sealed: "A sealed reading", line: "The sky witnessed this question the night you sealed it — and has held its answer, unopened, ever since.", brk: "Break the seal", eyebrow: "The Reading", kicker: "Drawn for the question you carried", asked: "You asked", labels: { signature: "Signature", chart: "Chart", pattern: "Pattern", star: "Your star", yearAhead: "Year ahead", counsel: "Counsel" }, colophon: "Sealed by The AstroLab — read once", savePdf: "Save as PDF", copyQuote: "Copy a line to share", copied: "Copied", close: "Close the reading" };
 
   function breakSeal() {
     if (open) return;
@@ -85,6 +109,14 @@ export default function ReadReveal({ read, question, lang = "en", onClose }: { r
         .rv-colophon{margin-top:64px;padding-top:42px;border-top:1px solid ${G.ruleSoft};display:flex;align-items:center;gap:26px;flex-wrap:wrap;justify-content:space-between}
         .rv-ctext{font-family:${G.mono};font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:${G.slate};line-height:2}
         .rv-ctext b{color:${G.goldDeep};font-weight:400}
+        .rv-acts{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:48px;opacity:0;transition:opacity 1.4s ${G.ease}}
+        .rv-acts.show{opacity:1}
+        .rv-act{display:inline-flex;align-items:center;gap:9px;padding:12px 24px;border:1px solid ${G.rule};background:none;cursor:pointer;
+          font-family:${G.mono};font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:${G.slate};
+          transition:color .5s ${G.ease},border-color .5s ${G.ease}}
+        .rv-act:hover{color:${G.goldBright};border-color:${G.gold}}
+        .rv-act:disabled{opacity:.5;cursor:default}
+        .rv-act .ar{font-size:12px;color:${G.goldDeep}}
         @media(max-width:760px){.rv-reading{padding:14vh 24px 18vh}.rv-th-question{max-width:14ch}.rv-p{font-size:18px}}
         @media(prefers-reduced-motion:reduce){.rv-block{opacity:1!important;transform:none!important}}
       `}</style>
@@ -136,6 +168,12 @@ export default function ReadReveal({ read, question, lang = "en", onClose }: { r
               </svg>
             </div>
           ); })()}
+          {open && (
+            <div className={`rv-acts${exit ? " show" : ""}`}>
+              <button className="rv-act" onClick={savePdf} disabled={pdfBusy}>{pdfBusy ? "…" : t.savePdf}{!pdfBusy && <span className="ar">↓</span>}</button>
+              <button className="rv-act" onClick={copyQuote}>{copied ? t.copied : t.copyQuote}</button>
+            </div>
+          )}
         </article>
       )}
     </div>
