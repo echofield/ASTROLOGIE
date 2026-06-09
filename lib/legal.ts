@@ -12,82 +12,95 @@ export interface LegalPage {
   sections: LegalSection[];
 }
 
-const updated = "June 5, 2026";
-const updatedFr = "5 juin 2026";
+const updated = "June 9, 2026";
+const updatedFr = "9 juin 2026";
+
+// Privacy, Refund, and the Legal Notice are English-only (the same content is served for both
+// language toggles), written in the product's register — plain, short, honest. Support runs
+// through contact@symi.io.
+const privacyEn: LegalPage = {
+  title: "Privacy Policy",
+  intro: `${PRODUCT_NAME} is a personalized digital product. We keep only what's needed to draw your reading and keep it for you — and we never share it with third parties for their own use.`,
+  updated,
+  sections: [
+    {
+      title: "What we keep",
+      body: [
+        "Your birth details, the question you sealed, the reading drawn for it, and the email tied to your purchase — used only to cast your reading, deliver it, and let you reopen it later.",
+      ],
+    },
+    {
+      title: "No selling, no sharing",
+      body: [
+        "We don't sell your data, and we don't share it with third parties for their own purposes. Hosting, database, payment, and AI providers process it only to run the service, on our instructions.",
+      ],
+    },
+    {
+      title: "Anything at all",
+      body: [
+        "You can reset your Cabinet from the app at any time, which clears your saved profile, journal, and readings on the device.",
+        "For access, correction, export, deletion, or any issue at all, write to contact@symi.io.",
+      ],
+    },
+  ],
+};
+
+const refundEn: LegalPage = {
+  title: "Refund Policy",
+  intro: `The Reading is a personalized digital product, drawn for the single question you seal and delivered to you. Here is how refunds work.`,
+  updated,
+  sections: [
+    {
+      title: "Before it is drawn",
+      body: [
+        "If you have paid but your reading has not been generated yet, write to us — we will cancel and refund it, no questions asked.",
+      ],
+    },
+    {
+      title: "Once it is drawn",
+      body: [
+        "Because each reading is personalized and delivered immediately, it cannot usually be refunded once it has been generated — the work is done and it is yours.",
+        "If something went wrong — it never arrived, or it did not come out right — tell us and we will make it right.",
+      ],
+    },
+    {
+      title: "Reach a person",
+      body: [
+        "For a refund, a problem, or any question, write to contact@symi.io with the email you used to buy. A person reads it.",
+      ],
+    },
+  ],
+};
+
+const noticeEn: LegalPage = {
+  title: "Legal Notice",
+  intro: "The AstroLab is published by an independent operator.",
+  updated,
+  sections: [
+    {
+      title: "Publisher & hosting",
+      body: [
+        "Contact: contact@symi.io",
+        "Hosting: Vercel Inc. — vercel.com",
+      ],
+    },
+    {
+      title: "Your data",
+      body: [
+        "Personal data collected (birth date, time, place, and sealed question) is used solely to generate and deliver your reading. It is never shared with third parties for their own purposes. For any deletion or access request: contact@symi.io",
+      ],
+    },
+    {
+      title: "Delivery & withdrawal",
+      body: [
+        "The Reading is a personalized digital product delivered immediately upon generation. The right of withdrawal does not apply once the reading has been drawn.",
+      ],
+    },
+  ],
+};
 
 export const LEGAL_PAGES: Record<LegalSlug, Record<Lang, LegalPage>> = {
-  privacy: {
-    en: {
-      title: "Privacy Policy",
-      intro: `${PRODUCT_NAME} keeps the service local-first where possible and uses only the data needed to generate and preserve your digital self-reflection report.`,
-      updated,
-      sections: [
-        {
-          title: "What we collect",
-          body: [
-            "Birth date, birth time, birth place, sealed intentions, saved reflections, technical identifiers, and payment status when checkout is active.",
-            "Anonymous authentication may be used to preserve your profile, journal, and star ledger across sessions.",
-          ],
-        },
-        {
-          title: "How we use data",
-          body: [
-            "We use your data to cast the report, save your record, provide the Genius dialogue, protect the service from abuse, and process digital access when payment is available.",
-            DISCLAIMER.en,
-          ],
-        },
-        {
-          title: "Processors and storage",
-          body: [
-            "The service may use hosting, database, analytics, payment, and AI infrastructure providers. Provider access is limited to what is needed to operate the service.",
-            "Server secrets stay server-side. Public browser keys are limited to client-safe service access.",
-          ],
-        },
-        {
-          title: "Your choices",
-          body: [
-            "You can reset the in-app cabinet from the app. This clears local profile, journal, and star data on the device and requests deletion of the cloud copy when cloud sync is configured.",
-            "For access, correction, export, or deletion requests, contact the operator at the support address published on the Legal Notice page once commercial launch details are finalized.",
-          ],
-        },
-      ],
-    },
-    fr: {
-      title: "Politique de confidentialité",
-      intro: `${PRODUCT_NAME} privilégie un fonctionnement local lorsque c'est possible et ne traite que les données utiles à la génération et à la conservation de votre rapport numérique de réflexion personnelle.`,
-      updated: updatedFr,
-      sections: [
-        {
-          title: "Données traitées",
-          body: [
-            "Date, heure et lieu de naissance, intentions scellées, réflexions enregistrées, identifiants techniques et statut de paiement lorsque le paiement est activé.",
-            "Une authentification anonyme peut être utilisée pour conserver votre profil, votre journal et votre registre d'étoiles entre plusieurs sessions.",
-          ],
-        },
-        {
-          title: "Finalités",
-          body: [
-            "Ces données servent à établir le rapport, conserver votre historique, fournir le dialogue Genius, protéger le service contre les abus et gérer l'accès numérique lorsque le paiement est disponible.",
-            DISCLAIMER.fr,
-          ],
-        },
-        {
-          title: "Sous-traitants et hébergement",
-          body: [
-            "Le service peut utiliser des prestataires d'hébergement, de base de données, d'analyse, de paiement et d'IA. Leur accès est limité au strict nécessaire pour opérer le service.",
-            "Les secrets serveur restent côté serveur. Les clés visibles dans le navigateur sont limitées à des usages compatibles avec le client.",
-          ],
-        },
-        {
-          title: "Vos choix",
-          body: [
-            "Vous pouvez réinitialiser le cabinet depuis l'application. Cette action efface les données locales de profil, de journal et d'étoile sur l'appareil, et demande la suppression de la copie cloud lorsque la synchronisation est configurée.",
-            "Pour toute demande d'accès, de rectification, d'export ou de suppression, contactez l'opérateur à l'adresse indiquée dans les Mentions légales lorsque les informations de lancement commercial seront finalisées.",
-          ],
-        },
-      ],
-    },
-  },
+  privacy: { en: privacyEn, fr: privacyEn },
   terms: {
     en: {
       title: "Terms of Service",
@@ -160,128 +173,6 @@ export const LEGAL_PAGES: Record<LegalSlug, Record<Lang, LegalPage>> = {
       ],
     },
   },
-  refund: {
-    en: {
-      title: "Refund Policy",
-      intro: `${PRODUCT_NAME} sells digital access when checkout is active. Refund terms are shown before purchase.`,
-      updated,
-      sections: [
-        {
-          title: "Before digital delivery",
-          body: [
-            "If paid access is available and the digital report has not been generated or accessed, you may request cancellation and refund according to the checkout terms shown at purchase.",
-          ],
-        },
-        {
-          title: "After immediate access",
-          body: [
-            "For digital content delivered immediately, refund rights may depend on the consent and waiver shown at checkout, applicable consumer law, and whether the content has already been generated or accessed.",
-            "This does not limit mandatory consumer rights for faulty or unavailable digital services.",
-          ],
-        },
-        {
-          title: "How to request support",
-          body: [
-            "Use the support contact published on the Legal Notice page once commercial launch details are finalized. Include purchase email, order ID, and a short description of the issue.",
-          ],
-        },
-      ],
-    },
-    fr: {
-      title: "Politique de remboursement",
-      intro: `${PRODUCT_NAME} vend un accès numérique lorsque le paiement est activé. Les conditions de remboursement sont affichées avant l'achat.`,
-      updated: updatedFr,
-      sections: [
-        {
-          title: "Avant livraison numérique",
-          body: [
-            "Si l'accès payant est disponible et que le rapport numérique n'a pas été généré ou consulté, vous pouvez demander une annulation et un remboursement selon les conditions indiquées au moment de l'achat.",
-          ],
-        },
-        {
-          title: "Après accès immédiat",
-          body: [
-            "Pour un contenu numérique fourni immédiatement, le droit au remboursement peut dépendre du consentement et de la renonciation présentés lors du paiement, du droit applicable et du fait que le contenu ait déjà été généré ou consulté.",
-            "Cette politique ne limite pas les droits impératifs des consommateurs en cas de service numérique défectueux ou indisponible.",
-          ],
-        },
-        {
-          title: "Demande d'assistance",
-          body: [
-            "Utilisez le contact support indiqué dans les Mentions légales lorsque les informations de lancement commercial seront finalisées. Ajoutez l'adresse email d'achat, le numéro de commande et une brève description du problème.",
-          ],
-        },
-      ],
-    },
-  },
-  notice: {
-    en: {
-      title: "Legal Notice",
-      intro: `Legal and publisher information for ${PRODUCT_NAME}.`,
-      updated,
-      sections: [
-        {
-          title: "Publisher",
-          body: [
-            `${PRODUCT_NAME} is available at ${PRODUCT_DOMAIN}.`,
-            "Publisher/operator legal identity, registered address, registration number, VAT number if applicable, and support email must be completed before commercial launch.",
-          ],
-        },
-        {
-          title: "Hosting",
-          body: [
-            "Hosting provider details must be completed before commercial launch. The production deployment is expected to run on Vercel unless changed by the operator.",
-          ],
-        },
-        {
-          title: "Intellectual property",
-          body: [
-            "The product name, interface, copy, reports, code, and visual design are protected unless otherwise stated.",
-            "Users keep responsibility for the personal text they enter into the service.",
-          ],
-        },
-        {
-          title: "Purpose limitation",
-          body: [
-            DISCLAIMER.en,
-            "The service does not provide regulated advice and does not replace a qualified professional.",
-          ],
-        },
-      ],
-    },
-    fr: {
-      title: "Mentions légales",
-      intro: `Informations légales et éditoriales relatives à ${PRODUCT_NAME}.`,
-      updated: updatedFr,
-      sections: [
-        {
-          title: "Éditeur",
-          body: [
-            `${PRODUCT_NAME} est disponible à l'adresse ${PRODUCT_DOMAIN}.`,
-            "L'identité légale de l'éditeur/opérateur, l'adresse du siège, le numéro d'immatriculation, le numéro de TVA le cas échéant et l'email de support doivent être complétés avant le lancement commercial.",
-          ],
-        },
-        {
-          title: "Hébergement",
-          body: [
-            "Les informations relatives à l'hébergeur doivent être complétées avant le lancement commercial. Le déploiement de production est prévu sur Vercel sauf modification par l'opérateur.",
-          ],
-        },
-        {
-          title: "Propriété intellectuelle",
-          body: [
-            "Le nom du produit, l'interface, les textes, les rapports, le code et le design sont protégés sauf mention contraire.",
-            "Les utilisateurs restent responsables des textes personnels qu'ils saisissent dans le service.",
-          ],
-        },
-        {
-          title: "Limite d'usage",
-          body: [
-            DISCLAIMER.fr,
-            "Le service ne fournit pas de conseil réglementé et ne remplace pas un professionnel qualifié.",
-          ],
-        },
-      ],
-    },
-  },
+  refund: { en: refundEn, fr: refundEn },
+  notice: { en: noticeEn, fr: noticeEn },
 };
