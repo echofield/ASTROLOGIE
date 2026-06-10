@@ -688,7 +688,7 @@ function CabinetPage() {
       const res = await fetch("/api/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, intake, star, ...(uid ? { uid } : {}), ...(forceFail ? { forceJudgeFail: true } : {}) }),
+        body: JSON.stringify({ profile, intake, star, language: lang, ...(uid ? { uid } : {}), ...(forceFail ? { forceJudgeFail: true } : {}) }),
       });
       const data = await res.json();
       // Write the lifecycle trail under the user's own session — on success AND on a

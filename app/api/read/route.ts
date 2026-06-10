@@ -7,9 +7,9 @@ import { ACCESS_COOKIE, readOpen, verifyAccess } from "@/lib/access";
 import { displaySky, signOf, SIGN_NAME } from "@/lib/chart";
 import { getProvider } from "@/lib/llm";
 import type { LLMProvider } from "@/lib/llm/types";
-import { READ_METHOD, STANDING_SPINE_METHOD, STANDING_MONTH_METHOD } from "@/lib/read-method";
+import { READ_METHOD, READ_METHOD_FR, STANDING_SPINE_METHOD, STANDING_MONTH_METHOD } from "@/lib/read-method";
 import { lintField } from "@/lib/antithesis";
-import { detect, PIVOT_PATTERNS } from "@/lib/read-lint";
+import { detect, PIVOT_PATTERNS, splitSentences } from "@/lib/read-lint";
 import { judge, regenSection } from "@/lib/read-judge";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
 import type { Profile } from "@/lib/storage";
@@ -65,13 +65,14 @@ function pickProtected(obj: Record<string, unknown>): string | null {
 async function enforce<T extends Record<string, unknown>>(
   provider: LLMProvider,
   obj: T,
+  language: "en" | "fr" = "en",
 ): Promise<{ artifact: T; before: number; after: number; passes: number; kept: number }> {
-  const protect = pickProtected(obj);
+  const protect = language === "fr" ? null : pickProtected(obj); // FR is zero-budget (detectFr governs the family + lexicon)
   const out: Record<string, unknown> = { ...obj };
   let before = 0, after = 0, passes = 0;
   for (const [field, val] of Object.entries(obj)) {
     if (typeof val === "string") {
-      const r = await lintField(provider, val, { protect });
+      const r = await lintField(provider, val, { protect, language });
       out[field] = r.text; before += r.before; after += r.after; passes = Math.max(passes, r.passes);
     } else if (Array.isArray(val)) {
       const arr = val.map((x) => (x && typeof x === "object" ? { ...(x as Record<string, unknown>) } : x));
@@ -80,7 +81,7 @@ async function enforce<T extends Record<string, unknown>>(
         const rec = item as Record<string, unknown>;
         for (const [k, v] of Object.entries(rec)) {
           if (typeof v !== "string") continue;
-          const r = await lintField(provider, v, { protect });
+          const r = await lintField(provider, v, { protect, language });
           rec[k] = r.text; before += r.before; after += r.after; passes = Math.max(passes, r.passes);
         }
       }
@@ -164,6 +165,7 @@ export async function POST(req: Request) {
     };
 
     const question = star.must; // the sealed must the read is drawn for — stored for re-open
+    const language: "en" | "fr" = body.language === "fr" ? "fr" : "en"; // FR path: VOICE_FR method + detectFr + FR judge
     const birth = new Date(profile.birthISO);
     const natal = displaySky(birth);
     let asc: number | null = null;
@@ -245,9 +247,9 @@ export async function POST(req: Request) {
     const L1_MODEL = readOpen() && typeof body.model === "string" && body.model ? body.model : "claude-fable-5";
     const raw = await provider.complete({
       model: L1_MODEL, // sharpest raw voice + lint-clean; thinking model, ~€5/read, negligible at €60
-      maxTokens: 12000, // headroom for thinking models (Fable reasons ~3k before writing); Opus stops well under this
+      maxTokens: language === "fr" ? 20000 : 12000, // Fable's FR reasoning runs ~10-11k tokens (vs ~3k EN) — generous headroom so the JSON never truncates
       // no temperature — Opus 4.8 deprecates the param; the judge+regen loop is the quality lever
-      system: READ_METHOD,
+      system: language === "fr" ? READ_METHOD_FR : READ_METHOD,
       messages: [{ role: "user", content: JSON.stringify(payload) }],
     });
 
@@ -267,8 +269,8 @@ export async function POST(req: Request) {
     });
     const lifecycle: ReturnType<typeof evt>[] = [];
 
-    // L2/L3 — deterministic lint gate (detect → rewrite loop → pivot budget)
-    let lint = await enforce(provider, parsed);
+    // L2/L3 — deterministic lint gate (detect → rewrite loop → pivot budget; FR adds the lexicon gate)
+    let lint = await enforce(provider, parsed, language);
     if (lint.after - lint.kept > 0) { queueFail("antithesis_unconverged", parsed); return NextResponse.json({ error: "antithesis_unconverged", residual: lint.after - lint.kept }, { status: 502 }); }
     let current = lint.artifact;
     lifecycle.push(evt("read_generated", { span: "moment", model: L1_MODEL }));
@@ -282,7 +284,7 @@ export async function POST(req: Request) {
     const FORCE_FAIL = readOpen() && body.forceJudgeFail === true;
     const FAIL_KEYS = ["signature", "chart", "pattern", "star", "yearAhead", "counsel"];
     const forcedFail = () => ({ pivotCount: 0, pass: false, sections: FAIL_KEYS.map((k) => ({ section: k, pass: k !== "counsel", failures: k === "counsel" ? [{ test: "NO_COMFORT_CLOSE", quote: "(forced)", why: "forceJudgeFail test hook — exercising the held-state path" }] : [] })) });
-    let verdict = FORCE_FAIL ? forcedFail() : await judge(provider, current);
+    let verdict = FORCE_FAIL ? forcedFail() : await judge(provider, current, language);
 
     // Permanent voice-quality regression hook (READ_OPEN only): judge ONCE, no regen.
     // Measures how often raw L1 clears the bar at ~1 gen + 1 judge per read. Returns
@@ -298,14 +300,30 @@ export async function POST(req: Request) {
     let regenLintFailed = false;
     for (let attempt = 0; !FORCE_FAIL && verdict && !verdict.pass && attempt < 5; attempt++) {
       for (const s of verdict.sections.filter((x) => !x.pass)) {
-        const fresh = await regenSection(provider, payload, s.section, current[s.section] ?? "", s.failures);
+        const fresh = await regenSection(provider, payload, s.section, current[s.section] ?? "", s.failures, language);
         if (fresh) current = { ...current, [s.section]: fresh };
       }
-      lint = await enforce(provider, current); // re-lint the whole artifact
+      lint = await enforce(provider, current, language); // re-lint the whole artifact
       if (lint.after - lint.kept > 0) { regenLintFailed = true; break; }
       current = lint.artifact;
-      verdict = await judge(provider, current);
+      verdict = await judge(provider, current, language);
     }
+    // Counsel guard — one shareable line. Fable occasionally returns a multi-sentence counsel
+    // despite the prompt; distil it to the single strongest line (both languages, before ship).
+    if (current.counsel && splitSentences(current.counsel).length > 1) {
+      try {
+        const one = (await provider.complete({
+          model: "claude-sonnet-4-6",
+          maxTokens: 200,
+          system: language === "fr"
+            ? "Vous recevez un conseil de plusieurs phrases. Renvoyez UNIQUEMENT la phrase unique la plus forte et la plus partageable — telle quelle si elle existe, sinon condensée en une seule ligne sous 25 mots. Rien d'autre, pas de guillemets."
+            : "You receive a multi-sentence counsel. Return ONLY the single strongest, most shareable sentence — verbatim if one exists, else condensed to one line under 25 words. Nothing else, no quotes.",
+          messages: [{ role: "user", content: current.counsel }],
+        })).trim().replace(/^["'«»\s]+|["'«»\s]+$/g, "");
+        if (one) current = { ...current, counsel: one };
+      } catch { /* keep the original counsel */ }
+    }
+
     const lintPayload = { before: lint.before, after: lint.after, kept: lint.kept, passes: lint.passes };
     // everything the operator needs to hand-fulfil: the best draft, the inputs to
     // regenerate, and the question. Logged on the read_judged_failed event (client-side,

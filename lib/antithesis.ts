@@ -3,21 +3,23 @@
 // follow-up (one best-effort pass). Detection (L2) is in read-lint.ts; the
 // rewrite sees ONLY flagged sentences, and code applies them by string match.
 import type { LLMProvider } from "./llm/types";
-import { ANTITHESIS_REWRITE_METHOD } from "./read-method";
-import { detect, type AntithesisFlag } from "./read-lint";
+import { ANTITHESIS_REWRITE_METHOD, ANTITHESIS_REWRITE_METHOD_FR } from "./read-method";
+import { detect, detectFr, type AntithesisFlag } from "./read-lint";
 
 const REWRITE_MODEL = "claude-opus-4-8"; // taste matters on the rewrite; use the strongest
 
 /** One focused rewrite call. Returns index → rewrite for each flagged sentence. */
-export async function rewriteFlagged(provider: LLMProvider, flags: AntithesisFlag[]): Promise<Map<number, string>> {
-  const list = flags.map((f) => ({ index: f.index, sentence: f.sentence }));
+export async function rewriteFlagged(provider: LLMProvider, flags: AntithesisFlag[], language: "en" | "fr" = "en"): Promise<Map<number, string>> {
+  const fr = language === "fr";
+  // FR carries the defect note so the repair knows whether it's an antithesis or a banned word
+  const list = flags.map((f) => (fr ? { index: f.index, sentence: f.sentence, defect: f.note } : { index: f.index, sentence: f.sentence }));
   const raw = await provider.complete({
     model: REWRITE_MODEL,
     maxTokens: 2000,
     // no temperature — Opus 4.8 deprecates the param; determinism comes from the
     // narrow task (rewrite only the flagged sentences)
-    system: ANTITHESIS_REWRITE_METHOD,
-    messages: [{ role: "user", content: "Rewrite each flagged sentence. Return the JSON array only.\n\n" + JSON.stringify(list, null, 2) }],
+    system: fr ? ANTITHESIS_REWRITE_METHOD_FR : ANTITHESIS_REWRITE_METHOD,
+    messages: [{ role: "user", content: (fr ? "Réparez chaque phrase signalée. Renvoyez le tableau JSON seul.\n\n" : "Rewrite each flagged sentence. Return the JSON array only.\n\n") + JSON.stringify(list, null, 2) }],
   });
   let text = raw.trim();
   if (text.startsWith("```")) text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
@@ -65,23 +67,24 @@ export function applyRewrites(text: string, flags: AntithesisFlag[], byIndex: Ma
 export async function lintField(
   provider: LLMProvider,
   text: string,
-  opts: { maxPasses?: number; protect?: string | null } = {},
+  opts: { maxPasses?: number; protect?: string | null; language?: "en" | "fr" } = {},
 ): Promise<{ text: string; before: number; after: number; passes: number }> {
-  const { maxPasses = 4, protect = null } = opts;
-  const before = detect(text).total;
+  const { maxPasses = 4, protect = null, language = "en" } = opts;
+  const det = language === "fr" ? detectFr : detect;
+  const before = det(text).total;
   let current = text;
   let passes = 0;
   while (passes < maxPasses) {
-    // skip the one budgeted pivot the artifact is allowed to keep
-    const flags = detect(current).flags.filter((f) => !protect || f.sentence !== protect);
+    // skip the one budgeted pivot the artifact is allowed to keep (EN only; FR is zero-budget)
+    const flags = det(current).flags.filter((f) => !protect || f.sentence !== protect);
     if (flags.length === 0) break;
     let byIndex: Map<number, string>;
-    try { byIndex = await rewriteFlagged(provider, flags); }
+    try { byIndex = await rewriteFlagged(provider, flags, language); }
     catch (e) { console.error("[antithesis] rewrite pass failed:", (e as Error)?.message ?? e); break; }
     current = applyRewrites(current, flags, byIndex);
     passes++;
   }
-  return { text: current, before, after: detect(current).total, passes };
+  return { text: current, before, after: det(current).total, passes };
 }
 
 /**
@@ -89,11 +92,11 @@ export async function lintField(
  * never withholds the reply — if the rewrite errors, the original text is kept.
  * So even quick follow-ups hold the voice without the heavy gate's latency.
  */
-export async function lintLight(provider: LLMProvider, text: string): Promise<string> {
-  const { total, flags } = detect(text);
+export async function lintLight(provider: LLMProvider, text: string, language: "en" | "fr" = "en"): Promise<string> {
+  const { total, flags } = (language === "fr" ? detectFr : detect)(text);
   if (total === 0) return text;
   try {
-    const byIndex = await rewriteFlagged(provider, flags);
+    const byIndex = await rewriteFlagged(provider, flags, language);
     return applyRewrites(text, flags, byIndex);
   } catch {
     return text;

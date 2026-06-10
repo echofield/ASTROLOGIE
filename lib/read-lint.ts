@@ -129,3 +129,58 @@ export function detect(text: string): DetectResult {
   flags.sort((x, y) => x.index - y.index);
   return { total: flags.length, flags, sentenceCount: sentences.length };
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// FRENCH — the register gate for the French read. Two deterministic classes, both
+// straight from VOICE_FR: the negation-contrast family (interdit #1) and a
+// banned-lexicon (interdits #2–5). French models emit the typographic apostrophe
+// (U+2019), so every apostrophe is matched as a class.
+// ════════════════════════════════════════════════════════════════════════════
+const AP = "['’]"; // straight + typographic apostrophe
+
+export const PATTERNS_FR: Pattern[] = [
+  { name: "ce_nest_pas_cest", re: new RegExp(`\\bc${AP}e(?:st|était)\\s+pas\\b[^.!?;]*?[,;:—–-]\\s*c${AP}e(?:st|était)\\b`, "i"), note: "ce n'est pas X, c'est Y" },
+  { name: "nest_pas_X_cest_Y", re: new RegExp(`\\bn${AP}e(?:st|était)\\s+pas\\b[^.!?;]*?[,;:—–-]\\s*c${AP}e(?:st|était)\\b`, "i"), note: "n'est pas X, c'est Y" },
+  { name: "ne_sagit_pas_mais", re: new RegExp(`\\bne\\s+s${AP}agi(?:t|ssait)\\s+pas\\b[^.!?;]*?\\bmais\\b`, "i"), note: "il ne s'agit pas de X, mais de Y" },
+  { name: "non_pas_mais", re: /\bnon\s+pas\b[^.!?;]*?\bmais\b/i, note: "non pas X mais Y" },
+  { name: "ne_VERB_pas_PRON", re: /\bne\s+[a-zà-ÿ]+\s+pas\b[^.!?;]*?[,;]\s*(?:il|elle|ça|cela|ce|on)\s+[a-zà-ÿ]+/i, note: "ne [v] pas A, il [v] B" },
+];
+
+// Hard bans (VOICE_FR interdits #2–5): any occurrence fails the register. The model
+// already avoids them from the prompt; this is the deterministic backstop.
+export const LEXICON_FR: { re: RegExp; note: string }[] = [
+  { re: /!/, note: "exclamation interdite" },
+  { re: /\bénergies?\b/i, note: "bouillie: énergie" },
+  { re: /\bvibrations?\b/i, note: "bouillie: vibration" },
+  { re: /\blâcher[\s-]prise\b/i, note: "dev-perso: lâcher-prise" },
+  { re: /\brayonner\b/i, note: "dev-perso: rayonner" },
+  { re: new RegExp(`\\bl${AP}univers\\s+(?:vous|t${AP}|te)\\b`, "i"), note: "personnification: l'univers vous…" },
+  { re: /\balignement\s+(?:des\s+astres|cosmique|planétaire)\b/i, note: "cliché: alignement des astres" },
+  { re: /\breconnexion\b/i, note: "dev-perso: reconnexion" },
+  { re: /\bbienveillance\b/i, note: "dev-perso: bienveillance" },
+  { re: /\bcheminement\b/i, note: "dev-perso: cheminement" },
+  { re: /\bvotre\s+âme\b/i, note: "dev-perso: votre âme" },
+  { re: /\bplongeons\s+dans\b/i, note: "tell: Plongeons dans" },
+  { re: /\bdécryptage\b/i, note: "tell: Décryptage" },
+  { re: new RegExp(`\\bn${AP}hésitez\\s+pas\\b`, "i"), note: "tell: N'hésitez pas" },
+  { re: /\bpréparez[\s-]vous\s+à\b/i, note: "tell: Préparez-vous à" },
+  { re: /\bau\s+cœur\s+de\b/i, note: "tell: au cœur de" },
+  { re: /\bvéritables?\b/i, note: "tell: véritable" },
+  { re: /\ben\s+conclusion\b/i, note: "tell: En conclusion" },
+  { re: /\bnatifs?\s+du\b/i, note: "horoscope: les natifs du…" },
+  { re: /\bce\s+que\s+les\s+(?:astres|étoiles)\s+vous\s+réserv/i, note: "horoscope: ce que les étoiles vous réservent" },
+];
+
+/** French detector: negation-contrast + banned-lexicon, one flag per offending sentence. */
+export function detectFr(text: string): DetectResult {
+  const sentences = splitSentences(text);
+  const flags: AntithesisFlag[] = [];
+  for (let i = 0; i < sentences.length; i++) {
+    const s = sentences[i];
+    let hit: { name: string; note: string } | null = null;
+    for (const p of PATTERNS_FR) if (p.re.test(s)) { hit = { name: p.name, note: p.note }; break; }
+    if (!hit) for (const l of LEXICON_FR) if (l.re.test(s)) { hit = { name: "lexique_interdit", note: l.note }; break; }
+    if (hit) flags.push({ index: i, sentence: s, pattern: hit.name, note: hit.note });
+  }
+  return { total: flags.length, flags, sentenceCount: sentences.length };
+}
