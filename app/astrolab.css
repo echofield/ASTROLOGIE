@@ -188,6 +188,9 @@
     background:linear-gradient(90deg,var(--gold),var(--gold-deep) 55%,transparent);transform:scaleX(0);transform-origin:left;transition:transform .55s var(--ease)}
   .rec-write:focus-within::after{transform:scaleX(1)}
   .rec-list{border-top:1px solid var(--rule-soft);margin-top:14px}
+  /* yesterday folds under its date — the record is permanent, the day is not */
+  .rec-day{font-family:var(--mono);font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--slate-dim);
+    padding:18px 0 6px;border-top:1px solid var(--rule-soft);margin-top:4px}
   .rec-entry.rec-fresh{opacity:0;transform:translateY(-6px)}
   .rec-entry.rec-fresh.in{opacity:1;transform:none;transition:opacity .8s var(--ease),transform .8s var(--ease)}
 

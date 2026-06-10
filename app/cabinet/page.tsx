@@ -19,15 +19,17 @@ import { Cap, Btn, StatusBar, ModeToggle, TabBar, type TabId } from "@/component
 import { useParallax, useSlowRotation, useSkyClock, useMediaQuery } from "@/components/sky/hooks";
 import { NIGHT, DAY, type Palette, FD, FT, FG, FN } from "@/lib/theme";
 import {
-  displaySky, signOf, degStr, shortPos, SIGN_NAME, PLANETS, PLANET_GLYPH, PLANET_NAME, type LonMap,
+  displaySky, signOf, degStr, shortPos, SIGN_NAME, SIGN_KEY, PLANETS, PLANET_GLYPH, PLANET_NAME, type LonMap,
 } from "@/lib/chart";
 import { ascendant } from "@/lib/ascendant";
 import { natalChart } from "@/lib/sky";
 import { makeStar, reachOf, type SealedStar } from "@/lib/star";
-import { archetypeForStar, geniusLine, geniusPhase } from "@/lib/archetypes";
+import { archetypeForStar, geniusPhase } from "@/lib/archetypes";
 import {
-  askGenius, appendMessage, loadMessages, journalEntries, remainingExchanges, DAILY_EXCHANGE_LIMIT,
+  askGenius, appendMessage, loadMessages, recordEntries, remainingExchanges, DAILY_EXCHANGE_LIMIT, dayKey,
 } from "@/lib/dialogue";
+import GeniusDial from "@/components/atlas/GeniusDial";
+import { nextBeat } from "@/lib/atlas/beat";
 import type { ChatMessage } from "@/lib/llm/types";
 import {
   getProfile, saveProfile, getStar, saveStar, getStarLedger, saveStarLedger, recordStar, resetAll,
@@ -163,7 +165,7 @@ const COPY = {
       closed: "The Genius is closed till tomorrow.",
       wake: "Seal a star, and I will wake.",
       placeholder: "what moves in you tonight…",
-      closedPlaceholder: "closed till tomorrow",
+      closedPlaceholder: "The Genius returns at midnight. The record stays open…",
       reflect: "Reflect",
       listening: "listening…",
       closedButton: "Closed",
@@ -290,7 +292,7 @@ const COPY = {
       closed: "Genius est fermé jusqu'à demain.",
       wake: "Scellez une étoile, et je m'éveillerai.",
       placeholder: "ce qui bouge en vous ce soir…",
-      closedPlaceholder: "fermé jusqu'à demain",
+      closedPlaceholder: "Le Genius revient à minuit. Le registre reste ouvert…",
       reflect: "Réfléchir",
       listening: "écoute…",
       closedButton: "Fermé",
@@ -355,14 +357,8 @@ function ledgerStatus(star: SealedStar, date: Date, lang: Lang): { label: string
   return { label: c.sealed, stamp: recordDate(star.sealedAt, lang, c.undated), detail: c.sealedAt(recordTime(star.sealedAt)) };
 }
 
-function localGeniusLine(lang: Lang, star: SealedStar, reach: ReturnType<typeof reachOf>, fulfilled: boolean): string {
-  if (lang === "en") return geniusLine(star, reach, fulfilled);
-  const phase = geniusPhase(reach, fulfilled);
-  if (phase === "kept") return `${star.name} est gardée dans votre ciel.`;
-  if (phase === "arrived") return `La Lune rejoint ${star.name}. Le moment est ouvert.`;
-  if (phase === "near") return `La Lune approche ${star.name}. Restez avec ce qui doit arriver.`;
-  return `Genius observe ${star.name}. La distance se referme lentement.`;
-}
+// (the resting Genius headline is now the BEAT — lib/atlas/beat — chosen by
+//  transit ≤7d → lunation ≤7d → chart-ruler day)
 
 function SkyBg({ pal, night, par }: { pal: Palette; night: boolean; par: { x: number; y: number } }) {
   if (!night) return null;
@@ -648,7 +644,7 @@ function CabinetPage() {
   const reach = useMemo(() => (star ? reachOf(star, date) : null), [star, date]);
   const fulfilled = !!star?.fulfilledAt;
   const remaining = remainingExchanges(messages);
-  const journal = useMemo(() => journalEntries(messages).slice(0, 4), [messages]);
+  const journal = useMemo(() => recordEntries(messages).slice(0, 14), [messages]);
   const recordedStars = useMemo(() => {
     const all = ledger.map((s) => (star && s.sealedAt === star.sealedAt ? star : s));
     if (star && !all.some((s) => s.sealedAt === star.sealedAt)) all.push(star);
@@ -768,16 +764,16 @@ function CabinetPage() {
   }
   async function askDaily() {
     const text = gInput.trim();
-    if (!text || gSending || !star || !reach) return;
-    if (remainingExchanges(messages) <= 0) {
-      setGReply(t.genius.closed);
-      return;
-    }
-    setGSending(true); setGReply(null);
-    const a = archetypeForStar(star);
+    if (!text || gSending) return;
+    // the line is KEPT regardless — journaling is unlimited and free;
+    // only the Genius's replies are counted against the day
     const userMessage = appendMessage({ role: "user", content: text });
     const history = [...messages, userMessage].slice(-40);
     setMessages((prev) => [...prev, userMessage].slice(-100));
+    setGInput("");
+    if (!star || !reach || remainingExchanges(messages) <= 0) return;
+    setGSending(true); setGReply(null);
+    const a = archetypeForStar(star);
     const reply = await askGenius(history, {
       star: { name: star.name, must: star.must, ruler: star.ruler },
       archetype: { name: a.name, essence: a.essence },
@@ -788,7 +784,7 @@ function CabinetPage() {
     const assistantMessage = appendMessage({ role: "assistant", content: line });
     setMessages((prev) => [...prev, assistantMessage].slice(-100));
     setGReply(line);
-    setGInput(""); setGSending(false);
+    setGSending(false);
   }
 
   if (!ready) return (
@@ -1140,12 +1136,16 @@ function CabinetPage() {
     );
   }
 
-  // ── Genius — the day's record, ported verbatim (.genius-ed / .record / .rec-*) ──
+  // ── Genius — the orrery dial + the day's record (.genius-ed / .record / .rec-*) ──
   if (screen === "genius") {
     const garch = star ? archetypeForStar(star) : null;
     const gClosed = remaining <= 0;
     const now = new Date().toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit" });
-    const oracle = gReply ?? (star && gClosed ? t.genius.closed : star && reach ? localGeniusLine(lang, star, reach, fulfilled) : t.genius.wake);
+    // the headline: a live reply if one just landed, else the next sky beat
+    const beat = !gReply && natalLon ? nextBeat(natalLon, lang) : null;
+    const sunKey = natalLon ? SIGN_KEY[signOf(natalLon.sun ?? 0)] : null;
+    const today = dayKey();
+    let lastDay = today; // entries from today render flat; older days get a dated header
     return (
       <>
         <AtlasChrome />
@@ -1153,7 +1153,7 @@ function CabinetPage() {
         <section className={`stage active${entered ? " enter" : ""}`} id="genius">
           <div className="surface">
             <div className="duo">
-              <div className="instr-cell"><div className="instr-slot em"><PlanetMedallion pal={pal} glyph={star ? star.glyph : "◎"} size={232} /></div></div>
+              <div className="instr-cell"><div className="instr-slot em"><GeniusDial signKey={sunKey} named={!!star} /></div></div>
               <div className="genius-ed">
                 <p className="eyebrow em">{lang === "fr" ? <>Votre <b>Genius</b></> : <>Your <b>Genius</b></>}</p>
                 <div className="state-line em">
@@ -1161,23 +1161,38 @@ function CabinetPage() {
                   <span className="rule" />
                   <span className="tally">{remaining} / {DAILY_EXCHANGE_LIMIT} {t.genius.today}</span>
                 </div>
-                <p className="oracle em">{oracle}</p>
+                <p className="oracle em">
+                  {gReply ? gReply : beat ? <>{beat.pre}<span className="ill">{beat.ill}</span>{beat.post}</> : t.genius.wake}
+                </p>
                 <div className="record em">
                   <p className="record-head">{t.genius.record}</p>
-                  <form className="rec-write" autoComplete="off" onSubmit={(e) => { e.preventDefault(); if (star && !gClosed && gInput.trim()) askDaily(); }}>
+                  {/* the input is pinned and ALWAYS open — journaling is free; only the
+                      Genius's replies are quota'd (the placeholder says when it returns) */}
+                  <form className="rec-write" autoComplete="off" onSubmit={(e) => { e.preventDefault(); if (gInput.trim()) askDaily(); }}>
                     <span className="rec-time rec-now">{now}</span>
-                    <input className="rec-input" maxLength={180} value={gInput} disabled={!star || gSending || gClosed}
+                    <input className="rec-input" maxLength={180} value={gInput} disabled={gSending}
                       placeholder={gClosed ? t.genius.closedPlaceholder : t.genius.placeholder}
                       onChange={(e) => setGInput(e.target.value)} />
-                    <button type="submit" className="rec-commit" aria-label={t.genius.keep} disabled={!star || gSending || gClosed}>↵</button>
+                    <button type="submit" className="rec-commit" aria-label={t.genius.keep} disabled={gSending}>↵</button>
                   </form>
                   <div className="rec-list">
-                    {journal.length ? journal.map((m) => (
-                      <div className="rec-entry" key={`${m.createdAt ?? ""}${m.content}`}>
-                        <span className="rec-time">{recordTime(m.createdAt)}</span>
-                        <p className="rec-text">{m.content}</p>
-                      </div>
-                    )) : (
+                    {journal.length ? journal.map((m) => {
+                      const d = m.createdAt ? dayKey(new Date(m.createdAt)) : today;
+                      const header = d !== today && d !== lastDay
+                        ? <div className="rec-day">{new Date(m.createdAt as string).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "long" })}</div>
+                        : null;
+                      lastDay = d;
+                      return (
+                        <div key={`${m.createdAt ?? ""}${m.content}`}>
+                          {header}
+                          <div className="rec-entry">
+                            <span className="rec-time">{recordTime(m.createdAt)}</span>
+                            {/* the writer's lines sit italic and dimmer; the Genius answers in roman */}
+                            <p className="rec-text">{m.role === "user" ? <em>{m.content}</em> : m.content}</p>
+                          </div>
+                        </div>
+                      );
+                    }) : (
                       <div className="rec-entry"><span className="rec-time">—</span><p className="rec-text"><em>{t.genius.emptyRecord}</em></p></div>
                     )}
                   </div>

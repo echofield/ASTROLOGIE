@@ -63,17 +63,26 @@ export function clearMessages(): void {
   } catch {}
 }
 
+/** The quota belongs to the Genius's REPLIES — journaling is unlimited and free. */
 export function exchangesToday(messages: ChatMessage[], day = dayKey()): number {
-  return messages.filter((m) => m.role === "user" && messageDay(m) === day).length;
+  return messages.filter((m) => m.role === "assistant" && messageDay(m) === day).length;
 }
 
 export function remainingExchanges(messages: ChatMessage[]): number {
   return Math.max(0, DAILY_EXCHANGE_LIMIT - exchangesToday(messages));
 }
 
+/** The Genius's lines only (legacy view). */
 export function journalEntries(messages: ChatMessage[]): ChatMessage[] {
   return messages
     .filter((m) => m.role === "assistant" && m.content.trim())
+    .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+}
+
+/** The day's record proper: user lines AND Genius lines, newest first. */
+export function recordEntries(messages: ChatMessage[]): ChatMessage[] {
+  return messages
+    .filter((m) => m.content.trim())
     .sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
 }
 
