@@ -483,6 +483,12 @@
   .cal-entry.live .cal-e-state{color:var(--gold)}
   .cal-entry.personal .cal-e-name{color:var(--gold-bright);opacity:1}
   .cal-entry.personal .cal-e-state{color:var(--gold-bright)}
+  /* the personal node is FILLED gold among the hollow collective ones —
+     the one date that is only yours, woven into the sky's own calendar */
+  .cal-entry.personal .cal-e-node .cal-emblem-svg .cal-line{stroke:var(--gold-bright)}
+  .cal-entry.personal .cal-e-node .cal-emblem-svg circle.cal-line{fill:rgba(226,200,132,.16)}
+  /* the quiet legend under the year's head */
+  .cal-legend{font-family:var(--serif);font-style:italic;font-size:14.5px;color:var(--slate);margin:-26px 0 40px;letter-spacing:.2px}
   /* the luminous Now anchor — the present, the head of the thread you descend from */
   .cal-entry.now .cal-e-date{color:var(--gold);opacity:1;font-size:10px;letter-spacing:.28em;padding-top:18px}
   .cal-entry.now .cal-e-name{color:var(--gold-bright);opacity:1;font-style:normal;font-weight:500;letter-spacing:1px}

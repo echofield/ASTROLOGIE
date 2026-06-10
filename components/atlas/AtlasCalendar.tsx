@@ -96,20 +96,19 @@ function build(birthISO: string | null | undefined, l: "en" | "fr") {
     : [["The Wolf Moon", "Cold light over the deepest of the winter."], ["The Snow Moon", "The year's heaviest snows under its glare."], ["The Worm Moon", "The ground softens, and the first thaw stirs."], ["The Pink Moon", "The earliest wild blooms answer the spring."], ["The Flower Moon", "The whole earth in bloom beneath it."], ["The Strawberry Moon", "Short nights, and the first ripening."], ["The Buck Moon", "Antlers in velvet, high summer at the full."], ["The Sturgeon Moon", "Heavy and low on the late-summer water."], ["The Harvest Moon", "The reaping light that lingers after dusk."], ["The Hunter's Moon", "The bright cold lamp of the turning year."], ["The Beaver Moon", "The last full light before the freeze."], ["The Cold Moon", "The long night's moon, at the year's floor."]];
 
   const entries: Entry[] = [];
-  fullMoons.forEach((fm) => { const nm = MOON_NAMES[fm.date.getMonth()]; entries.push({ date: fm.date, kind: "fullmoon", live: true, name: nm[0], note: nm[1], state: l === "fr" ? "pleine lune" : "full moon", glyph: <MoonGlyph illum={1} waxing R={16} /> }); });
-  SEASONS.forEach((se) => { const hit = scanCrossings(se.t, now, 372, sunLon, false)[0]; if (hit) entries.push({ date: hit.date, kind: "season", name: se.name, note: se.note, state: /Equinox|Équinoxe/.test(se.name) ? (l === "fr" ? "équinoxe" : "equinox") : "solstice", glyph: <SeasonGlyph name={se.name} R={16} /> }); });
+  // the paid door rides every full moon, every solstice/equinox, and the solar
+  // return — the same Reading through a different door, anchored to a moment
+  fullMoons.forEach((fm) => { const nm = MOON_NAMES[fm.date.getMonth()]; entries.push({ date: fm.date, kind: "fullmoon", live: true, offer: true, name: nm[0], note: nm[1], state: l === "fr" ? "pleine lune" : "full moon", glyph: <MoonGlyph illum={1} waxing R={16} /> }); });
+  SEASONS.forEach((se) => { const hit = scanCrossings(se.t, now, 372, sunLon, false)[0]; if (hit) entries.push({ date: hit.date, kind: "season", offer: true, name: se.name, note: se.note, state: /Equinox|Équinoxe/.test(se.name) ? (l === "fr" ? "équinoxe" : "equinox") : "solstice", glyph: <SeasonGlyph name={se.name} R={16} /> }); });
 
   let ret: Date | null = null;
   if (birthISO) {
     const natalSun = sky(new Date(birthISO)).sun ?? 0;
     ret = scanCrossings(natalSun, now, 372, sunLon, false)[0]?.date ?? null;
-    if (ret) entries.push({ date: ret, kind: "return", live: true, personal: true, offer: true, name: l === "fr" ? "Votre retour solaire" : "Your Solar Return", note: l === "fr" ? "Le Soleil revient à l'endroit exact où il se tenait à votre naissance." : "The Sun home to the exact place it stood when you began.", state: l === "fr" ? "votre retour" : "your return", glyph: <ReturnGlyph R={16} /> });
+    if (ret) entries.push({ date: ret, kind: "return", live: true, personal: true, offer: true, name: l === "fr" ? "Votre retour solaire" : "Your Solar Return", note: l === "fr" ? "Le Soleil revient à l'endroit exact où il se tenait à votre naissance." : "The Sun home to the exact place it stood when you began.", state: l === "fr" ? "retour solaire" : "solar return", glyph: <ReturnGlyph R={16} /> });
   }
   entries.push({ date: new Date(now.getTime() + 320 * DAY), kind: "pair", name: l === "fr" ? "La Rencontre de Deux Ciels" : "The Meeting of Two Skies", note: l === "fr" ? "Deux thèmes superposés — un tout autre ciel. Il vient, en son temps." : "Two charts laid over each other — a different sky entirely. It comes, in time.", state: l === "fr" ? "un ciel à venir" : "a coming sky", glyph: <PairGlyph R={16} /> });
 
-  let firstFull: Entry | null = null;
-  entries.forEach((e) => { if (e.kind === "fullmoon" && (!firstFull || e.date < (firstFull as Entry).date)) firstFull = e; });
-  if (firstFull) (firstFull as Entry).offer = true;
   entries.sort((a, b) => +a.date - +b.date);
 
   const PHASE_LINES = l === "fr"
@@ -186,6 +185,8 @@ export default function AtlasCalendar({ lang, birthISO }: { lang: "en" | "fr"; b
           <span className="cal-year-rule" />
           <span className="cal-year-sub">{t.ysub}</span>
         </div>
+        {/* the boundary, stated once beneath the year's head */}
+        <p className="cal-legend">{lang === "fr" ? "Les dates du ciel sont libres. Une lecture pour un moment s'écrit à la main." : "The sky's dates are free. A reading for a moment is written by hand."}</p>
         <div className="cal-meridian">
           {c.entries.map((e, i) => (
             <div key={i} className={`cal-entry${e.live ? " live" : ""}${e.personal ? " personal" : ""}${e.now ? " now" : ""}`} style={{ marginTop: e.gapPx ?? 0, "--depth": (e.depth ?? 1).toFixed(2) } as CSSProperties}>
