@@ -30,9 +30,11 @@ export async function POST(req: Request) {
     star: read.star ?? "", yearAhead: read.yearAhead ?? "", counsel: read.counsel ?? "", generatedAt,
   };
 
-  const { error } = await sb.from("astrolabe_reads")
-    .upsert({ user_id: uid, read: artifact, created_at: new Date().toISOString() }, { onConflict: "user_id" });
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  // plural shelf: a hand-delivered reading is a new row, sealed (opened_at null) —
+  // it arrives in the Cabinet as "SEALED — OPEN TO READ" and gets its ceremony
+  const { error } = await sb.from("astrolabe_readings")
+    .insert({ user_id: uid, question: (read.question as string) ?? null, read: { ...artifact, question: read.question ?? "" }, created_at: new Date().toISOString() });
+  if (error && !/duplicate|unique/i.test(error.message)) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
   // trail — clears the row from the held-reads page
   try {

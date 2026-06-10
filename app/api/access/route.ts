@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     // Is a reading already drawn for this email? If so, /success routes straight to it
     // (cross-device re-claim) instead of opening a fresh intake.
     const { data: existingRead } = await supabase
-      .from("astrolabe_reads")
+      .from("astrolabe_readings")
       .select("email")
       .ilike("email", normalized)
       .limit(1)

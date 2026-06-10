@@ -277,6 +277,21 @@
   .cab-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;margin-bottom:52px}
   .cab-kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
   .cab-title{font-family:var(--serif);font-weight:400;font-size:clamp(40px,4.4vw,62px);line-height:1;color:var(--ivory);letter-spacing:.5px}
+  /* the room's role, stated once under its name */
+  .cab-role{font-family:var(--serif);font-style:italic;font-size:16px;line-height:1.45;color:var(--slate);margin-top:14px;max-width:44ch}
+  /* the three shelves */
+  .shelf-h{font-family:var(--mono);font-size:10.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold-deep);
+    margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid var(--rule-soft)}
+  .gal-card.ghost{cursor:default;border-style:dashed;background:none;min-height:0;padding:26px 24px;justify-content:center}
+  .gal-card.ghost .gal-q{color:var(--slate);font-style:italic}
+  .gal-card.ghost:hover{transform:none;border-color:var(--rule-soft);background:none}
+  /* the single paid door in the Cabinet — on the sealed question it belongs to */
+  .gal-door{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--rule-soft);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);cursor:pointer;
+    transition:color .5s var(--ease)}
+  .gal-door:hover{color:var(--gold-bright)}
+  .gal-door .ar{transition:transform .5s var(--ease)}
+  .gal-door:hover .ar{transform:translateX(4px)}
   .cab-tally{display:flex;align-items:center;gap:16px}
   .cab-tally-n{font-family:var(--serif);font-size:clamp(40px,4vw,54px);color:var(--gold-bright);line-height:1;letter-spacing:1px}
   .cab-tally-l{font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate);line-height:1.7;text-align:left}

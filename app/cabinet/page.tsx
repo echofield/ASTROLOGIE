@@ -33,7 +33,8 @@ import {
   getProfile, saveProfile, getStar, saveStar, getStarLedger, saveStarLedger, recordStar, resetAll,
   getRead, saveRead, type Profile, type CompleteRead,
 } from "@/lib/storage";
-import { pull as cloudPull, push as cloudPush, wipe as cloudWipe, pullRead as cloudPullRead, pushRead as cloudPushRead, userId as cloudUserId } from "@/lib/cloud";
+import { pull as cloudPull, push as cloudPush, wipe as cloudWipe, pullReads as cloudPullReads, pushRead as cloudPushRead, markReadOpened, userId as cloudUserId, type ShelfReading } from "@/lib/cloud";
+import NatalWheel from "@/components/atlas/NatalWheel";
 import { logEvent } from "@/lib/atlas/events";
 import {
   DEFAULT_LANG, DISCLAIMER, LANG_LABEL, LEGAL_LINKS, PRICING, PRODUCT_NAME, type Lang,
@@ -101,7 +102,7 @@ const COPY = {
       undated: "undated",
     },
     completeRead: {
-      cta: `The Reading — ${PRICING.offer}${PRICING.currency}`,
+      cta: "Have the Reading drawn →",
     },
     intake: {
       cap: "Before your read",
@@ -228,7 +229,7 @@ const COPY = {
       undated: "sans date",
     },
     completeRead: {
-      cta: `La Lecture — ${PRICING.offer}${PRICING.currency}`,
+      cta: "Faire tirer la Lecture →",
     },
     intake: {
       cap: "Avant votre lecture",
@@ -504,7 +505,8 @@ function CabinetPage() {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [star, setStar] = useState<SealedStar | null>(null);
-  const [read, setRead] = useState<CompleteRead | null>(null);
+  const [read, setRead] = useState<CompleteRead | null>(null); // the reading being opened/viewed
+  const [shelf, setShelf] = useState<ShelfReading[]>([]); // every reading, oldest first (No. I, II, …)
   const night = true; // single-register (gold); the day/night toggle is retired
   const [lang, setLang] = useState<Lang>(DEFAULT_LANG);
   // surface is URL-driven: the header's ?screen= links and in-flow setScreen calls
@@ -561,20 +563,38 @@ function CabinetPage() {
       const m = await loadMessages();
       if (alive) setMessages(m);
 
-      const remoteRead = await cloudPullRead();
-      if (alive && remoteRead) {
-        saveRead(remoteRead);
-        setRead(remoteRead);
+      // the shelf — every reading the sky has kept, oldest first
+      const rows = await cloudPullReads();
+      if (alive && rows.length) {
+        setShelf(rows);
+        const newest = rows[rows.length - 1].read;
+        saveRead(newest);
+        setRead(newest);
       }
 
-      // Cross-device: if this browser holds the paid-access cookie but the read isn't here
-      // (new device / cleared storage), pull it by the paid email it was stamped with.
-      if (alive && !localRead && !remoteRead) {
+      // Cross-device: if this browser holds the paid-access cookie but the readings aren't
+      // here (new device / cleared storage), pull them by the paid email they were stamped with.
+      if (alive && !localRead && !rows.length) {
         try {
           const mineRes = await fetch("/api/read/mine");
           if (alive && mineRes.ok) {
-            const { read: mineRead } = await mineRes.json();
-            if (mineRead && typeof mineRead.signature === "string") { saveRead(mineRead); setRead(mineRead); }
+            const data = await mineRes.json();
+            const list = Array.isArray(data.reads) ? data.reads : [];
+            if (list.length) {
+              const mineShelf: ShelfReading[] = [...list].reverse()
+                .filter((r: { read?: { signature?: unknown } }) => r.read && typeof r.read.signature === "string")
+                .map((r: { read: CompleteRead; created_at?: string; opened_at?: string | null }) => ({
+                  read: r.read, createdAt: r.created_at ?? r.read.generatedAt, openedAt: r.opened_at ?? null,
+                }));
+              if (mineShelf.length) {
+                setShelf(mineShelf);
+                const newest = mineShelf[mineShelf.length - 1].read;
+                saveRead(newest);
+                setRead(newest);
+              }
+            } else if (data.read && typeof data.read.signature === "string") {
+              saveRead(data.read); setRead(data.read);
+            }
           }
         } catch { /* stay local */ }
       }
@@ -719,7 +739,9 @@ function CabinetPage() {
       };
       saveRead(artifact);
       setRead(artifact);
-      void cloudPushRead(artifact);
+      // the new reading joins the shelf (opened — this device is about to see it)
+      setShelf((s) => [...s, { read: artifact, createdAt: artifact.generatedAt, openedAt: new Date().toISOString() }]);
+      void cloudPushRead(artifact, lang);
       setIntakeOpen(false);
       setCeremony(true); // first viewing = the arrival ceremony, then it settles into the Cabinet
     } catch {
@@ -993,6 +1015,13 @@ function CabinetPage() {
       <svg key="3" viewBox="0 0 60 60"><circle cx="30" cy="30" r="21" /><path d="M30 18l3.2 8.8L42 30l-8.8 3.2L30 42l-3.2-8.8L18 30l8.8-3.2z" /></svg>,
     ];
     const ADD = <svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="19" strokeDasharray="3 5" /><path d="M25 17v16M17 25h16" /></svg>;
+    // the shelf, with a local-only fallback: a reading kept on this device before the
+    // plural shelf existed still shows (as kept — it has been seen)
+    const shelfList: ShelfReading[] = shelf.length
+      ? shelf
+      : read
+        ? [{ read, createdAt: read.generatedAt ?? new Date().toISOString(), openedAt: read.generatedAt ?? new Date().toISOString() }]
+        : [];
     return (
       <>
         <AtlasChrome />
@@ -1003,49 +1032,103 @@ function CabinetPage() {
               <div>
                 <p className="cab-kicker">{lang === "fr" ? "Gardé contre la nuit" : "Kept against the dark"}</p>
                 <h1 className="cab-title">{lang === "fr" ? "Le Cabinet" : "The Cabinet"}</h1>
-                {natalLon && <button type="button" onClick={() => setScreen("theme")} style={{ marginTop: 16, background: "none", border: 0, padding: 0, cursor: "pointer", fontFamily: "var(--mono)", fontSize: 11, letterSpacing: ".24em", textTransform: "uppercase", color: "var(--gold-deep)" }}>{lang === "fr" ? "Voir votre thème" : "See your chart"} →</button>}
+                <p className="cab-role">{lang === "fr" ? "Ce que le ciel a gardé pour vous — votre thème, vos questions, vos lectures." : "What the sky has kept for you — your chart, your questions, your readings."}</p>
               </div>
               <div className="cab-tally">
-                <span className="cab-tally-n">{recordedStars.length}</span>
+                <span className="cab-tally-n">{shelfList.length}</span>
                 <span className="cab-tally-l">{lang === "fr" ? <>lectures que le ciel<br />a gardées</> : <>readings the sky<br />has kept for you</>}</span>
               </div>
             </div>
-            {read && (
-              <div className="em" style={{ marginBottom: 34 }}>
-                <button type="button" className="gal-card read cab-reading" onClick={() => setReviewing(true)}
+
+            {/* ── shelf one: THE CHART — the natal geometry, free ── */}
+            <p className="shelf-h em">{lang === "fr" ? "Le Thème" : "The Chart"}</p>
+            <div className="em" style={{ marginBottom: 40 }}>
+              {profile ? (
+                <button type="button" className="gal-card read cab-reading" onClick={() => setScreen("theme")}
                   style={{ width: "100%", flexDirection: "row", alignItems: "center", gap: 26, minHeight: 0, cursor: "pointer" }}>
-                  <span className="gal-emblem" style={{ margin: 0, flex: "none" }}>
-                    <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="21" /><circle cx="30" cy="30" r="12" /><circle cx="30" cy="30" r="2" /><path d="M30 9v5M30 46v5M9 30h5M46 30h5" /></svg>
+                  <span style={{ flex: "none", width: 96 }} aria-hidden>
+                    <NatalWheel input={buildPlate(profile).input} />
                   </span>
                   <span style={{ flex: 1, textAlign: "left", display: "block" }}>
-                    <span className="gal-no" style={{ display: "block", marginBottom: 10 }}>{lang === "fr" ? "Votre Lecture" : "Your Reading"}</span>
-                    <span className="gal-q" style={{ display: "block" }}>{read.question || (lang === "fr" ? "La lecture que vous avez scellée" : "The reading you sealed")}</span>
-                    <span className="gal-status" style={{ marginTop: 16 }}><span className="gal-dot" />{lang === "fr" ? "Scellée — touchez pour l'ouvrir" : "Sealed — open to read"}</span>
+                    <span className="gal-q" style={{ display: "block" }}>{lang === "fr" ? "La géométrie de l'heure où vous avez commencé." : "The geometry of the hour you began."}</span>
+                    <span className="gal-status" style={{ marginTop: 14 }}><span className="gal-dot" />{lang === "fr" ? "Voir votre thème →" : "See your chart →"}</span>
                   </span>
                 </button>
-              </div>
-            )}
-            {star && !read && (
-              <div className="em" style={{ marginBottom: 34 }}>
-                <Link href="/checkout" className="plaque">{lang === "fr" ? "Faire tirer votre Lecture" : "Have your Reading drawn"} <span className="ar">→</span></Link>
-              </div>
-            )}
-            <div className="cab-grid em">
-              {recordedStars.map((s, i) => {
-                const opened = !!s.fulfilledAt;
-                const st = ledgerStatus(s, date, lang);
+              ) : (
+                <div className="gal-card ghost">
+                  <span className="gal-q">{lang === "fr" ? "Votre géométrie, tracée depuis l'heure de votre naissance." : "Your geometry, drawn from the hour you were born."}</span>
+                </div>
+              )}
+            </div>
+
+            {/* ── shelf two: THE READINGS — kept artifacts, No. I, II, … ── */}
+            <p className="shelf-h em">{lang === "fr" ? "Les Lectures" : "The Readings"}</p>
+            <div className="cab-grid em" style={{ marginBottom: 40 }}>
+              {shelfList.map((r, i) => {
+                const sealed = !r.openedAt;
                 return (
-                  <button key={s.sealedAt} className={`gal-card ${opened ? "read" : "sealed"}`} onClick={() => { saveStar(s); setStar(s); setScreen("star"); }}>
+                  <button key={r.read.generatedAt ?? i} className={`gal-card ${sealed ? "sealed" : "read"}`}
+                    onClick={() => {
+                      setRead(r.read);
+                      if (sealed) {
+                        const ga = r.read.generatedAt ?? "";
+                        setShelf((s) => s.map((x) => (x.read.generatedAt === ga ? { ...x, openedAt: new Date().toISOString() } : x)));
+                        if (ga) void markReadOpened(ga);
+                        setCeremony(true); // a sealed reading gets its ceremony
+                      } else {
+                        setReviewing(true);
+                      }
+                    }}>
                     <span className="gal-no">No. {ROMAN[i] ?? i + 1}</span>
-                    <span className="gal-emblem">{EMBLEMS[i % EMBLEMS.length]}</span>
-                    <span className="gal-q">{s.must}</span>
+                    <span className="gal-emblem">
+                      {sealed
+                        ? <svg viewBox="0 0 60 60"><path d="M30 12l12 18-12 18-12-18z" /><circle cx="30" cy="30" r="2.4" /></svg>
+                        : <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="21" /><circle cx="30" cy="30" r="12" /><circle cx="30" cy="30" r="2" /><path d="M30 9v5M30 46v5M9 30h5M46 30h5" /></svg>}
+                    </span>
+                    <span className="gal-q">{r.read.question || (lang === "fr" ? "La lecture que vous avez scellée" : "The reading you sealed")}</span>
                     <span className="gal-foot">
-                      <span className="gal-date">{st.stamp}</span>
-                      <span className="gal-status"><span className="gal-dot" />{st.label}</span>
+                      <span className="gal-date">{new Date(r.createdAt).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "2-digit", month: "short" })}</span>
+                      <span className="gal-status"><span className="gal-dot" />{sealed ? (lang === "fr" ? "Scellée — ouvrir pour lire" : "Sealed — open to read") : (lang === "fr" ? "Gardée — y revenir" : "Kept — return to it")}</span>
                     </span>
                   </button>
                 );
               })}
+              {!shelfList.length && (
+                <div className="gal-card ghost">
+                  <span className="gal-q">{lang === "fr" ? "Une lecture s'écrit à la main et se scelle. Elle s'ouvre une fois." : "A reading is written by hand and sealed. It is opened once."}</span>
+                </div>
+              )}
+            </div>
+
+            {/* ── shelf three: THE QUESTIONS — asking is free; the drawn reading is the paid object ── */}
+            <p className="shelf-h em">{lang === "fr" ? "Les Questions" : "The Questions"}</p>
+            <div className="cab-grid em">
+              {recordedStars.map((s, i) => {
+                const opened = !!s.fulfilledAt;
+                const st = ledgerStatus(s, date, lang);
+                const carriesDoor = star?.sealedAt === s.sealedAt && !shelfList.some((r) => r.read.question === s.must);
+                return (
+                  <button key={s.sealedAt} className={`gal-card ${opened ? "read" : "sealed"}`} onClick={() => { saveStar(s); setStar(s); setScreen("star"); }}>
+                    <span className="gal-no">{st.stamp}</span>
+                    <span className="gal-emblem">{EMBLEMS[i % EMBLEMS.length]}</span>
+                    <span className="gal-q">{s.must}</span>
+                    <span className="gal-foot">
+                      <span className="gal-status"><span className="gal-dot" />{st.label}</span>
+                    </span>
+                    {/* the single place a price appears in the Cabinet */}
+                    {carriesDoor && (
+                      <span className="gal-door" onClick={(e) => { e.stopPropagation(); window.location.href = "/checkout"; }} role="link">
+                        {lang === "fr" ? "Faire tirer la Lecture — 60 €" : "Have the Reading drawn — €60"} <span className="ar">→</span>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+              {!recordedStars.length && (
+                <div className="gal-card ghost">
+                  <span className="gal-q">{lang === "fr" ? "Commencez par demander." : "Begin by asking."}</span>
+                </div>
+              )}
               <button className="gal-card add" onClick={startSeal}>
                 <span className="gal-emblem">{ADD}</span>
                 <span className="gal-add-l">{lang === "fr" ? "Poser une nouvelle question" : "Ask a new question"}</span>
@@ -1258,10 +1341,8 @@ function CabinetPage() {
         {!read && (
         <div style={panel}>
           <Cap pal={pal}>{t.cabinet.checkoutTitle}</Cap>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: FD, fontWeight: 600, fontSize: 30, color: pal.accent, lineHeight: 1 }}>{PRICING.offer}{PRICING.currency}</span>
-            <span style={{ fontFamily: FD, fontStyle: "italic", fontSize: 15, color: pal.ink }}>· {PRICING.name[lang]}</span>
-          </div>
+          {/* the price lives on the sealed question's door — here, only the invitation */}
+          <div style={{ fontFamily: FD, fontStyle: "italic", fontSize: 22, color: pal.ink, marginTop: 8 }}>{PRICING.name[lang]}</div>
           <div style={{ fontFamily: FT, fontSize: 13.5, color: pal.inkSoft, lineHeight: 1.45, marginTop: 8 }}>{PRICING.note[lang]}</div>
           <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
             <Link href={`/checkout?lang=${lang}`} style={{ display: "inline-flex", alignItems: "center", padding: "11px 24px", borderRadius: 26, background: pal.accent, color: pal.btnInk, textDecoration: "none", fontFamily: FT, fontWeight: 500, letterSpacing: 2.5, textTransform: "uppercase", fontSize: 11 }}>{PRICING.cta[lang]}</Link>

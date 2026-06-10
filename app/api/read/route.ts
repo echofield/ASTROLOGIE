@@ -107,6 +107,21 @@ async function svcWrite(table: string, rows: unknown, onConflict?: string): Prom
   } catch (e) { console.error(`[read] svcWrite ${table} failed:`, e); }
 }
 
+// patch fields onto an existing row (the readings dedupe index is expression-based,
+// so insert-then-patch covers whichever writer — server persist or client mirror — won)
+async function svcPatch(pathWithFilter: string, fields: Record<string, unknown>): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return;
+  try {
+    await fetch(`${url}/rest/v1/${pathWithFilter}`, {
+      method: "PATCH",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+  } catch (e) { console.error(`[read] svcPatch failed:`, e); }
+}
+
 // one fixed moment, ~24h out — "9 June, 11:00 PM" — a marker, not a ticking clock
 function formatDeliverBy(d: Date): string {
   return d.toLocaleString("en-GB", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true });
@@ -336,7 +351,16 @@ export async function POST(req: Request) {
     // row the Cabinet reads back, the event trail, and the "ready" email that pulls them in.
     const persistRead = (artifact: Record<string, string>) => after(async () => {
       if (uid) {
-        await svcWrite("astrolabe_reads", { user_id: uid, email, read: { ...artifact, question, generatedAt }, created_at: generatedAt }, "user_id");
+        // plural readings: one row per reading. Insert (dedupe index absorbs the
+        // client-mirror race), then patch the metadata onto whichever row exists.
+        await svcWrite("astrolabe_readings", {
+          user_id: uid, email, question, language,
+          read: { ...artifact, question, generatedAt }, created_at: generatedAt,
+        });
+        await svcPatch(
+          `astrolabe_readings?user_id=eq.${uid}&read->>generatedAt=eq.${encodeURIComponent(generatedAt)}`,
+          { email, question, language },
+        );
         await svcWrite("astrolabe_events", lifecycle.map((e) => ({ ...e, user_id: uid })), "user_id,idempotency_key");
       }
       if (email) {

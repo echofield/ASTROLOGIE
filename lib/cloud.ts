@@ -123,6 +123,7 @@ export async function wipe(): Promise<void> {
     await Promise.all([
       c.from("astrolabe_messages").delete().eq("user_id", uid),
       c.from("astrolabe_reads").delete().eq("user_id", uid),
+      c.from("astrolabe_readings").delete().eq("user_id", uid),
       c.from("astrolabe_star_ledger").delete().eq("user_id", uid),
       c.from("astrolabe_stars").delete().eq("user_id", uid),
       c.from("astrolabe_profiles").delete().eq("user_id", uid),
@@ -154,33 +155,70 @@ export async function pullMessages(limit = 100): Promise<ChatMessage[] | null> {
   }
 }
 
-/** Complete Read artifact. Returns null when unconfigured. */
-export async function pullRead(): Promise<CompleteRead | null> {
+/** A reading on the shelf — the artifact plus its seal state. */
+export interface ShelfReading { read: CompleteRead; createdAt: string; openedAt: string | null }
+
+/** Every reading the sky has kept for this user, oldest first (No. I, II, …). */
+export async function pullReads(): Promise<ShelfReading[]> {
   const c = getClient();
-  if (!c) return null;
+  if (!c) return [];
   try {
     const uid = await userId();
-    if (!uid) return null;
-    const { data } = await c.from("astrolabe_reads").select("read").eq("user_id", uid).maybeSingle();
-    return (data?.read as CompleteRead) ?? null;
+    if (!uid) return [];
+    const { data } = await c
+      .from("astrolabe_readings")
+      .select("read, created_at, opened_at")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: true });
+    return (data ?? [])
+      .filter((r) => r.read)
+      .map((r) => ({ read: r.read as CompleteRead, createdAt: r.created_at as string, openedAt: (r.opened_at as string) ?? null }));
   } catch {
-    return null;
+    return [];
   }
 }
 
-export async function pushRead(r: CompleteRead): Promise<void> {
+/** Newest reading (compat). Returns null when unconfigured. */
+export async function pullRead(): Promise<CompleteRead | null> {
+  const all = await pullReads();
+  return all.length ? all[all.length - 1].read : null;
+}
+
+export async function pushRead(r: CompleteRead, language?: string): Promise<void> {
   const c = getClient();
   if (!c) return;
   try {
     const uid = await userId();
     if (!uid) return;
-    await c.from("astrolabe_reads").upsert({
+    // plural shelf: insert one row per reading — the unique (user_id, generatedAt)
+    // index absorbs the race with the server's own persist
+    await c.from("astrolabe_readings").insert({
       user_id: uid,
+      question: r.question ?? null,
+      ...(language ? { language } : {}),
       read: r,
       created_at: r.generatedAt,
+      opened_at: new Date().toISOString(), // the generating device is looking at it
     });
   } catch {
-    /* stay local-only */
+    /* duplicate from the server persist, or offline — both fine, stay local */
+  }
+}
+
+/** The seal is broken — record when a kept reading was first opened. */
+export async function markReadOpened(generatedAt: string): Promise<void> {
+  const c = getClient();
+  if (!c) return;
+  try {
+    const uid = await userId();
+    if (!uid) return;
+    await c.from("astrolabe_readings")
+      .update({ opened_at: new Date().toISOString() })
+      .eq("user_id", uid)
+      .is("opened_at", null)
+      .eq("read->>generatedAt", generatedAt);
+  } catch {
+    /* best-effort */
   }
 }
 
