@@ -11,6 +11,9 @@ export interface Profile {
   createdAt: string;
   lat?: number;
   lon?: number;
+  /** True when no birth time was given — birthISO carries a placeholder noon.
+      The horizon is unknowable: no Ascendant, no houses, anywhere, ever. */
+  timeUnknown?: boolean;
 }
 
 export interface CompleteRead {

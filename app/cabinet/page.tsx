@@ -7,6 +7,7 @@ import IntakeForm from "@/components/read/IntakeForm";
 import ReadArtifact from "@/components/read/ReadArtifact";
 import CastingScreen from "@/components/read/CastingScreen";
 import ReadReveal from "@/components/read/ReadReveal";
+import { buildPlate } from "@/lib/atlas/plate";
 import SkyWheel from "@/components/sky/SkyWheel";
 import PlanetMedallion from "@/components/sky/PlanetMedallion";
 import StarField from "@/components/sky/StarField";
@@ -669,6 +670,9 @@ function CabinetPage() {
     const p: Profile = {
       birthISO, place, natal, createdAt: new Date().toISOString(),
       ...(lat != null && lon != null ? { lat, lon } : {}),
+      // an empty time means the noon in birthISO is a placeholder — the horizon is
+      // unknowable, and nothing downstream may draw an Ascendant or houses from it
+      ...(btime ? {} : { timeUnknown: true }),
     };
     saveProfile(p); setProfile(p); void cloudPush(p, null); setScreen("theme");
     setCasting(false);
@@ -907,6 +911,7 @@ function CabinetPage() {
         read={read}
         question={read.question ?? star?.must ?? ""}
         lang={lang}
+        plate={buildPlate(profile, star?.name)}
         onClose={() => { setCeremony(false); setReviewing(false); setScreen("cabinet"); }}
       />
     );

@@ -172,7 +172,9 @@ export async function POST(req: Request) {
     let mc: number | null = null;
     let houses: number[] | null = null;
 
-    if (profile.lat != null && profile.lon != null) {
+    // a real Ascendant needs a real hour — timeUnknown means birthISO carries a
+    // placeholder noon, and a noon-fabricated horizon would be an invented rising
+    if (profile.lat != null && profile.lon != null && !profile.timeUnknown) {
       asc = ascendant(birth, profile.lat, profile.lon);
       mc = midheaven(birth, profile.lon);
       houses = equalHouses(asc);
