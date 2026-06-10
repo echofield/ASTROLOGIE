@@ -37,7 +37,11 @@ export default function AtlasHome() {
       <main className="home">
         <div className="wheel-wrap">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="wheel-img" src="/wheel.png" alt="The AstroLab wheel — the twelve signs and the day and hour of the sky" />
+          <img className="wheel-img" src="/wheel-1200.webp"
+            srcSet="/wheel-820.webp 820w, /wheel-1200.webp 1200w"
+            sizes="(max-width: 760px) 86vw, 720px"
+            width={1200} height={1200} fetchPriority="high" decoding="async"
+            alt="The AstroLab wheel — the twelve signs and the day and hour of the sky" />
           <svg className="wheel-doors" viewBox="0 0 1200 1200" aria-label="Choose a sign to descend">
             {Array.from({ length: 12 }, (_, i) => (
               <path key={i} className="door" d={doorPath(i)} role="link" tabIndex={0} aria-label={`Descend into ${SIGN_NAME[i]}`}

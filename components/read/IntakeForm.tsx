@@ -34,7 +34,7 @@ const fieldStyle = (pal: Palette): CSSProperties => ({
   borderBottom: `1px solid ${pal.panelLine}`,
   color: pal.ink,
   fontFamily: FT,
-  fontSize: 15,
+  fontSize: 16, // ≥16px: iOS refuses to auto-zoom the viewport on focus
   lineHeight: 1.5,
   padding: "8px 2px",
   outline: "none",

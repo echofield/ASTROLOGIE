@@ -42,7 +42,7 @@ export default function DayRecord() {
           onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
           placeholder="A line for today…" rows={2}
           style={{ flex: 1, resize: "none", background: "rgba(255,255,255,0.03)", border: `1px solid ${pal.panelLine}`,
-            borderRadius: 3, padding: "12px 14px", color: pal.ink, fontFamily: FT, fontSize: 15, lineHeight: 1.5, outline: "none" }}
+            borderRadius: 3, padding: "12px 14px", color: pal.ink, fontFamily: FT, fontSize: 16, lineHeight: 1.5, outline: "none" }}
         />
         <button onClick={submit} disabled={busy || !draft.trim()} style={{
           fontFamily: FT, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: pal.btnInk,

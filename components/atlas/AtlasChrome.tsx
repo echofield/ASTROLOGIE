@@ -19,7 +19,9 @@ export default function AtlasChrome() {
       H = c!.height = window.innerHeight * dpr;
       c!.style.width = window.innerWidth + "px";
       c!.style.height = window.innerHeight + "px";
-      const n = Math.min(300, Math.max(170, Math.round((window.innerWidth * window.innerHeight) / 7000)));
+      // phones don't need the desktop floor of 170 stars — the density formula already scales
+      const floor = window.innerWidth < 760 ? 90 : 170;
+      const n = Math.min(300, Math.max(floor, Math.round((window.innerWidth * window.innerHeight) / 7000)));
       s = [];
       for (let i = 0; i < n; i++) {
         const a = Math.random() * 6.283, sp = (Math.random() * 0.03 + 0.012) * dpr;
@@ -41,8 +43,21 @@ export default function AtlasChrome() {
     }
     size();
     window.addEventListener("resize", size);
-    raf = requestAnimationFrame(frame);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", size); };
+    // reduced-motion: one still frame of sky, no loop; otherwise animate, but rest while the tab is hidden
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (still) {
+      frame(0);
+      cancelAnimationFrame(raf);
+    } else {
+      raf = requestAnimationFrame(frame);
+    }
+    const vis = () => {
+      if (still) return;
+      cancelAnimationFrame(raf);
+      if (!document.hidden) raf = requestAnimationFrame(frame);
+    };
+    document.addEventListener("visibilitychange", vis);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", size); document.removeEventListener("visibilitychange", vis); };
   }, []);
   return (<><canvas id="sky" ref={ref} /><div className="grain" /></>);
 }
