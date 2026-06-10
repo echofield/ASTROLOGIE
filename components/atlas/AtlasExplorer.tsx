@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AtlasChrome from "./AtlasChrome";
 import Constellation, { fieldReadout } from "./Constellation";
 import { capSegments } from "@/lib/atlas/compose";
@@ -25,6 +25,11 @@ const FINAL = new Set(["pisces"]); // only Pisces is final editorial; the rest h
 
 export default function AtlasExplorer({ initial = "aries" }: { initial?: string }) {
   const [key, setKey] = useState(SIGNS[initial] ? initial : "aries");
+  // the rail keeps the chosen territory in view (matters on glass, harmless on desks)
+  const railRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    railRef.current?.querySelector("button.on")?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, [key]);
   const sign = SIGNS[key] as ConstellationData;
   const fr = fieldReadout(sign);
   const final = FINAL.has(key);
@@ -43,7 +48,7 @@ export default function AtlasExplorer({ initial = "aries" }: { initial?: string 
         <span className="atlas-plate">{sign.plate}</span>
       </header>
 
-      <nav className="switcher" aria-label="The twelve territories">
+      <nav className="switcher" aria-label="The twelve territories" ref={railRef}>
         {ORDER.map((k) => (
           <button key={k} className={k === key ? "on" : ""} aria-pressed={k === key} onClick={() => setKey(k)}>{DISPLAY[k]}</button>
         ))}
@@ -128,11 +133,18 @@ const ATLAS_CSS = `
 .atlas-explorer .fade{animation:atlasFade .9s var(--ease) both}
 @keyframes atlasFade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @media (max-width:1080px){
-  .atlas-explorer .atlas-hero{grid-template-columns:1fr;gap:44px;text-align:center;padding-top:128px}
+  .atlas-explorer .atlas-hero{grid-template-columns:1fr;gap:44px;text-align:center;padding-top:150px}
   .atlas-explorer .editorial{max-width:560px;margin:0 auto}
   .atlas-explorer .eyebrow,.atlas-explorer .attr,.atlas-explorer .sky-cap{justify-content:center}
   .atlas-explorer .tagline,.atlas-explorer .lede,.atlas-explorer .held,.atlas-explorer .held-sub{margin-left:auto;margin-right:auto}
-  .atlas-explorer .switcher{max-width:calc(100vw - 40px)}
+  .atlas-explorer .atlas-bar{padding:18px 20px;background:linear-gradient(180deg,rgba(5,8,15,.95) 55%,rgba(5,8,15,0))}
+  /* on glass the twelve territories are a single rail that scrolls sideways —
+     never a wall of rows pinned over the plate */
+  .atlas-explorer .switcher{top:58px;left:14px;right:14px;transform:none;max-width:none;
+    flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none}
+  .atlas-explorer .switcher::-webkit-scrollbar{display:none}
+  .atlas-explorer .switcher button{flex:none;border-bottom:0;padding:12px 15px}
   .atlas-explorer .proofnote{position:static;max-width:none;text-align:center;margin:26px auto 60px;padding:0 40px}
 }
 @media (prefers-reduced-motion:reduce){.atlas-explorer .fade{animation:none}}
