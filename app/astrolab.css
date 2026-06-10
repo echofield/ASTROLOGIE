@@ -654,13 +654,10 @@
       stroke-width:1.5;filter:drop-shadow(0 0 18px rgba(226,200,132,.45))}
   }
 
-  /* the live medallion — it REPLACES the plate engraved in the raster (whose text is
-     frozen sample data): a night disc covers the baked plate, the live sky writes on it */
+  /* the live medallion — the raster's plate is erased IN THE IMAGE (wheel-*-v2),
+     so the live sky writes directly on clean ground inside the etched rim */
   .medallion{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;
-    width:36.5%;aspect-ratio:1;border-radius:50%;
-    background:radial-gradient(120% 120% at 50% 36%, #0e1832 0%, #0a1124 54%, #070d1d 100%);
-    border:1px solid rgba(194,162,95,.28);
-    box-shadow:0 0 0 5px rgba(5,8,15,.4), inset 0 0 30px rgba(0,0,0,.55);
+    width:35%;aspect-ratio:1;border-radius:50%;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;
     animation:medFade 3.2s var(--ease) both}
   @keyframes medFade{from{opacity:0}to{opacity:1}}

@@ -60,9 +60,11 @@ export default function AtlasHome() {
           <div className="wheel-wrap">
             <div className="wheel-drift">
               <div className="wheel-hop" style={{ transform: `rotate(${hop}deg)` }}>
+                {/* v2: the raster's center plate (frozen sample data) is ERASED in the
+                    image itself — the live medallion writes on clean ground */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="wheel-img" src="/wheel-1200.webp"
-                  srcSet="/wheel-820.webp 820w, /wheel-1200.webp 1200w"
+                <img className="wheel-img" src="/wheel-1200-v2.webp"
+                  srcSet="/wheel-820-v2.webp 820w, /wheel-1200-v2.webp 1200w"
                   sizes="(max-width: 860px) 86vw, 60vw"
                   width={1200} height={1200} fetchPriority="high" decoding="async"
                   alt="The AstroLab wheel — the twelve signs and the day and hour of the sky" />
