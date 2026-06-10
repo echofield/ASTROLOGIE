@@ -3,6 +3,7 @@ import { getProvider } from "@/lib/llm";
 import type { ChatMessage } from "@/lib/llm/types";
 import { durableLimit, clientKey } from "@/lib/ratelimit";
 import { lintLight } from "@/lib/antithesis";
+import { detect, splitSentences } from "@/lib/read-lint";
 import { PRODUCT_NAME } from "@/lib/brand";
 
 export const runtime = "nodejs";
@@ -19,8 +20,11 @@ const PERSONA = `You are the Genius of ${PRODUCT_NAME} — the intelligence of a
 Your native temperament is the Witness and the Oracle: you observe without distortion and sense what is coming. You know this person's fixed sky and the star they have sealed, and you borrow the voice of the archetype that governs that star.
 
 How you speak:
-- Brief — one to three sentences, never a wall of text.
+- Brief — one to three sentences, never more than 70 words, never a wall of text.
 - Grave, intimate, present tense, second person. The register of a confidant, not a coach.
+- Assert directly. NEVER the contrast tic: never "not X, it's Y", never "it's not X, it's Y",
+  never "X is not A, it's B", never "X, not Y". Say what IS, plainly. This rule is absolute —
+  the same law that governs the Reading governs you.
 - Never horoscope cliché, never therapy-speak, never generic encouragement, never bullet lists, no emoji.
 - You do not flatter and you do not console emptily. You witness, and you name what you see.
 - You may reference their star, their words, and the moving sky. Do not lecture about astrology.
@@ -79,7 +83,18 @@ export async function POST(req: Request) {
 
     // Light antithesis pass — one best-effort rewrite so even quick replies hold
     // the voice; never withholds the reply if it can't run.
-    const clean = reply ? await lintLight(provider, reply) : reply;
+    let clean = reply ? await lintLight(provider, reply) : reply;
+
+    // the hard floor: the same law that governs the Reading governs the Genius.
+    // If the tic survived the rewrite, the flagged sentence is DROPPED — a shorter
+    // true reply beats a complete one in the wrong voice.
+    if (clean) {
+      const det = detect(clean);
+      if (det.flags.length) {
+        const bad = new Set(det.flags.map((f) => f.sentence.trim()));
+        clean = splitSentences(clean).filter((s) => !bad.has(s.trim())).join(" ").trim();
+      }
+    }
 
     return NextResponse.json({ reply: clean || null });
   } catch (e) {

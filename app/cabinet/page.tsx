@@ -537,7 +537,6 @@ function CabinetPage() {
   const [reviewing, setReviewing] = useState(false); // re-open a kept reading from the Cabinet
   const [held, setHeld] = useState(false); // judge-fail → ceremonial held state, never an error
   const [gInput, setGInput] = useState("");
-  const [gReply, setGReply] = useState<string | null>(null);
   const [gSending, setGSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [ledger, setLedger] = useState<SealedStar[]>([]);
@@ -651,7 +650,7 @@ function CabinetPage() {
     return all.sort((a, b) => b.sealedAt.localeCompare(a.sealedAt)).slice(0, 6);
   }, [ledger, star]);
   const toggleNight = () => {}; // retired — kept as a no-op for chrome call-sites
-  const onTab = (t: Screen) => { setScreen(t); setGReply(null); };
+  const onTab = (t: Screen) => { setScreen(t); };
   const startSeal = () => { setRmust(""); setRname(""); setRstep(1); };
 
   // the export's "emerge from depth" — .em children reveal once the stage gains .enter
@@ -772,7 +771,7 @@ function CabinetPage() {
     setMessages((prev) => [...prev, userMessage].slice(-100));
     setGInput("");
     if (!star || !reach || remainingExchanges(messages) <= 0) return;
-    setGSending(true); setGReply(null);
+    setGSending(true);
     const a = archetypeForStar(star);
     const reply = await askGenius(history, {
       star: { name: star.name, must: star.must, ruler: star.ruler },
@@ -782,8 +781,9 @@ function CabinetPage() {
     });
     const line = reply ?? t.genius.fallback;
     const assistantMessage = appendMessage({ role: "assistant", content: line });
+    // the reply lands in the record, where the dialogue lives — the oracle
+    // stays the day's beat, one line, never a wall
     setMessages((prev) => [...prev, assistantMessage].slice(-100));
-    setGReply(line);
     setGSending(false);
   }
 
@@ -1141,8 +1141,8 @@ function CabinetPage() {
     const garch = star ? archetypeForStar(star) : null;
     const gClosed = remaining <= 0;
     const now = new Date().toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit" });
-    // the headline: a live reply if one just landed, else the next sky beat
-    const beat = !gReply && natalLon ? nextBeat(natalLon, lang) : null;
+    // the headline is the day's beat — always one line; replies live in the record
+    const beat = natalLon ? nextBeat(natalLon, lang) : null;
     const sunKey = natalLon ? SIGN_KEY[signOf(natalLon.sun ?? 0)] : null;
     const today = dayKey();
     let lastDay = today; // entries from today render flat; older days get a dated header
@@ -1162,7 +1162,7 @@ function CabinetPage() {
                   <span className="tally">{remaining} / {DAILY_EXCHANGE_LIMIT} {t.genius.today}</span>
                 </div>
                 <p className="oracle em">
-                  {gReply ? gReply : beat ? <>{beat.pre}<span className="ill">{beat.ill}</span>{beat.post}</> : t.genius.wake}
+                  {beat ? <>{beat.pre}<span className="ill">{beat.ill}</span>{beat.post}</> : t.genius.wake}
                 </p>
                 <div className="record em">
                   <p className="record-head">{t.genius.record}</p>
