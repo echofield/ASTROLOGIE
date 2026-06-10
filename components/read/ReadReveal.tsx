@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { GOLD as G } from "@/lib/atlas-ui";
+import NatalWheel from "@/components/atlas/NatalWheel";
+import type { PlateData } from "@/lib/atlas/plate";
 
 // The reading reveal — the €60 payoff, ported from The AstroLab.html #reveal.
 // Sealed letter (the question) → break the seal → descent → the reading surfaces
@@ -23,7 +25,7 @@ function richParagraphs(text: string, drop: boolean) {
   });
 }
 
-export default function ReadReveal({ read, question, lang = "en", onClose }: { read: RevealRead; question: string; lang?: "en" | "fr"; onClose: () => void }) {
+export default function ReadReveal({ read, question, lang = "en", plate = null, onClose }: { read: RevealRead; question: string; lang?: "en" | "fr"; plate?: PlateData | null; onClose: () => void }) {
   const [open, setOpen] = useState(false); // false = threshold, true = descended
   const [deepen, setDeepen] = useState(false);
   const [gone, setGone] = useState(false);
@@ -36,7 +38,7 @@ export default function ReadReveal({ read, question, lang = "en", onClose }: { r
     if (pdfBusy) return;
     setPdfBusy(true);
     try {
-      const res = await fetch("/api/read/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ read, question }) });
+      const res = await fetch("/api/read/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ read, question, ...(plate ? { plate } : {}) }) });
       if (!res.ok) throw new Error("pdf");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -55,8 +57,8 @@ export default function ReadReveal({ read, question, lang = "en", onClose }: { r
   }
 
   const t = lang === "fr"
-    ? { sealed: "Une lecture scellée", line: "Le ciel a vu cette question la nuit où vous l'avez scellée — et garde sa réponse, close, depuis lors.", brk: "Briser le sceau", eyebrow: "La Lecture", kicker: "Tirée pour la question que vous portiez", asked: "Vous avez demandé", labels: { signature: "Signature", chart: "Thème", pattern: "Motif", star: "Votre étoile", yearAhead: "L'année à venir", counsel: "Conseil" }, colophon: "Scellée par The AstroLab — lue une fois", savePdf: "Enregistrer en PDF", copyQuote: "Copier une ligne", copied: "Copié", close: "Fermer la lecture" }
-    : { sealed: "A sealed reading", line: "The sky witnessed this question the night you sealed it — and has held its answer, unopened, ever since.", brk: "Break the seal", eyebrow: "The Reading", kicker: "Drawn for the question you carried", asked: "You asked", labels: { signature: "Signature", chart: "Chart", pattern: "Pattern", star: "Your star", yearAhead: "Year ahead", counsel: "Counsel" }, colophon: "Sealed by The AstroLab — read once", savePdf: "Save as PDF", copyQuote: "Copy a line to share", copied: "Copied", close: "Close the reading" };
+    ? { sealed: "Une lecture scellée", line: "Le ciel a vu cette question la nuit où vous l'avez scellée — et garde sa réponse, close, depuis lors.", brk: "Briser le sceau", eyebrow: "La Lecture", kicker: "Tirée pour la question que vous portiez", asked: "Vous avez demandé", labels: { signature: "Signature", chart: "Thème", pattern: "Motif", star: "Votre étoile", yearAhead: "L'année à venir", counsel: "Conseil" }, geometry: "La géométrie de l'heure", hourUnknown: "Heure inconnue — la roue est tracée sans son horizon.", colophon: "Scellée par The AstroLab — lue une fois", savePdf: "Enregistrer en PDF", copyQuote: "Copier une ligne", copied: "Copié", close: "Fermer la lecture" }
+    : { sealed: "A sealed reading", line: "The sky witnessed this question the night you sealed it — and has held its answer, unopened, ever since.", brk: "Break the seal", eyebrow: "The Reading", kicker: "Drawn for the question you carried", asked: "You asked", labels: { signature: "Signature", chart: "Chart", pattern: "Pattern", star: "Your star", yearAhead: "Year ahead", counsel: "Counsel" }, geometry: "The geometry of the hour", hourUnknown: "Hour unknown — the wheel is drawn without its horizon.", colophon: "Sealed by The AstroLab — read once", savePdf: "Save as PDF", copyQuote: "Copy a line to share", copied: "Copied", close: "Close the reading" };
 
   function breakSeal() {
     if (open) return;
@@ -64,8 +66,9 @@ export default function ReadReveal({ read, question, lang = "en", onClose }: { r
     setTimeout(() => setGone(true), 620);
     setTimeout(() => {
       setOpen(true);
-      const total = ORDER.length + 3; // eyebrow, kicker, asked + sections (counsel last) + colophon counted within
-      for (let i = 0; i < total + 2; i++) setTimeout(() => setUp((u) => Math.max(u, i + 1)), i === 0 ? 40 : 360 + i * 150);
+      // eyebrow + kicker + asked + rule + sections + colophon (+ the geometry plate when present)
+      const total = ORDER.length + 5 + (plate ? 1 : 0);
+      for (let i = 0; i < total; i++) setTimeout(() => setUp((u) => Math.max(u, i + 1)), i === 0 ? 40 : 360 + i * 150);
       setTimeout(() => setExit(true), 1200);
     }, 980);
   }
@@ -106,6 +109,12 @@ export default function ReadReveal({ read, question, lang = "en", onClose }: { r
         .rv-p .ill{color:${G.goldBright}}
         .rv-p.drop::first-letter{font-family:${G.serif};font-size:4.2em;float:left;line-height:.72;padding:8px 16px 0 0;color:${G.gold};font-style:normal}
         .rv-sec{margin-bottom:38px}
+        .rv-plate{margin:6px 0 46px;text-align:center}
+        .rv-plate-wheel{width:min(420px,86vw);height:auto;display:block;margin:0 auto}
+        .rv-plate-cap{display:flex;flex-direction:column;gap:5px;margin-top:18px;
+          font-family:${G.mono};font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:${G.slate}}
+        .rv-plate-cap .bright{color:${G.gold}}
+        .rv-plate-cap em{font-family:${G.body};font-style:italic;font-size:13px;letter-spacing:.4px;text-transform:none;color:${G.slate}}
         .rv-colophon{margin-top:64px;padding-top:42px;border-top:1px solid ${G.ruleSoft};display:flex;align-items:center;gap:26px;flex-wrap:wrap;justify-content:space-between}
         .rv-ctext{font-family:${G.mono};font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:${G.slate};line-height:2}
         .rv-ctext b{color:${G.goldDeep};font-weight:400}
@@ -149,10 +158,27 @@ export default function ReadReveal({ read, question, lang = "en", onClose }: { r
           {(() => { const i = B(); return <div className={`rv-block rv-rule${up > i ? " up" : ""}`} />; })()}
           {ORDER.map((k, idx) => {
             const i = B();
+            const plateBlock = k === "signature" && plate ? (() => {
+              const pi = B();
+              return (
+                <div className={`rv-block rv-plate${up > pi ? " up" : ""}`}>
+                  <p className="rv-seclabel">{t.geometry}</p>
+                  <NatalWheel input={plate.input} className="rv-plate-wheel" />
+                  <div className="rv-plate-cap">
+                    <span>{[plate.starName, plate.birthLabel].filter(Boolean).join(" — ")}</span>
+                    {plate.aspectLabels.map((l, li) => <span key={li} className="bright">{l}</span>)}
+                    {plate.hourUnknown && <em>{t.hourUnknown}</em>}
+                  </div>
+                </div>
+              );
+            })() : null;
             return (
-              <div key={k} className={`rv-block rv-sec${up > i ? " up" : ""}`}>
-                <p className="rv-seclabel">{t.labels[k]}</p>
-                {richParagraphs(read[k] ?? "", idx === 0)}
+              <div key={k}>
+                <div className={`rv-block rv-sec${up > i ? " up" : ""}`}>
+                  <p className="rv-seclabel">{t.labels[k]}</p>
+                  {richParagraphs(read[k] ?? "", idx === 0)}
+                </div>
+                {plateBlock}
               </div>
             );
           })}

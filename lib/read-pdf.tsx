@@ -1,4 +1,6 @@
 import { Document, Page, View, Text, StyleSheet, Font, Svg, Circle, Path } from "@react-pdf/renderer";
+import { NatalWheelPdf } from "@/lib/atlas/natal-wheel-pdf";
+import type { PlateData } from "@/lib/atlas/plate";
 
 // The Reading as a keepable artifact — midnight/gold register, EB Garamond body, the
 // wax-seal colophon. Server-rendered (renderToBuffer in /api/read/pdf). Left-ragged,
@@ -35,6 +37,12 @@ const s = StyleSheet.create({
   colo: { marginTop: 38, paddingTop: 24, borderTopWidth: 1, borderTopColor: C.rule, alignItems: "center" },
   coloText: { fontFamily: "PlexMono", fontSize: 8, letterSpacing: 2.4, textTransform: "uppercase", color: C.slate, marginTop: 16 },
   coloMark: { fontFamily: "PlexMono", fontSize: 8.5, letterSpacing: 3.4, textTransform: "uppercase", color: C.gold, marginTop: 6 },
+  // the geometry plate — the wheel the CHART section then reads aloud
+  plate: { marginTop: 26, marginBottom: 4, alignItems: "center" },
+  plateCapWrap: { marginTop: 14, alignItems: "center" },
+  plateCap: { fontFamily: "PlexMono", fontSize: 7.5, letterSpacing: 2.2, textTransform: "uppercase", color: C.slate, marginTop: 3 },
+  plateCapBright: { fontFamily: "PlexMono", fontSize: 7.5, letterSpacing: 2.2, textTransform: "uppercase", color: C.gold, marginTop: 3 },
+  plateHour: { fontFamily: "EBGaramond", fontStyle: "italic", fontSize: 9.5, color: C.slate, marginTop: 8 },
 });
 
 export interface PdfRead { signature: string; chart: string; pattern: string; star: string; yearAhead: string; counsel: string }
@@ -47,7 +55,21 @@ function Paras({ text }: { text: string }) {
   ))}</>;
 }
 
-export function ReadingPDF({ read, question }: { read: PdfRead; question: string }) {
+function GeometryPlate({ plate }: { plate: PlateData }) {
+  return (
+    <View style={s.plate} wrap={false}>
+      <Text style={s.label}>The geometry of the hour</Text>
+      <NatalWheelPdf input={plate.input} width={300} />
+      <View style={s.plateCapWrap}>
+        <Text style={s.plateCap}>{noLig([plate.starName, plate.birthLabel].filter(Boolean).join(" — "))}</Text>
+        {plate.aspectLabels.map((l, i) => <Text key={i} style={s.plateCapBright}>{noLig(l)}</Text>)}
+        {plate.hourUnknown && <Text style={s.plateHour}>Hour unknown — the wheel is drawn without its horizon.</Text>}
+      </View>
+    </View>
+  );
+}
+
+export function ReadingPDF({ read, question, plate }: { read: PdfRead; question: string; plate?: PlateData | null }) {
   return (
     <Document title="The Reading — The AstroLab" author="The AstroLab">
       <Page size="A4" style={s.page}>
@@ -59,6 +81,8 @@ export function ReadingPDF({ read, question }: { read: PdfRead; question: string
           <View key={key}>
             <Text style={s.label}>{label}</Text>
             <Paras text={read[key]} />
+            {/* the plate sits between SIGNATURE and CHART — the wheel the chart section reads aloud */}
+            {key === "signature" && plate ? <GeometryPlate plate={plate} /> : null}
           </View>
         ))}
         <View style={s.colo}>
