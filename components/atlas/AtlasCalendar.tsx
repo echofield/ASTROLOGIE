@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, type ReactNode, type CSSProperties } from "react";
 import { displaySky, type LonMap } from "@/lib/chart";
 import { useSkyNow } from "@/lib/atlas/use-sky-now";
+import MoonGlyph from "./MoonGlyph";
 
 // The Calendar — the rhythm of the sky, ported from the export's #calendar.
 // Every date is real, drawn from our own ephemeris (displaySky): the moon phase
@@ -19,22 +20,9 @@ const fmtShort = (d: Date, l: "en" | "fr") => `${d.getDate()} ${MONS[l][d.getMon
 const norm = (x: number) => ((x % 360) + 360) % 360;
 
 // line-work emblems: gold as a line; the unlit sky is shadow, never added light
+// (MoonGlyph — the true-phase disc — lives in ./MoonGlyph, shared with the landing medallion)
 function Wrap({ R, children }: { R: number; children: ReactNode }) {
   return <svg className="cal-emblem-svg" viewBox={`0 0 ${2 * R} ${2 * R}`} aria-hidden="true">{children}</svg>;
-}
-function MoonGlyph({ illum, waxing, R }: { illum: number; waxing: boolean; R: number }) {
-  const c = R, r = R - 1.4;
-  const limb = <circle className="cal-line" cx={c} cy={c} r={+r.toFixed(1)} />;
-  if (illum >= 0.97) return <Wrap R={R}>{limb}</Wrap>;
-  const rx = Math.abs(r * (1 - 2 * illum));
-  let dark: ReactNode;
-  if (illum <= 0.03) dark = <circle cx={c} cy={c} r={+r.toFixed(1)} fill="var(--moon-dark)" />;
-  else {
-    const sweep = waxing ? 0 : 1;
-    const ts = waxing ? (illum < 0.5 ? 0 : 1) : (illum < 0.5 ? 1 : 0);
-    dark = <path fill="var(--moon-dark)" d={`M${c},${(c - r).toFixed(1)} A${r.toFixed(1)},${r.toFixed(1)} 0 0 ${sweep} ${c},${(c + r).toFixed(1)} A${rx.toFixed(1)},${r.toFixed(1)} 0 0 ${ts} ${c},${(c - r).toFixed(1)} Z`} />;
-  }
-  return <Wrap R={R}>{dark}{limb}</Wrap>;
 }
 function DialGlyph({ R }: { R: number }) {
   const c = R;

@@ -1,24 +1,28 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "./Header";
 import AtlasChrome from "./AtlasChrome";
+import SkyTonight, { type Bind } from "./SkyTonight";
+import MoonGlyph from "./MoonGlyph";
 import { SIGN_NAME, SIGN_KEY } from "@/lib/chart";
+import { PLANET_GLYPH, SIGN_NAMES } from "@/lib/sky";
+import { useSkyTonight, phaseWord } from "@/lib/atlas/use-sky-tonight";
 
-// The entry wheel — ported from AstroLab Home.html. The engraved wheel (wheel.png)
-// framed, not touched: twelve invisible door sectors over it; hover lights the
-// invitation; click descends into the sign's territory. Our wheel.png seats Aries
-// at upper-left (a dividing line at 12 o'clock), so the sectors are offset −105°
-// (not the export's −90°) to land precisely on each engraved wedge.
-// RI dropped from the export's 326 (figure band only) to 225 so each sector covers
-// the full sign wedge — the figure and its constellation dots — stopping just outside
-// the central plate; RO stays at the rim.
+// The observatory front door — the engraved wheel laid asymmetric, deliberately
+// cropped off the left edge like a chart half under another paper on the desk,
+// with THE SKY TONIGHT observation panel at its right. The wheel is alive:
+// a slow sidereal drift (one degree per four minutes), a small eased rotation
+// at each planetary-hour boundary, a live medallion at the plate, and a faint
+// warm breath on the wedges currently above the visitor's horizon.
+//
+// wheel.png seats Aries at upper-left (a dividing line at 12 o'clock), so the
+// sectors are offset −105° to land precisely on each engraved wedge.
 const C = 600, RI = 225, RO = 584;
 const P = (r: number, a: number): [number, number] => [C + r * Math.cos(a), C + r * Math.sin(a)];
 function doorPath(i: number) {
-  // half-angle 15.5° (not 15°): each lit wedge laps a touch over the divider lines so
+  // half-angle 15.5°: each lit wedge laps a touch over the divider lines so
   // there's no hairline on the radial sides; neighbours aren't lit, so the overlap shows nothing.
   const c = ((i * 30 - 105) * Math.PI) / 180, a0 = c - (15.5 * Math.PI) / 180, a1 = c + (15.5 * Math.PI) / 180;
   const [ix0, iy0] = P(RI, a0), [ox0, oy0] = P(RO, a0), [ox1, oy1] = P(RO, a1), [ix1, iy1] = P(RI, a1);
@@ -28,32 +32,65 @@ function doorPath(i: number) {
 export default function AtlasHome() {
   const router = useRouter();
   const [hover, setHover] = useState<number | null>(null);
+  const [bind, setBind] = useState<Bind>(null);
+  const [hop, setHop] = useState(0);
+  const sky = useSkyTonight();
   const go = (i: number) => router.push(`/atlas?sign=${SIGN_KEY[i]}`);
+
+  // at the planetary-hour boundary the wheel turns a few degrees with a slow
+  // ease, and the medallion glyph crossfades to the next ruler (key remount)
+  const hourEnd = sky.hour?.end ? +sky.hour.end : 0;
+  useEffect(() => {
+    if (!hourEnd) return;
+    const ms = hourEnd - Date.now();
+    if (ms <= 0 || ms > 12 * 3600e3) return;
+    const id = setTimeout(() => setHop((h) => h + 4), ms + 800);
+    return () => clearTimeout(id);
+  }, [hourEnd]);
+
+  // panel↔wheel binding: the moon entry lights the Moon's wedge, today lights the Sun's
+  const lit = bind === "moon" ? sky.moon.signIdx : bind === "sun" ? sky.sun.signIdx : null;
 
   return (
     <>
       <AtlasChrome />
       <Header />
       <main className="home">
-        <div className="wheel-wrap">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="wheel-img" src="/wheel-1200.webp"
-            srcSet="/wheel-820.webp 820w, /wheel-1200.webp 1200w"
-            sizes="(max-width: 760px) 86vw, 720px"
-            width={1200} height={1200} fetchPriority="high" decoding="async"
-            alt="The AstroLab wheel — the twelve signs and the day and hour of the sky" />
-          <svg className="wheel-doors" viewBox="0 0 1200 1200" aria-label="Choose a sign to descend">
-            {Array.from({ length: 12 }, (_, i) => (
-              <path key={i} className="door" d={doorPath(i)} role="link" tabIndex={0} aria-label={`Descend into ${SIGN_NAME[i]}`}
-                onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
-                onClick={() => go(i)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") go(i); }} />
-            ))}
-          </svg>
+        <div className="wheel-side">
+          <div className="wheel-wrap">
+            <div className="wheel-drift">
+              <div className="wheel-hop" style={{ transform: `rotate(${hop}deg)` }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="wheel-img" src="/wheel-1200.webp"
+                  srcSet="/wheel-820.webp 820w, /wheel-1200.webp 1200w"
+                  sizes="(max-width: 860px) 86vw, 60vw"
+                  width={1200} height={1200} fetchPriority="high" decoding="async"
+                  alt="The AstroLab wheel — the twelve signs and the day and hour of the sky" />
+                <svg className="wheel-doors" viewBox="0 0 1200 1200" aria-label="Choose a sign to descend">
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <path key={i}
+                      className={`door${sky.horizon?.[i] ? " up" : ""}${lit === i ? " lit" : ""}`}
+                      d={doorPath(i)} role="link" tabIndex={0} aria-label={`Descend into ${SIGN_NAME[i]}`}
+                      onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+                      onClick={() => go(i)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") go(i); }} />
+                  ))}
+                </svg>
+              </div>
+            </div>
+            {/* the live medallion — upright over the engraved plate, outside the rotation */}
+            <div className={`medallion${bind === "hour" ? " pulse" : ""}`} key={sky.hour.ruler} aria-hidden>
+              <span className="med-glyph">{PLANET_GLYPH[sky.hour.ruler]}</span>
+              <span className="med-moon">
+                <MoonGlyph illum={sky.moon.illum} waxing={sky.moon.waxing} R={9} />
+                {phaseWord(sky.moon.phaseIdx, sky.moon.waxing)} · {SIGN_NAMES[sky.moon.signIdx]} {Math.floor(sky.moon.degInSign)}°
+              </span>
+            </div>
+          </div>
+          <p className={`invite${hover != null ? " lit" : ""}`}>
+            {hover != null ? <>Descend into {SIGN_NAME[hover]}<span className="arr">→</span></> : "Choose a sign to descend."}
+          </p>
         </div>
-        <p className={`invite${hover != null ? " lit" : ""}`}>
-          {hover != null ? <>Descend into {SIGN_NAME[hover]}<span className="arr">→</span></> : "Choose a sign to descend."}
-        </p>
-        <p className="home-thread"><Link href="/reading">Or have a Reading drawn <span className="ar">→</span></Link></p>
+        <SkyTonight sky={sky} onBind={setBind} />
       </main>
       <footer className="home-foot">The AstroLab Atlas <b>·</b> Catalogued from the observed sky <b>·</b> {new Date().getFullYear()}</footer>
     </>
