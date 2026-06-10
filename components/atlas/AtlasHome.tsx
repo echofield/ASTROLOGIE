@@ -77,9 +77,12 @@ export default function AtlasHome() {
                 </svg>
               </div>
             </div>
-            {/* the live medallion — upright over the engraved plate, outside the rotation */}
+            {/* the live medallion — a night disc covering the raster's baked plate
+                (frozen sample data), carrying the actual hour and the actual moon */}
             <div className={`medallion${bind === "hour" ? " pulse" : ""}`} key={sky.hour.ruler} aria-hidden>
+              <span className="med-k">The hour of</span>
               <span className="med-glyph">{PLANET_GLYPH[sky.hour.ruler]}</span>
+              <span className="med-name">{sky.hour.ruler}</span>
               <span className="med-moon">
                 <MoonGlyph illum={sky.moon.illum} waxing={sky.moon.waxing} R={9} />
                 {phaseWord(sky.moon.phaseIdx, sky.moon.waxing)} · {SIGN_NAMES[sky.moon.signIdx]} {Math.floor(sky.moon.degInSign)}°

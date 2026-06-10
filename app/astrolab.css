@@ -613,7 +613,7 @@
   .wheel-side{position:relative;display:flex;flex-direction:column;align-items:flex-start;min-width:0}
   /* the crop is committed: a fixed fraction of the wheel runs off the left edge,
      a chart lying partially under another paper on the desk */
-  .wheel-wrap{position:relative;width:min(96vh,860px);aspect-ratio:1;margin-left:-27%;
+  .wheel-wrap{position:relative;width:min(82vh,780px);aspect-ratio:1;margin-left:-24%;
     opacity:0;animation:wheelIn 2.4s var(--ease) .2s both}
   @keyframes wheelIn{from{opacity:0;transform:scale(.975)}to{opacity:1;transform:none}}
   /* the sidereal drift — one degree per four minutes, a full turn in 24h, compositor-only */
@@ -640,17 +640,24 @@
       stroke-width:1.5;filter:drop-shadow(0 0 18px rgba(226,200,132,.45))}
   }
 
-  /* the live medallion — upright over the engraved plate, outside the rotation */
+  /* the live medallion — it REPLACES the plate engraved in the raster (whose text is
+     frozen sample data): a night disc covers the baked plate, the live sky writes on it */
   .medallion{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;
-    display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;
+    width:36.5%;aspect-ratio:1;border-radius:50%;
+    background:radial-gradient(120% 120% at 50% 36%, #0e1832 0%, #0a1124 54%, #070d1d 100%);
+    border:1px solid rgba(194,162,95,.28);
+    box-shadow:0 0 0 5px rgba(5,8,15,.4), inset 0 0 30px rgba(0,0,0,.55);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;
     animation:medFade 3.2s var(--ease) both}
   @keyframes medFade{from{opacity:0}to{opacity:1}}
-  .med-glyph{font-family:var(--serif);font-size:clamp(30px,3.4vw,44px);line-height:1;color:var(--gold-bright);
+  .med-k{font-family:var(--mono);font-size:9px;letter-spacing:.34em;text-transform:uppercase;color:var(--slate)}
+  .med-glyph{font-family:var(--serif);font-size:clamp(26px,3vw,40px);line-height:1;color:var(--gold-bright);
     text-shadow:0 0 22px rgba(226,200,132,.5);transition:text-shadow .6s var(--ease)}
   .medallion.pulse .med-glyph{text-shadow:0 0 34px rgba(226,200,132,.95)}
-  .med-moon{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold-deep);
-    display:inline-flex;align-items:center;gap:8px}
-  .med-moon .cal-emblem-svg{width:18px;height:18px;flex:none}
+  .med-name{font-family:var(--serif);font-style:italic;font-size:clamp(15px,1.5vw,19px);color:var(--ivory-dim);letter-spacing:.4px}
+  .med-moon{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-deep);
+    display:inline-flex;align-items:center;gap:8px;margin-top:2px}
+  .med-moon .cal-emblem-svg{width:16px;height:16px;flex:none}
 
   .invite{margin:40px 0 0 clamp(24px,6vw,90px);font-family:var(--serif);font-style:italic;font-size:clamp(18px,1.6vw,22px);
     letter-spacing:.3px;color:var(--ivory-dim);min-height:1.4em;
@@ -684,7 +691,7 @@
   .home-foot b{color:var(--gold-deep);font-weight:400}
 
   @media (max-width:1080px){
-    .wheel-wrap{width:min(88vh,720px);margin-left:-30%}
+    .wheel-wrap{width:min(76vh,640px);margin-left:-26%}
   }
   @media (max-width:860px){
     /* the desk folds: wheel centered and uncropped, the log beneath it */
@@ -694,6 +701,12 @@
     .invite{margin:34px auto 0;text-align:center}
     .skp{justify-self:center;width:min(440px,100%);padding-right:0}
     .home-foot{font-size:9px;letter-spacing:.2em;position:static;margin-top:30px}
+    /* the medallion shrinks to glyph + moon line on glass */
+    .med-k,.med-name{display:none}
+    .medallion{gap:5px}
+    .med-glyph{font-size:22px}
+    .med-moon{font-size:7.5px;letter-spacing:.14em;gap:5px}
+    .med-moon .cal-emblem-svg{width:12px;height:12px}
   }
   @media (max-width:760px){
     .home{padding:110px 20px 70px}
