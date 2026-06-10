@@ -47,6 +47,10 @@ export default function ReadingOffer() {
           <p style={{ fontFamily: G.serif, fontStyle: "italic", fontSize: "clamp(19px,1.9vw,23px)", lineHeight: 1.42, color: G.ivoryDim, marginTop: 18, textWrap: "pretty" }}>
             A reading drawn against the sky of a single moment, for a question you seal — and kept in your Cabinet to return to.
           </p>
+          {/* the boundary, stated once, quietly — the entire pricing story */}
+          <p style={{ ...label, color: G.slate, marginTop: 26, letterSpacing: ".24em" }}>
+            The sky is free to watch. A reading is written by hand.
+          </p>
         </div>
 
         <div className="alab-offgrid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: `1px solid ${G.rule}` }}>
