@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AtlasChrome from "./AtlasChrome";
 import Constellation, { fieldReadout } from "./Constellation";
+import { capSegments } from "@/lib/atlas/compose";
 import table from "@/data/constellations.json";
 import type { ConstellationTable, ConstellationData } from "@/types/atlas";
 
@@ -52,7 +53,11 @@ export default function AtlasExplorer({ initial = "aries" }: { initial?: string 
         <div className="sky-stage">
           <Constellation key={key} data={sign} />
           <div className="sky-cap">
-            <span dangerouslySetInnerHTML={{ __html: sign.ed.cap }} />
+            {/* each segment is a real flex child with an explicit interpunct — never one
+                wrapper span whose inner segments the row's gap can't reach */}
+            {capSegments(sign.ed.cap).map((seg, i) => (
+              <span key={i} className="cap-seg" dangerouslySetInnerHTML={{ __html: seg }} />
+            ))}
             <span className="field">Field {fr.wDeg}° × {fr.hDeg}° · {fr.stars} stars</span>
           </div>
         </div>
@@ -103,6 +108,8 @@ const ATLAS_CSS = `
 .atlas-explorer .sky-cap{margin-top:16px;display:flex;gap:22px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;
   letter-spacing:.24em;text-transform:uppercase;color:var(--slate-dim)}
 .atlas-explorer .sky-cap b{color:var(--gold-deep);font-weight:400}
+.atlas-explorer .sky-cap .cap-seg+.cap-seg::before{content:"· ";color:var(--gold-deep);opacity:.55}
+.atlas-explorer .sky-cap .gk{font-style:normal;text-transform:none}
 .atlas-explorer .sky-cap .field{color:var(--slate)}
 .atlas-explorer .editorial{max-width:430px}
 .atlas-explorer .terr-name{font-family:var(--serif);font-weight:400;font-size:clamp(52px,4.8vw,74px);line-height:.98;color:var(--ivory);letter-spacing:.5px;margin-bottom:18px}

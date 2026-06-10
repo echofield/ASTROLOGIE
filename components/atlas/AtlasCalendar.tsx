@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, type ReactNode, type CSSProperties } from "react";
 import { displaySky, type LonMap } from "@/lib/chart";
+import { useSkyNow } from "@/lib/atlas/use-sky-now";
 
 // The Calendar — the rhythm of the sky, ported from the export's #calendar.
 // Every date is real, drawn from our own ephemeris (displaySky): the moon phase
@@ -142,7 +143,10 @@ function build(birthISO: string | null | undefined, l: "en" | "fr") {
 }
 
 export default function AtlasCalendar({ lang, birthISO }: { lang: "en" | "fr"; birthISO?: string | null }) {
-  const c = useMemo(() => build(birthISO ?? null, lang), [birthISO, lang]);
+  // dayKey flips at local midnight → Tonight and the year rebuild without a reload
+  const { dayKey } = useSkyNow();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const c = useMemo(() => build(birthISO ?? null, lang), [birthISO, lang, dayKey]);
   const t = lang === "fr"
     ? { kicker: "Le rythme du ciel", title: "Le Calendrier", tonight: "Le ciel ce soir", yk: "L'année à venir", ysub: "ce que le ciel apporte", skyKind: "Le ciel ce soir", skyLine: "Les cieux tels qu'ils se tiennent en ce moment, au-dessus de vous — la note fondamentale sur laquelle toute l'année s'accorde.", skyWhen: "Ce soir", fmKind: "La pleine lune à venir", fmLine: "La haute marée de lumière du mois — quand le ciel est le plus plein, et le plus digne d'être marqué.", retKind: "Votre retour solaire", retLine: "Le seul jour où le Soleil revient là où il se tenait à votre naissance — votre année, qui recommence.", retUnsetLine: "La seule date qui n'est qu'à vous. Le ciel a besoin de votre naissance pour la trouver.", retUnset: "Votre retour", setLink: "Entrez votre ciel de naissance", drawn: "Faire tirer une Lecture pour ce moment", approach: (d: number) => (d <= 0 ? "ce soir" : d === 1 ? "demain soir" : d <= 45 ? `dans ${d} nuits` : "") }
     : { kicker: "The rhythm of the sky", title: "The Calendar", tonight: "The sky tonight", yk: "The year ahead", ysub: "what the sky is bringing", skyKind: "The Sky Tonight", skyLine: "The heavens as they stand right now, over you — the ground note the whole year is tuned against.", skyWhen: "Tonight", fmKind: "The Coming Full Moon", fmLine: "The month's high tide of light — when the sky is fullest, and most worth marking.", retKind: "Your Solar Return", retLine: "The one day the Sun comes home to where it stood at your birth — your year, beginning again.", retUnsetLine: "The one date that is only yours. The sky needs your birth to find it.", retUnset: "Your return", setLink: "Enter your birth sky", drawn: "Have a Reading drawn for this moment", approach: (d: number) => (d <= 0 ? "tonight" : d === 1 ? "tomorrow night" : d <= 45 ? `in ${d} nights` : "") };

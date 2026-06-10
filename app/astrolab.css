@@ -457,8 +457,9 @@
   .cal-e-name{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(20px,1.7vw,25px);line-height:1.12;
     color:var(--ivory-dim);letter-spacing:.3px;opacity:calc(.5 + .5*var(--depth));transition:color .5s var(--ease)}
   .cal-e-meta{display:flex;align-items:center;gap:13px;margin-top:9px}
-  .cal-e-state{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate-dim)}
-  .cal-e-arrow{font-family:var(--mono);font-size:12px;color:var(--gold-deep);opacity:0;transform:translateX(-5px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
+  /* name and state are inline siblings — the separation is explicit, never left to JSX whitespace */
+  .cal-e-state{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate-dim);margin-left:13px}
+  .cal-e-arrow{font-family:var(--mono);font-size:12px;color:var(--gold-deep);opacity:0;transform:translateX(-5px);transition:opacity .5s var(--ease),transform .5s var(--ease);margin-left:10px}
   .cal-e-note{display:block;font-family:var(--serif);font-style:italic;font-size:16px;color:var(--slate);max-width:48ch;line-height:1.4;
     max-height:0;opacity:0;overflow:hidden;transition:max-height .6s var(--ease),opacity .6s var(--ease),margin .6s var(--ease)}
   .cal-entry.live .cal-e-state{color:var(--gold)}
