@@ -624,10 +624,9 @@
   .home{position:relative;z-index:5;min-height:100vh;min-height:100dvh;display:grid;
     grid-template-columns:55fr 45fr;align-items:center;overflow:hidden;
     padding:124px 0 96px}
-  .wheel-side{position:relative;display:flex;flex-direction:column;align-items:flex-start;min-width:0}
-  /* the crop is committed: a fixed fraction of the wheel runs off the left edge,
-     a chart lying partially under another paper on the desk */
-  .wheel-wrap{position:relative;width:min(92vh,54vw,1000px);aspect-ratio:1;margin-left:-24%;
+  .wheel-side{position:relative;display:flex;flex-direction:column;align-items:center;min-width:0}
+  /* the wheel floats WHOLE — centered in its half with air around it (the design) */
+  .wheel-wrap{position:relative;width:min(78vh,46vw,920px);aspect-ratio:1;
     opacity:0;animation:wheelIn 2.4s var(--ease) .2s both}
   @keyframes wheelIn{from{opacity:0;transform:scale(.975)}to{opacity:1;transform:none}}
   /* the sidereal drift — one degree per four minutes, a full turn in 24h, compositor-only */
@@ -665,12 +664,11 @@
   .med-glyph{font-family:var(--serif);font-size:clamp(26px,3vw,40px);line-height:1;color:var(--gold-bright);
     text-shadow:0 0 22px rgba(226,200,132,.5);transition:text-shadow .6s var(--ease)}
   .medallion.pulse .med-glyph{text-shadow:0 0 34px rgba(226,200,132,.95)}
-  .med-name{font-family:var(--serif);font-style:italic;font-size:clamp(15px,1.5vw,19px);color:var(--ivory-dim);letter-spacing:.4px}
-  .med-moon{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold-deep);
-    display:inline-flex;align-items:center;gap:8px;margin-top:2px}
-  .med-moon .cal-emblem-svg{width:16px;height:16px;flex:none}
+  .med-name{font-family:var(--serif);font-size:clamp(16px,1.6vw,21px);color:var(--ivory);letter-spacing:2px}
+  .med-moon{font-family:var(--mono);font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ivory-dim);margin-top:10px}
+  .med-phase{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ivory-dim);opacity:.85}
 
-  .invite{margin:40px 0 0 clamp(24px,6vw,90px);font-family:var(--serif);font-style:italic;font-size:clamp(18px,1.6vw,22px);
+  .invite{margin:40px auto 0;text-align:center;font-family:var(--serif);font-style:italic;font-size:clamp(18px,1.6vw,22px);
     letter-spacing:.3px;color:var(--ivory-dim);min-height:1.4em;
     opacity:0;animation:fadeIn 1.6s var(--ease) 1.7s both;transition:color .5s var(--ease)}
   .invite .arr{font-style:normal;color:var(--gold-deep);margin-left:8px;transition:color .5s var(--ease)}
@@ -687,9 +685,10 @@
   .skp-date{color:var(--slate);letter-spacing:.2em}
   .skp-entry{display:block;padding:24px 0 22px;border-bottom:1px solid var(--rule-soft);text-decoration:none}
   .skp-label{font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold-deep)}
-  .skp-statement{font-family:var(--serif);font-style:italic;font-size:clamp(20px,1.8vw,24px);line-height:1.3;
-    color:var(--ivory);margin-top:9px;transition:color .5s var(--ease)}
-  .skp-gloss{font-family:var(--serif);font-style:italic;font-size:15.5px;line-height:1.4;color:var(--slate);margin-top:5px}
+  /* one line, two tones: the statement in cream, the gloss flowing after it in slate */
+  .skp-statement{font-family:var(--serif);font-style:italic;font-size:clamp(21px,1.9vw,26px);line-height:1.42;
+    color:var(--ivory);margin-top:9px;transition:color .5s var(--ease);text-wrap:pretty}
+  .skp-gloss{font-size:inherit;line-height:inherit;color:var(--slate)}
   .skp-entry:hover .skp-statement{color:var(--gold-bright)}
   .skp-door .skp-statement{color:var(--gold)}
   .skp-door .ar{font-style:normal;display:inline-block;margin-left:6px;transition:transform .5s var(--ease)}
@@ -702,7 +701,7 @@
   .home-foot b{color:var(--gold-deep);font-weight:400}
 
   @media (max-width:1080px){
-    .wheel-wrap{width:min(76vh,640px);margin-left:-26%}
+    .wheel-wrap{width:min(70vh,48vw)}
   }
   @media (max-width:860px){
     /* the desk folds: wheel centered and uncropped, the log beneath it */
@@ -712,12 +711,12 @@
     .invite{margin:34px auto 0;text-align:center}
     .skp{justify-self:center;width:min(440px,100%);padding-right:0}
     .home-foot{font-size:9px;letter-spacing:.2em;position:static;margin-top:30px}
-    /* the medallion shrinks to glyph + moon line on glass */
-    .med-k,.med-name{display:none}
-    .medallion{gap:5px}
+    /* the medallion shrinks to glyph + ruler + moon line on glass */
+    .med-k,.med-phase{display:none}
+    .medallion{gap:4px}
     .med-glyph{font-size:22px}
-    .med-moon{font-size:7.5px;letter-spacing:.14em;gap:5px}
-    .med-moon .cal-emblem-svg{width:12px;height:12px}
+    .med-name{font-size:13px}
+    .med-moon{font-size:7.5px;letter-spacing:.16em;margin-top:4px}
   }
   @media (max-width:760px){
     .home{padding:110px 20px 70px}

@@ -11,16 +11,16 @@ import { phaseWord, type SkyTonightData } from "@/lib/atlas/use-sky-tonight";
 export type Bind = "moon" | "hour" | "sun" | null;
 
 export default function SkyTonight({ sky, onBind }: { sky: SkyTonightData; onBind: (b: Bind) => void }) {
-  const date = sky.now.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  const date = sky.now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   const moonStatement = `${phaseWord(sky.moon.phaseIdx, sky.moon.waxing)} in ${SIGN_NAMES[sky.moon.signIdx]}, ${degreesInWords(sky.moon.degInSign)} degrees.`;
   const hourStatement = `${sky.hour.ruler} holds this hour.`;
   const sunStatement = `The Sun stands at ${Math.floor(sky.sun.degInSign)}° ${SIGN_NAMES[sky.sun.signIdx]}.`;
 
+  // one line, two tones — the statement in cream, the gloss flowing after it in slate
   const entry = (bind: Bind, label: string, statement: string, gloss: string) => (
     <div className="skp-entry" onMouseEnter={() => onBind(bind)} onMouseLeave={() => onBind(null)}>
       <span className="skp-label">{label}</span>
-      <p className="skp-statement">{statement}</p>
-      <p className="skp-gloss">{gloss}</p>
+      <p className="skp-statement">{statement} <span className="skp-gloss">{gloss}</span></p>
     </div>
   );
 

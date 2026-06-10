@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 import Header from "./Header";
 import AtlasChrome from "./AtlasChrome";
 import SkyTonight, { type Bind } from "./SkyTonight";
-import MoonGlyph from "./MoonGlyph";
 import { SIGN_NAME, SIGN_KEY } from "@/lib/chart";
 import { PLANET_GLYPH, SIGN_NAMES } from "@/lib/sky";
-import { useSkyTonight, phaseWord } from "@/lib/atlas/use-sky-tonight";
+import { useSkyTonight } from "@/lib/atlas/use-sky-tonight";
+
+const PHASE_NAME = ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"];
 
 // The observatory front door — the engraved wheel laid asymmetric, deliberately
 // cropped off the left edge like a chart half under another paper on the desk,
@@ -79,16 +80,14 @@ export default function AtlasHome() {
                 </svg>
               </div>
             </div>
-            {/* the live medallion — a night disc covering the raster's baked plate
-                (frozen sample data), carrying the actual hour and the actual moon */}
+            {/* the live medallion on the clean plate — DAY · HOUR OF / glyph / · ruler · /
+                MOON IN SIGN / phase name (the design's hierarchy, computed live) */}
             <div className={`medallion${bind === "hour" ? " pulse" : ""}`} key={sky.hour.ruler} aria-hidden>
-              <span className="med-k">The hour of</span>
+              <span className="med-k">Day · Hour of</span>
               <span className="med-glyph">{PLANET_GLYPH[sky.hour.ruler]}</span>
-              <span className="med-name">{sky.hour.ruler}</span>
-              <span className="med-moon">
-                <MoonGlyph illum={sky.moon.illum} waxing={sky.moon.waxing} R={9} />
-                {phaseWord(sky.moon.phaseIdx, sky.moon.waxing)} · {SIGN_NAMES[sky.moon.signIdx]} {Math.floor(sky.moon.degInSign)}°
-              </span>
+              <span className="med-name">· {sky.hour.ruler} ·</span>
+              <span className="med-moon">Moon in {SIGN_NAMES[sky.moon.signIdx]}</span>
+              <span className="med-phase">{PHASE_NAME[sky.moon.phaseIdx]}</span>
             </div>
           </div>
           <p className={`invite${hover != null ? " lit" : ""}`}>
