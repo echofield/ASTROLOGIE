@@ -57,6 +57,21 @@ export function beingDrawnEmail(deliverBy: string): { subject: string; html: str
   };
 }
 
+// Doorway "ready" — a doorway reading (lucy / shadow / path) drawn by the webhook;
+// the email is the delivery. Same claim flow: /success confirms the paid email.
+export function doorReadyEmail(displayName: string): { subject: string; html: string } {
+  return {
+    subject: `Your ${displayName} reading is drawn`,
+    html: shell(
+      "A reading, drawn",
+      "The sky has been read against your answers.",
+      `Your ${displayName} reading is drawn and sealed — written by hand from the chart you were born under and the words you left. Confirm the email you paid with, and the Cabinet will open it.`,
+      "Open your reading", `${SITE}/success`,
+      "The AstroLab &middot; written by hand &middot; kept in your Cabinet",
+    ),
+  };
+}
+
 // "Ready" — sent on completion (or on operator-deliver for held reads). Pulls them back.
 export function readyEmail(): { subject: string; html: string } {
   return {

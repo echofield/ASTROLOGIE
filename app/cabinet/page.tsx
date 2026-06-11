@@ -8,6 +8,7 @@ import ReadArtifact from "@/components/read/ReadArtifact";
 import CastingScreen from "@/components/read/CastingScreen";
 import ReadReveal from "@/components/read/ReadReveal";
 import { buildPlate } from "@/lib/atlas/plate";
+import { getProduct } from "@/lib/products/registry";
 import SkyWheel from "@/components/sky/SkyWheel";
 import PlanetMedallion from "@/components/sky/PlanetMedallion";
 import StarField from "@/components/sky/StarField";
@@ -924,12 +925,18 @@ function CabinetPage() {
 
   // ── the reveal — sealed letter → break the seal → descent → the reading surfaces ──
   if ((ceremony || reviewing) && read && profile) {
+    // a doorway reading carries its own contract; its plate is suppressed (the local
+    // profile's chart may not be the chart the doorway purchase was drawn from)
+    const doorCfg = (read as unknown as { productType?: string }).productType
+      ? getProduct((read as unknown as { productType?: string }).productType)
+      : null;
     return (
       <ReadReveal
         read={read}
         question={read.question ?? star?.must ?? ""}
         lang={lang}
-        plate={buildPlate(profile, star?.name)}
+        sections={doorCfg?.sections ?? null}
+        plate={doorCfg ? null : buildPlate(profile, star?.name)}
         onClose={() => { setCeremony(false); setReviewing(false); setScreen("cabinet"); }}
       />
     );

@@ -25,7 +25,7 @@ function richParagraphs(text: string, drop: boolean) {
   });
 }
 
-export default function ReadReveal({ read, question, lang = "en", plate = null, onClose }: { read: RevealRead; question: string; lang?: "en" | "fr"; plate?: PlateData | null; onClose: () => void }) {
+export default function ReadReveal({ read, question, lang = "en", plate = null, sections = null, onClose }: { read: RevealRead; question: string; lang?: "en" | "fr"; plate?: PlateData | null; sections?: { key: string; label: string }[] | null; onClose: () => void }) {
   const [open, setOpen] = useState(false); // false = threshold, true = descended
   const [deepen, setDeepen] = useState(false);
   const [gone, setGone] = useState(false);
@@ -33,6 +33,12 @@ export default function ReadReveal({ read, question, lang = "en", plate = null, 
   const [exit, setExit] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // a doorway reading carries its own section contract; core uses the fixed six
+  const order: readonly string[] = sections ? sections.map((s) => s.key) : ORDER;
+  const lastKey = order[order.length - 1];
+  const sectionText = (k: string) => (read as unknown as Record<string, string | undefined>)[k] ?? "";
+  const canPdf = !sections; // the doorway PDF template arrives with Phase C
 
   async function savePdf() {
     if (pdfBusy) return;
@@ -49,7 +55,7 @@ export default function ReadReveal({ read, question, lang = "en", plate = null, 
     } catch { /* the reading is still on screen — never a dead end */ } finally { setPdfBusy(false); }
   }
   function copyQuote() {
-    const c = (read.counsel || "").trim();
+    const c = (sectionText(lastKey) || "").trim();
     const first = c.match(/^[^.!?]+[.!?]+/);
     const line = (first ? first[0] : c).trim();
     const text = `“${line}”\n\n— a reading from The AstroLab\nthe-astrolab.app`;
@@ -60,6 +66,8 @@ export default function ReadReveal({ read, question, lang = "en", plate = null, 
     ? { sealed: "Une lecture scellée", line: "Le ciel a vu cette question la nuit où vous l'avez scellée — et garde sa réponse, close, depuis lors.", brk: "Briser le sceau", eyebrow: "La Lecture", kicker: "Tirée pour la question que vous portiez", asked: "Vous avez demandé", labels: { signature: "Signature", chart: "Thème", pattern: "Motif", star: "Votre étoile", yearAhead: "L'année à venir", counsel: "Conseil" }, geometry: "La géométrie de l'heure", hourUnknown: "Heure inconnue — la roue est tracée sans son horizon.", colophon: "Scellée par The AstroLab — lue une fois", savePdf: "Enregistrer en PDF", copyQuote: "Copier une ligne", copied: "Copié", close: "Fermer la lecture" }
     : { sealed: "A sealed reading", line: "The sky witnessed this question the night you sealed it — and has held its answer, unopened, ever since.", brk: "Break the seal", eyebrow: "The Reading", kicker: "Drawn for the question you carried", asked: "You asked", labels: { signature: "Signature", chart: "Chart", pattern: "Pattern", star: "Your star", yearAhead: "Year ahead", counsel: "Counsel" }, geometry: "The geometry of the hour", hourUnknown: "Hour unknown — the wheel is drawn without its horizon.", colophon: "Sealed by The AstroLab — read once", savePdf: "Save as PDF", copyQuote: "Copy a line to share", copied: "Copied", close: "Close the reading" };
 
+  const labelOf = (k: string) => sections?.find((s) => s.key === k)?.label ?? (t.labels as Record<string, string>)[k] ?? k;
+
   function breakSeal() {
     if (open) return;
     setDeepen(true);
@@ -67,7 +75,7 @@ export default function ReadReveal({ read, question, lang = "en", plate = null, 
     setTimeout(() => {
       setOpen(true);
       // eyebrow + kicker + asked + rule + sections + colophon (+ the geometry plate when present)
-      const total = ORDER.length + 5 + (plate ? 1 : 0);
+      const total = order.length + 5 + (plate ? 1 : 0);
       for (let i = 0; i < total; i++) setTimeout(() => setUp((u) => Math.max(u, i + 1)), i === 0 ? 40 : 360 + i * 150);
       setTimeout(() => setExit(true), 1200);
     }, 980);
@@ -156,7 +164,7 @@ export default function ReadReveal({ read, question, lang = "en", plate = null, 
           {(() => { const i = B(); return <p className={`rv-block rv-kicker${up > i ? " up" : ""}`}>{t.kicker}</p>; })()}
           {(() => { const i = B(); return <p className={`rv-block rv-asked${up > i ? " up" : ""}`}>{t.asked} — <b>&ldquo;{question}&rdquo;</b></p>; })()}
           {(() => { const i = B(); return <div className={`rv-block rv-rule${up > i ? " up" : ""}`} />; })()}
-          {ORDER.map((k, idx) => {
+          {order.map((k, idx) => {
             const i = B();
             const plateBlock = k === "signature" && plate ? (() => {
               const pi = B();
@@ -175,8 +183,8 @@ export default function ReadReveal({ read, question, lang = "en", plate = null, 
             return (
               <div key={k}>
                 <div className={`rv-block rv-sec${up > i ? " up" : ""}`}>
-                  <p className="rv-seclabel">{t.labels[k]}</p>
-                  {richParagraphs(read[k] ?? "", idx === 0)}
+                  <p className="rv-seclabel">{labelOf(k)}</p>
+                  {richParagraphs(sectionText(k), idx === 0)}
                 </div>
                 {plateBlock}
               </div>
@@ -196,7 +204,7 @@ export default function ReadReveal({ read, question, lang = "en", plate = null, 
           ); })()}
           {open && (
             <div className={`rv-acts${exit ? " show" : ""}`}>
-              <button className="rv-act" onClick={savePdf} disabled={pdfBusy}>{pdfBusy ? "…" : t.savePdf}{!pdfBusy && <span className="ar">↓</span>}</button>
+              {canPdf && <button className="rv-act" onClick={savePdf} disabled={pdfBusy}>{pdfBusy ? "…" : t.savePdf}{!pdfBusy && <span className="ar">↓</span>}</button>}
               <button className="rv-act" onClick={copyQuote}>{copied ? t.copied : t.copyQuote}</button>
             </div>
           )}

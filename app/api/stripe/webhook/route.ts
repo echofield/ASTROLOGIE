@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import Stripe from "stripe";
+import { getProduct } from "@/lib/products/registry";
+import { generateProduct, type DoorBirth } from "@/lib/products/generate";
+import { sendEmail, doorReadyEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// doorway generation runs inside this invocation after the 200 returns to Stripe
+export const maxDuration = 300;
 
 // Stripe webhook — dormant until env is set:
 //   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
@@ -32,6 +38,70 @@ async function recordPaid(o: { email: string | null; sessionId: string; amount: 
     });
   } catch (e) {
     console.error("[stripe] order persist failed:", e);
+  }
+}
+
+const svc = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return url && key ? { url, key } : null;
+};
+
+// Doorway generation with nobody watching: pull the ledger payload, run the full
+// quality gate through the product's mask, write the reading (email-keyed, sealed),
+// stamp the ledger, send the delivery email. A paid ledger row WITHOUT
+// report_generated is the operator's held-queue — nothing is ever silently lost.
+async function generateDoorReading(s: Stripe.Checkout.Session) {
+  const productType = s.metadata?.product_type;
+  const ledgerId = s.metadata?.ledger_id;
+  const cfg = getProduct(productType);
+  if (!cfg || cfg.productId === "core" || !ledgerId) return; // core keeps its cabinet flow
+  const c = svc();
+  if (!c) return;
+  const headers = { apikey: c.key, Authorization: `Bearer ${c.key}`, "Content-Type": "application/json" };
+  try {
+    const res = await fetch(`${c.url}/rest/v1/astrolabe_ledger?id=eq.${ledgerId}&select=payload,email`, { headers });
+    const rows = (await res.json()) as { payload?: { birth_data?: DoorBirth; quiz_answers?: Record<string, string>; language?: string }; email?: string | null }[];
+    const row = rows?.[0];
+    const email = s.customer_details?.email ?? s.customer_email ?? row?.email ?? null;
+    const birth = row?.payload?.birth_data;
+    const quiz = row?.payload?.quiz_answers ?? {};
+    if (!birth?.birthISO) {
+      console.error(`[stripe] door ${productType} paid but ledger ${ledgerId} has no birth data — operator follow-up`);
+      return;
+    }
+
+    const art = await generateProduct(cfg, { birth, quiz, language: row?.payload?.language === "fr" ? "fr" : "en" });
+
+    // the reading lands on the shelf, sealed, keyed by the paid email (user_id null until claimed)
+    const primary = quiz[cfg.funnelQuestions[0]?.key ?? ""] ?? "";
+    const ins = await fetch(`${c.url}/rest/v1/astrolabe_readings`, {
+      method: "POST",
+      headers: { ...headers, Prefer: "return=representation" },
+      body: JSON.stringify({
+        user_id: null,
+        email,
+        question: primary ? primary.slice(0, 140) : cfg.displayName,
+        anchor: { kind: "doorway", product: cfg.productId, funnel_version: cfg.funnelVersion },
+        read: { ...art.sections, question: primary, generatedAt: art.generatedAt, productType: cfg.productId },
+        language: row?.payload?.language === "fr" ? "fr" : "en",
+        created_at: art.generatedAt,
+      }),
+    });
+    const reading = ((await ins.json()) as { id?: string }[])?.[0];
+
+    await fetch(`${c.url}/rest/v1/astrolabe_ledger?id=eq.${ledgerId}`, {
+      method: "PATCH", headers,
+      body: JSON.stringify({ report_generated: new Date().toISOString(), ...(reading?.id ? { reading_id: reading.id } : {}) }),
+    });
+
+    if (email) {
+      const e = doorReadyEmail(cfg.displayName);
+      await sendEmail({ to: email, subject: e.subject, html: e.html });
+    }
+  } catch (e) {
+    // the ledger row stays paid-but-ungenerated — the operator's signal
+    console.error(`[stripe] door generation failed (${productType}, ledger ${ledgerId}):`, e);
   }
 }
 
@@ -90,8 +160,11 @@ export async function POST(req: Request) {
         currency: s.currency ?? null,
       });
       await markLedgerPaid(s);
-      // Phase B wires here: doorway products generate on this event —
-      // loadProductConfig(s.metadata.product_type) → pipeline → email the link.
+      // doorway products generate now, after the 200 returns to Stripe —
+      // the mask pipeline runs inside this invocation's extended lifetime
+      if (s.metadata?.product_type && s.metadata.product_type !== "core") {
+        after(() => generateDoorReading(s));
+      }
     }
   }
 
