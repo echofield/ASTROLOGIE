@@ -35,6 +35,30 @@ async function recordPaid(o: { email: string | null; sessionId: string; amount: 
   }
 }
 
+// Doorway sales carry their ledger row in metadata — mark it paid. (Payment-link
+// sales have no ledger_id; astrolabe_orders covers them as before.)
+async function markLedgerPaid(s: Stripe.Checkout.Session) {
+  const ledgerId = s.metadata?.ledger_id;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!ledgerId || !url || !key) return;
+  try {
+    await fetch(`${url}/rest/v1/astrolabe_ledger?id=eq.${ledgerId}`, {
+      method: "PATCH",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        payment_completed: new Date().toISOString(),
+        stripe_session_id: s.id,
+        email: s.customer_details?.email ?? s.customer_email ?? null,
+        amount: s.amount_total ?? null,
+        currency: s.currency ?? null,
+      }),
+    });
+  } catch (e) {
+    console.error("[stripe] ledger mark-paid failed:", e);
+  }
+}
+
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_SECRET_KEY;
   const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -65,6 +89,9 @@ export async function POST(req: Request) {
         amount: s.amount_total ?? null,
         currency: s.currency ?? null,
       });
+      await markLedgerPaid(s);
+      // Phase B wires here: doorway products generate on this event —
+      // loadProductConfig(s.metadata.product_type) → pipeline → email the link.
     }
   }
 
