@@ -537,10 +537,18 @@ const YS_CSS = `
   .ys-result-doors a:hover{color:var(--gold-bright)}
   .ys-result-doors a:hover em{color:var(--slate)}
   @media (max-width:640px){
-    .ys-base{left:18px;right:18px;bottom:18px;flex-direction:column;align-items:center;gap:12px}
+    /* on glass the question anchors to the sphere's heart; the floor owns the
+       bottom strip alone — they can never collide again */
+    .ys-panel{bottom:auto;top:52%;transform:translate(-50%,-50%)}
+    .ys-base{left:10px;right:10px;bottom:max(12px, env(safe-area-inset-bottom));
+      flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px 16px}
+    .ys-base .grp{gap:16px;justify-content:center}
+    .ys-base .k{display:none}
+    .ys-base a{font-size:9px;letter-spacing:.16em}
     .ys-base a em,.ys-result-doors a em{display:none}
     .ys-result-doors{gap:14px}
-    .ys-panel{bottom:16vh}
+    .yoursky .moment{gap:18px}
+    .yoursky .ask-line{margin-bottom:16px}
   }
   .ys-result{opacity:0;transform:translateY(10px);transition:opacity 1.4s var(--ease),transform 1.4s var(--ease)}
   .ys-result.in{opacity:1;transform:none}
