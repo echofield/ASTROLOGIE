@@ -52,7 +52,9 @@ Output the text only. No title, no preamble, under 80 words.`;
 
   try {
     const raw = (await provider.complete({
-      model: "claude-haiku-4-5-20251001",
+      // Sonnet, deliberately: the sharpest model that still WINS the resolve race
+      // (Opus would mostly lose to the timeout and never be seen). ~$0.004/call.
+      model: "claude-sonnet-4-6",
       maxTokens: 180,
       system: SYSTEM,
       messages: [{ role: "user", content: `Placements: Sun in ${signs.sunSign ?? "?"}, Venus in ${signs.venusSign ?? "?"}, Saturn in ${signs.saturnSign ?? "?"}.\n\n${answers}` }],

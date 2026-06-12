@@ -348,7 +348,7 @@ export default function Doorway({ cfg }: { cfg: ProductConfig }) {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ product_type: cfg.productId, answers: answersRef.current, signs: { sunSign: s.sunSign, venusSign: s.venusSign, saturnSign: s.saturnSign } }),
     }).then((r) => r.json()).then((d) => (typeof d.preview === "string" && d.preview.length > 40 ? d.preview : null)).catch(() => null);
-    const settle = Promise.race([live, new Promise<null>((res) => setTimeout(() => res(null), reduce() ? 0 : 3300))]);
+    const settle = Promise.race([live, new Promise<null>((res) => setTimeout(() => res(null), reduce() ? 0 : 3800))]);
     const minWait = new Promise((res) => setTimeout(res, reduce() ? 0 : 1900));
     Promise.all([settle, minWait]).then(([text]) => { setStep("preview"); renderPreview(s, text as string | null); });
   }
