@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { lonOf, SIGN_NAMES, ZODIAC } from "@/lib/sky";
 
+// U+FE0E forces TEXT presentation — without it Windows renders the glyph as a
+// violet emoji square, which kills the register (the design carried it; keep it)
+const glyphText = (g: string) => g + "︎";
+
 // YOUR SKY — the front door. Ported from design/Your Sky.html (canonical set).
 // The star-sphere resolved to a real datum: one gesture turns the universe yours.
 // The design's embedded sun-math is replaced at the wire points by lib/sky —
@@ -182,7 +186,8 @@ export default function YourSky() {
         yaw = yaw0 + d * e; pitch = pitch0 + (tPitch - pitch0) * e; resolve = e; eclLit = e;
         if (p >= 1) resolving = false;
       } else if (revealed) {
-        if (!dragging) { vYaw *= Math.pow(0.92, f); vPitch *= Math.pow(0.9, f); yaw += vYaw * dt; pitch += vPitch * dt; }
+        // the resolved sky keeps breathing — the slow drift resumes once settled
+        if (!dragging) { vYaw *= Math.pow(0.92, f); vPitch *= Math.pow(0.9, f); yaw += (AUTO * 0.6 + vYaw) * dt; pitch += vPitch * dt; }
       } else if (!dragging) {
         yaw += (AUTO + vYaw) * dt; pitch += vPitch * dt; pitch += (-0.18 - pitch) * 0.004 * f;
         vYaw *= Math.pow(0.94, f); vPitch *= Math.pow(0.9, f);
@@ -237,9 +242,10 @@ export default function YourSky() {
           const dx = A.d.x - B.d.x, dy = A.d.y - B.d.y, dz = A.d.z - B.d.z, d3 = Math.sqrt(dx * dx + dy * dy + dz * dz);
           if (d3 < 0.5) {
             const front = ((A.pr[2] + B.pr[2]) / 2 + 1) / 2;
-            const a = resolve * (1 - d3 / 0.5) * 0.28 * (0.3 + 0.7 * front);
+            const a = resolve * (1 - d3 / 0.5) * 0.3 * (0.3 + 0.7 * front);
             if (a < 0.01) continue;
-            g!.strokeStyle = `rgba(226,200,132,${a.toFixed(3)})`;
+            // the Atlas plate's line register: ivory-slate hairline, never a gold web
+            g!.strokeStyle = `rgba(196,208,232,${a.toFixed(3)})`;
             g!.beginPath(); g!.moveTo(A.pr[0], A.pr[1]); g!.lineTo(B.pr[0], B.pr[1]); g!.stroke();
           }
         }
@@ -425,7 +431,7 @@ export default function YourSky() {
         {result && (
           <div className={`ys-result${resultIn ? " in" : ""}`}>
             <p className="under">You arrived under</p>
-            <h2 className="sign"><span>{result.sign}</span><span className="gl">{result.glyph}</span></h2>
+            <h2 className="sign"><span>{result.sign}</span><span className="gl">{glyphText(result.glyph)}</span></h2>
             <p className="line">This is the sky that stood when you arrived.</p>
             <p className="sub">Sun at <b>{result.deg}° {result.sign}</b> on the ecliptic</p>
             <div className="acts">
