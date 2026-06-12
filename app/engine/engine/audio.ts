@@ -12,17 +12,21 @@ export interface AudioBands {
   mid: number;     // 250–2k Hz  → flow ×0.5..1.5
   treble: number;  // 2k–8k Hz   → constellation threshold pulse
   formant: number; // 1k–3k Hz   → gold ratio pulse (the voice → gold blooms)
+  flux: number;    // spectral onset — individual notes land as grain pulses
   level: number;   // overall, for the capture meter
 }
 
-export const SILENT: AudioBands = { sub: 0, bass: 0, mid: 0, treble: 0, formant: 0, level: 0 };
+// With no source the bands sit at NEUTRAL — the multipliers they feed resolve
+// to ×1.0, so the silent field runs exactly at its calibration (§VI modulates
+// around the calibration, it never redefines it).
+export const NEUTRAL: AudioBands = { sub: 0.5, bass: 0.45, mid: 0.5, treble: 0, formant: 0, flux: 0, level: 0 };
 
 export class AudioEngine {
   private analyser: Tone.Analyser | null = null;
   private mic: Tone.UserMedia | null = null;
   private player: Tone.Player | null = null;
   private recordDest: MediaStreamAudioDestinationNode | null = null;
-  private smoothed: AudioBands = { ...SILENT };
+  private smoothed: AudioBands = { ...NEUTRAL };
   source: AudioSource = "none";
 
   /** The audio track for capture — silent stream when source is none. */
@@ -30,10 +34,14 @@ export class AudioEngine {
     return this.recordDest?.stream ?? null;
   }
 
+  private prevSpec: Float32Array | null = null;
+
   private async ensureGraph() {
     await Tone.start();
     if (!this.analyser) {
-      this.analyser = new Tone.Analyser("fft", 256);
+      // 1024 bins — fine enough that single notes register as spectral flux,
+      // not just the broad rhythm
+      this.analyser = new Tone.Analyser("fft", 1024);
       // the raw context is an AudioContext in the browser (Offline never runs here)
       const raw = Tone.getContext().rawContext as AudioContext;
       this.recordDest = raw.createMediaStreamDestination();
@@ -81,12 +89,17 @@ export class AudioEngine {
   off() {
     this.disconnectInputs();
     this.source = "none";
-    this.smoothed = { ...SILENT };
   }
 
   /** Per-frame bands, smoothed (speed scales the smoothing per §VII). */
   read(speed: number): AudioBands {
-    if (!this.analyser || this.source === "none") return this.smoothed;
+    if (!this.analyser || this.source === "none") {
+      // ease home to neutral so cutting the source never snaps the field
+      for (const key of Object.keys(this.smoothed) as (keyof AudioBands)[]) {
+        this.smoothed[key] += (NEUTRAL[key] - this.smoothed[key]) * 0.06;
+      }
+      return this.smoothed;
+    }
     const values = this.analyser.getValue() as Float32Array;
     const n = values.length; // 256 bins over ~0–22050 Hz → ~86 Hz/bin
     const hzPerBin = 22050 / n;
@@ -98,17 +111,34 @@ export class AudioEngine {
       const db = sum / Math.max(1, b - a + 1); // dB, ~-100..0
       return Math.min(1, Math.max(0, (db + 90) / 70));
     };
+    // spectral flux — the sum of every bin that just got louder. A struck note
+    // lights bins its neighbors didn't; the broad rhythm doesn't.
+    let flux = 0;
+    if (this.prevSpec && this.prevSpec.length === n) {
+      for (let i = 0; i < n; i++) {
+        const v = Math.min(1, Math.max(0, (values[i] + 90) / 70));
+        const pv = Math.min(1, Math.max(0, (this.prevSpec[i] + 90) / 70));
+        if (v > pv) flux += v - pv;
+      }
+      flux = Math.min(1, (flux / n) * 26);
+    }
+    if (!this.prevSpec || this.prevSpec.length !== n) this.prevSpec = new Float32Array(n);
+    this.prevSpec.set(values);
+
     const raw: AudioBands = {
       sub: band(20, 80),
       bass: band(80, 250),
       mid: band(250, 2000),
       treble: band(2000, 8000),
       formant: band(1000, 3000),
+      flux,
       level: band(20, 8000),
     };
     const k = Math.min(0.5, 0.12 * speed + 0.06);
     for (const key of Object.keys(raw) as (keyof AudioBands)[]) {
-      this.smoothed[key] += (raw[key] - this.smoothed[key]) * k;
+      // flux strikes fast and lets go slow — that's what makes a note FELT
+      const kk = key === "flux" ? (raw.flux > this.smoothed.flux ? 0.7 : 0.1) : k;
+      this.smoothed[key] += (raw[key] - this.smoothed[key]) * kk;
     }
     return this.smoothed;
   }

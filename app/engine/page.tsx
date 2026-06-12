@@ -32,7 +32,7 @@ export default function StudioPage() {
     const k = key.trim();
     if (!k) return;
     try {
-      const res = await fetch("/api/studio/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k }) });
+      const res = await fetch("/api/engine/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k }) });
       const data = await res.json();
       if (data.ok) { setAuthed(true); return; }
     } catch { /* fall through */ }
@@ -86,11 +86,14 @@ export default function StudioPage() {
             setSt(a.state());
             setBusy(false);
           }}
+          onRandom={() => { const a = apiRef.current; if (a) setSt(a.random()); }}
+          onRecenter={() => { apiRef.current?.recenter(); }}
+          onZoom={(f) => { apiRef.current?.zoom(f); }}
           busy={busy}
         />
       )}
       <p style={{ position: "absolute", left: 18, bottom: 14, zIndex: 5, fontFamily: "var(--mono)", fontSize: 8.5, letterSpacing: ".3em", textTransform: "uppercase", color: "rgba(201,197,184,.4)", pointerEvents: "none" }}>
-        Astrolab Studio · private · drag to turn, scroll to travel
+        Astrolab Studio · private · drag or arrows to turn · scroll or + − to travel · R recenters
       </p>
     </main>
   );

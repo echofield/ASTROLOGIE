@@ -55,7 +55,7 @@ const H = ({ children }: { children: React.ReactNode }) => (
   <p style={{ fontFamily: "var(--mono)", fontSize: 8.5, letterSpacing: ".3em", textTransform: "uppercase", color: "rgba(217,201,138,.65)", margin: "18px 0 8px" }}>{children}</p>
 );
 
-export default function ControlPanel({ st, onSign, onSet, onMic, onFile, onAudioOff, onCapture, busy }: {
+export default function ControlPanel({ st, onSign, onSet, onMic, onFile, onAudioOff, onCapture, onRandom, onRecenter, onZoom, busy }: {
   st: StudioState;
   onSign: (s: SignId) => void;
   onSet: <K extends keyof StudioState>(k: K, v: StudioState[K]) => void;
@@ -63,6 +63,9 @@ export default function ControlPanel({ st, onSign, onSet, onMic, onFile, onAudio
   onFile: (f: File) => void;
   onAudioOff: () => void;
   onCapture: () => void;
+  onRandom: () => void;
+  onRecenter: () => void;
+  onZoom: (factor: number) => void;
   busy: boolean;
 }) {
   return (
@@ -95,6 +98,16 @@ export default function ControlPanel({ st, onSign, onSet, onMic, onFile, onAudio
 
       <H>Camera</H>
       <Chips items={CAMERAS} value={st.cameraMode} onPick={(v) => onSet("cameraMode", v)} />
+      <div style={{ display: "flex", gap: 5, marginTop: -6, marginBottom: 6 }}>
+        {([["− out", 1.18], ["Recenter · R", 0], ["+ in", 0.85]] as [string, number][]).map(([label, f]) => (
+          <button key={label} onClick={() => (f === 0 ? onRecenter() : onZoom(f))} style={{
+            flex: label.startsWith("Recenter") ? 1.6 : 1, background: "none",
+            border: "1px solid rgba(201,197,184,.25)", color: "var(--st-argent)",
+            fontFamily: "var(--mono)", fontSize: 8.5, letterSpacing: ".18em",
+            textTransform: "uppercase", padding: "7px 4px", cursor: "pointer",
+          }}>{label}</button>
+        ))}
+      </div>
 
       <H>Audio</H>
       <AudioInput source={st.audioSource} onMic={onMic} onFile={onFile} onOff={onAudioOff} />
@@ -114,6 +127,12 @@ export default function ControlPanel({ st, onSign, onSet, onMic, onFile, onAudio
           padding: "10px 8px", cursor: "pointer",
         }}>Wander</button>
       </div>
+      <button onClick={onRandom} style={{
+        width: "100%", marginTop: 8, background: "none",
+        border: "1px solid rgba(217,201,138,.3)", color: "var(--st-argent)",
+        fontFamily: "var(--mono)", fontSize: 9.5, letterSpacing: ".24em", textTransform: "uppercase",
+        padding: "10px 8px", cursor: "pointer",
+      }}>Random</button>
     </aside>
   );
 }

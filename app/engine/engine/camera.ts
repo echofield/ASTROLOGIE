@@ -1,6 +1,7 @@
-// STUDIO_ENGINE §VIII — three rigs. Orbit (the ritual default), dolly-through
-// (the camera travels INTO the field), static-radial (the field turns, the
-// camera holds — Virgo's stillness). Manual drag/scroll overrides; releasing
+// STUDIO_ENGINE §VIII — three rigs. Orbit precesses around the disc's NORMAL
+// (the world stays face-on; the radial composition never collapses edge-on),
+// dolly-through glides INSIDE the particle slab, static-radial holds while the
+// field turns — Virgo's stillness. Manual drag/scroll/keys override; releasing
 // eases back to the sign's rig after four seconds. Audio never touches this.
 import * as THREE from "three";
 
@@ -22,28 +23,17 @@ export class CameraRig {
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(46, aspect, 0.05, 50);
     this.camera.position.set(0, 0.4, 3.2);
-    // the travel-through path, SAMPLED ONCE — the rig walks a fixed array and
-    // never touches curve internals per-frame (their t=0/t=1 edges bite)
-    let samples: THREE.Vector3[];
-    try {
-      const path = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 0.2, 3.0),
-        new THREE.Vector3(0.6, 0.1, 1.2),
-        new THREE.Vector3(0.1, -0.1, 0.0),
-        new THREE.Vector3(-0.7, 0.05, -1.3),
-        new THREE.Vector3(-0.1, 0.25, -3.0),
-      ], false, "catmullrom", 0.4);
-      samples = path.getPoints(512).filter((p) => p && Number.isFinite(p.x));
-      if (samples.length < 16) throw new Error("curve sampling failed");
-    } catch {
-      // fallback: a tilted ellipse through the field — the travel survives anything
-      samples = [];
-      for (let i = 0; i < 512; i++) {
-        const a = (i / 512) * Math.PI * 2;
-        samples.push(new THREE.Vector3(Math.sin(a) * 1.1, Math.sin(a * 2) * 0.18, Math.cos(a) * 3.0));
-      }
+    // the travel path lives INSIDE the particle slab — an in-plane loop with a
+    // soft vertical weave, so the field surrounds the camera the whole way
+    this.samples = [];
+    for (let i = 0; i < 512; i++) {
+      const a = (i / 512) * Math.PI * 2;
+      this.samples.push(new THREE.Vector3(
+        Math.cos(a) * 1.05,
+        Math.sin(a) * 0.78,
+        Math.sin(a * 2) * 0.16,
+      ));
     }
-    this.samples = samples;
   }
 
   setAspect(aspect: number) {
@@ -51,17 +41,39 @@ export class CameraRig {
     this.camera.updateProjectionMatrix();
   }
 
-  /** Pointer drag — Mars's hand outranks every rig. */
-  drag(dx: number, dy: number) {
+  private takeManual() {
     this.manual = true;
     this.manualUntil = performance.now() + 4000;
+  }
+
+  /** Pointer drag — Mars's hand outranks every rig. */
+  drag(dx: number, dy: number) {
+    this.takeManual();
     this.yaw -= dx * 0.005;
     this.pitch = Math.min(1.2, Math.max(-1.2, this.pitch + dy * 0.004));
   }
+  /** Scroll and zoom set the working distance — it PERSISTS; the rigs read it. */
   scroll(dz: number) {
-    this.manual = true;
-    this.manualUntil = performance.now() + 4000;
     this.dist = Math.min(8, Math.max(0.4, this.dist + dz * 0.0016));
+  }
+  /** Arrow keys — one step of turn per press/repeat. */
+  nudge(dx: number, dy: number) {
+    this.takeManual();
+    this.yaw -= dx * 0.055;
+    this.pitch = Math.min(1.2, Math.max(-1.2, this.pitch + dy * 0.045));
+  }
+  /** +/− travel. */
+  zoom(factor: number) {
+    this.dist = Math.min(8, Math.max(0.4, this.dist * factor));
+  }
+  /** Home — drop the hand, face the world again, from the top of its loop. */
+  recenter() {
+    this.manual = false;
+    this.yaw = 0;
+    this.pitch = 0.12;
+    this.dist = 3.2;
+    this.orbitAngle = 0;
+    this.dollyT = 0;
   }
 
   update(dt: number, speed: number) {
@@ -82,17 +94,22 @@ export class CameraRig {
     switch (this.mode) {
       case "orbit": {
         this.orbitAngle += 0.02 * speed * dt; // §VIII: 0.02 rad/s × speed
+        // precession around the disc normal — the inclination breathes but the
+        // face never turns away; the vortex stays legible the whole orbit
+        const incl = 0.5 + Math.sin(this.orbitAngle * 0.4) * 0.14;
         const target = new THREE.Vector3(
-          Math.sin(this.orbitAngle) * 3.1,
-          0.42 + Math.sin(this.orbitAngle * 0.4) * 0.12,
-          Math.cos(this.orbitAngle) * 3.1,
+          Math.sin(incl) * Math.cos(this.orbitAngle) * this.dist,
+          Math.sin(incl) * Math.sin(this.orbitAngle) * this.dist,
+          Math.cos(incl) * this.dist,
         );
         this.camera.position.lerp(target, Math.min(1, dt * 1.4));
         this.camera.lookAt(0, 0, 0);
         break;
       }
       case "dolly-through": {
-        this.dollyT = (this.dollyT + 0.018 * speed * dt) % 1; // loop: re-enter opposite
+        // Euclidean wrap — JS % keeps the sign, and a negative dollyT indexes
+        // samples[-1] and kills the loop
+        this.dollyT = ((this.dollyT + 0.018 * speed * dt) % 1 + 1) % 1; // loop: re-enter opposite
         const n = this.samples.length;
         const ft = this.dollyT * n;
         const i = Math.floor(ft) % n;
@@ -104,7 +121,7 @@ export class CameraRig {
         break;
       }
       case "static-radial": {
-        const target = new THREE.Vector3(0, 0.25, 3.4);
+        const target = new THREE.Vector3(0, 0.25, this.dist + 0.2);
         this.camera.position.lerp(target, Math.min(1, dt * 1.2));
         this.camera.lookAt(0, 0, 0);
         this.fieldSpin += 0.035 * speed * dt; // the field rotates instead

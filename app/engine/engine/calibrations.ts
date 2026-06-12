@@ -57,14 +57,31 @@ export const CALIBRATIONS: Record<SignId, SignCalibration> = {
     goldRatio: 0.08, constellationThreshold: 0.30, geometryOpacity: 0.25,
     cameraMode: "dolly-through", ready: true,
   },
+  // ── second pass, from the reference bank: cymatic plate / solar spokes / plume ──
+  taurus: {
+    id: "taurus",
+    density: 0.82, flow: 0.15, filaments: "soft", motion: "concentric",
+    goldRatio: 0.05, constellationThreshold: 0.24, geometryOpacity: 0.6,
+    cameraMode: "static-radial", ready: true,
+  },
+  leo: {
+    id: "leo",
+    density: 0.6, flow: 0.55, filaments: "spoke", motion: "bloom",
+    goldRatio: 0.22, constellationThreshold: 0.2, geometryOpacity: 0.5,
+    cameraMode: "orbit", ready: true,
+  },
+  sagittarius: {
+    id: "sagittarius",
+    density: 0.45, flow: 0.85, filaments: "vector", motion: "trajectory",
+    goldRatio: 0.09, constellationThreshold: 0.26, geometryOpacity: 0.25,
+    // the plume reads face-on — from inside (dolly) it is a sheet seen edge-on
+    cameraMode: "orbit", ready: true,
+  },
   // ── stubs — TODO(creative pass) ──
-  taurus: stub("taurus", "concentric", "soft"),
   gemini: stub("gemini", "oscillation", "paired"),
   cancer: stub("cancer", "tidal", "soft"),
-  leo: stub("leo", "bloom", "spoke"),
   libra: stub("libra", "equilibrium", "paired"),
   scorpio: stub("scorpio", "infall", "sharp"),
-  sagittarius: stub("sagittarius", "trajectory", "vector"),
   capricorn: stub("capricorn", "ascent", "lattice"),
 };
 
