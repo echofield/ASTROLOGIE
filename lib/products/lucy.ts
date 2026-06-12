@@ -37,6 +37,7 @@ export const lucy: ProductConfig = {
   successRedirect: "/door/lucy?sealed=1",
   door: {
     tag: "The pattern did not begin with this person.",
+    purpose: "Your pattern in love, read from the chart you were born under — a written reading, yours to keep.",
     emblem: "moon",
     prevLabel: "Lucy · The Moon · the first lines",
     theme: {

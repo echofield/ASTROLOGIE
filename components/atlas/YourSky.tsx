@@ -392,6 +392,8 @@ export default function YourSky() {
     { id: "shadow", name: "Shadow", gloss: "what repeats" },
     { id: "path", name: "Path", gloss: "the work" },
   ];
+  // the house offer stands first on the floor
+  const READINGS = [{ name: "The Reading", gloss: "the whole sky", href: "/reading" }, ...DOORS.map((d) => ({ name: d.name, gloss: d.gloss, href: `/door/${d.id}` }))];
 
   return (
     <main className="yoursky">
@@ -400,7 +402,7 @@ export default function YourSky() {
       <div className="ys-vignette" />
       <div className="ys-grain" />
 
-      <div className="ys-mark"><span className="seal" /><span className="wm">Astrolab</span></div>
+      <div className="ys-mark"><span className="seal" /><span className="wm">Astrolab</span><span className="slogan">readings drawn from the real sky</span></div>
       <div className="ys-now" aria-hidden>
         <div className="k">The sky, right now</div>
         <div className="t">{now?.t ?? "—"}</div>
@@ -408,11 +410,11 @@ export default function YourSky() {
       </div>
 
       {/* the baseboard — the room's furniture, never part of the question */}
-      <nav className="ys-base" aria-label="The doors">
+      <nav className="ys-base" aria-label="The readings">
         <span className="grp">
-          <span className="k">The doors</span>
-          {DOORS.map((d) => (
-            <Link key={d.id} href={`/door/${d.id}`}>{d.name}<em> · {d.gloss}</em></Link>
+          <span className="k">The readings</span>
+          {READINGS.map((d) => (
+            <Link key={d.href} href={d.href}>{d.name}<em> · {d.gloss}</em></Link>
           ))}
         </span>
         <Link className="obs" href="/observatory">The observatory →</Link>
@@ -484,6 +486,8 @@ const YS_CSS = `
   .ys-mark .seal{width:7px;height:7px;border-radius:50%;background:var(--gold-bright);position:relative}
   .ys-mark .seal::after{content:"";position:absolute;inset:-6px;border:1px solid var(--gold);border-radius:50%;opacity:.4}
   .ys-mark .wm{font-family:var(--mono);font-size:10px;letter-spacing:.46em;text-transform:uppercase;color:var(--slate-dim);opacity:.85}
+  .ys-mark .slogan{font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--slate);letter-spacing:.4px;opacity:.9}
+  @media (max-width:640px){ .ys-mark .slogan{display:none} }
   .ys-now{position:fixed;top:28px;right:34px;z-index:6;text-align:right;pointer-events:none;
     font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate-dim);line-height:1.85}
   .ys-now .t{color:var(--slate)}

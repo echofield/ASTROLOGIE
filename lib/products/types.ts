@@ -32,6 +32,8 @@ export interface DoorTheme {
 export interface DoorFace {
   /** One line under the name — the door's whole claim. */
   tag: string;
+  /** The plain sentence beneath it — what this is and what you receive. */
+  purpose: string;
   emblem: "moon" | "eclipse" | "mountain";
   prevLabel: string;
   theme: DoorTheme;

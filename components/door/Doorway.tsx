@@ -342,14 +342,24 @@ export default function Doorway({ cfg }: { cfg: ProductConfig }) {
     const s = signsFor(new Date(y, m - 1, d, hh, mm));
     setSigns(s);
     sphereRef.current.reveal(s.sunLon);
-    setTimeout(() => { setStep("preview"); renderPreview(s); }, reduce() ? 0 : 1900);
+    // the desire moment: a LIVE micro-analysis of their own answers races the
+    // resolve; if it loses (or fails) the config template stands in — never blocks
+    const live = fetch("/api/door/preview", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_type: cfg.productId, answers: answersRef.current, signs: { sunSign: s.sunSign, venusSign: s.venusSign, saturnSign: s.saturnSign } }),
+    }).then((r) => r.json()).then((d) => (typeof d.preview === "string" && d.preview.length > 40 ? d.preview : null)).catch(() => null);
+    const settle = Promise.race([live, new Promise<null>((res) => setTimeout(() => res(null), reduce() ? 0 : 3300))]);
+    const minWait = new Promise((res) => setTimeout(res, reduce() ? 0 : 1900));
+    Promise.all([settle, minWait]).then(([text]) => { setStep("preview"); renderPreview(s, text as string | null); });
   }
-  // the preview writes itself — slots filled from the one engine
-  function renderPreview(s: Signs) {
-    const text = cfg.previewTemplate
-      .replaceAll("{sunSign}", `<b>${s.sunSign}</b>`)
-      .replaceAll("{venusSign}", `<b>${s.venusSign}</b>`)
-      .replaceAll("{saturnSign}", `<b>${s.saturnSign}</b>`);
+  // the preview writes itself — the live analysis when it arrived, else the template
+  function renderPreview(s: Signs, liveText: string | null) {
+    const text = liveText
+      ? liveText.replace(/(['‘’][^'‘’]{2,60}['‘’])/g, "<b>$1</b>")
+      : cfg.previewTemplate
+        .replaceAll("{sunSign}", `<b>${s.sunSign}</b>`)
+        .replaceAll("{venusSign}", `<b>${s.venusSign}</b>`)
+        .replaceAll("{saturnSign}", `<b>${s.saturnSign}</b>`);
     const parts = text.split(/(<b>.*?<\/b>|\s+)/g).filter((p) => p !== "" && !/^\s+$/.test(p));
     const spans = parts.map((html) => ({ html, in: false }));
     setPreviewSpans(spans); setCutIn(false); setCtaIn(false);
@@ -430,6 +440,7 @@ export default function Doorway({ cfg }: { cfg: ProductConfig }) {
           <p className="door-name">{cfg.displayName}</p>
           <p className="door-arch">{cfg.visualTheme.archetype}</p>
           <p className="door-tag">{door.tag}</p>
+          <p className="door-purpose">{door.purpose}</p>
           <button className="plaque" onClick={beginQuiz}><span>Begin</span><span className="ar">→</span></button>
         </section>
 
@@ -536,7 +547,8 @@ const DW_CSS = `
   .doorway .emblem *{fill:none;stroke:var(--acc);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
   .doorway .door-name{font-family:var(--mono);font-size:13px;letter-spacing:.6em;text-transform:uppercase;color:var(--acc-bright);margin-bottom:18px;padding-left:.6em}
   .doorway .door-arch{font-family:var(--mono);font-size:9.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--slate-dim);margin-bottom:26px}
-  .doorway .door-tag{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3vw,34px);color:var(--ivory);line-height:1.3;text-wrap:balance;margin-bottom:38px}
+  .doorway .door-tag{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3vw,34px);color:var(--ivory);line-height:1.3;text-wrap:balance;margin-bottom:18px}
+  .doorway .door-purpose{font-family:var(--serif);font-size:clamp(14px,1.5vw,16.5px);font-style:italic;color:var(--slate);line-height:1.5;max-width:46ch;margin:0 auto 36px;text-wrap:pretty}
   .doorway .plaque{background:transparent;border:1px solid var(--acc);color:var(--acc-bright);cursor:pointer;
     font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;
     padding:15px 30px;display:inline-flex;align-items:center;gap:12px;

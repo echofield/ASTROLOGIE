@@ -36,6 +36,7 @@ export const path: ProductConfig = {
   successRedirect: "/door/path?sealed=1",
   door: {
     tag: "The work was waiting before the name for it.",
+    purpose: "Your work and its true direction, read from your chart — a written reading, yours to keep.",
     emblem: "mountain",
     prevLabel: "Path · The Mountain · the first lines",
     theme: {

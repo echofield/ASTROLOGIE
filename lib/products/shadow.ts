@@ -36,6 +36,7 @@ export const shadow: ProductConfig = {
   successRedirect: "/door/shadow?sealed=1",
   door: {
     tag: "What repeats is asking to be read.",
+    purpose: "The thing that repeats, read from your chart — a written reading, yours to keep.",
     emblem: "eclipse",
     prevLabel: "Shadow · The Eclipse · the first lines",
     theme: {
