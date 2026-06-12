@@ -16,20 +16,34 @@ export class CameraRig {
   private pitch = 0.12;
   private dist = 3.2;
   private dollyT = 0;
-  private path: THREE.CatmullRomCurve3;
+  private samples: THREE.Vector3[];
   fieldSpin = 0; // static-radial rotates the WORLD; the scene reads this
 
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(46, aspect, 0.05, 50);
     this.camera.position.set(0, 0.4, 3.2);
-    // the travel-through path — enters, threads the center, leaves, re-enters opposite
-    this.path = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0, 0.2, 3.0),
-      new THREE.Vector3(0.6, 0.1, 1.2),
-      new THREE.Vector3(0.1, -0.1, 0.0),
-      new THREE.Vector3(-0.7, 0.05, -1.3),
-      new THREE.Vector3(-0.1, 0.25, -3.0),
-    ], false, "catmullrom", 0.4);
+    // the travel-through path, SAMPLED ONCE — the rig walks a fixed array and
+    // never touches curve internals per-frame (their t=0/t=1 edges bite)
+    let samples: THREE.Vector3[];
+    try {
+      const path = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.2, 3.0),
+        new THREE.Vector3(0.6, 0.1, 1.2),
+        new THREE.Vector3(0.1, -0.1, 0.0),
+        new THREE.Vector3(-0.7, 0.05, -1.3),
+        new THREE.Vector3(-0.1, 0.25, -3.0),
+      ], false, "catmullrom", 0.4);
+      samples = path.getPoints(512).filter((p) => p && Number.isFinite(p.x));
+      if (samples.length < 16) throw new Error("curve sampling failed");
+    } catch {
+      // fallback: a tilted ellipse through the field — the travel survives anything
+      samples = [];
+      for (let i = 0; i < 512; i++) {
+        const a = (i / 512) * Math.PI * 2;
+        samples.push(new THREE.Vector3(Math.sin(a) * 1.1, Math.sin(a * 2) * 0.18, Math.cos(a) * 3.0));
+      }
+    }
+    this.samples = samples;
   }
 
   setAspect(aspect: number) {
@@ -79,8 +93,12 @@ export class CameraRig {
       }
       case "dolly-through": {
         this.dollyT = (this.dollyT + 0.018 * speed * dt) % 1; // loop: re-enter opposite
-        const pos = this.path.getPointAt(this.dollyT);
-        const ahead = this.path.getPointAt(Math.min(1, this.dollyT + 0.02));
+        const n = this.samples.length;
+        const ft = this.dollyT * n;
+        const i = Math.floor(ft) % n;
+        const frac = ft - Math.floor(ft);
+        const pos = this.samples[i].clone().lerp(this.samples[(i + 1) % n], frac);
+        const ahead = this.samples[(i + 10) % n];
         this.camera.position.lerp(pos, Math.min(1, dt * 2.2));
         this.camera.lookAt(ahead);
         break;
