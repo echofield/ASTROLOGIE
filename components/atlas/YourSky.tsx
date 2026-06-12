@@ -407,6 +407,17 @@ export default function YourSky() {
         <div className="s">{now?.s ?? "—"}</div>
       </div>
 
+      {/* the baseboard — the room's furniture, never part of the question */}
+      <nav className="ys-base" aria-label="The doors">
+        <span className="grp">
+          <span className="k">The doors</span>
+          {DOORS.map((d) => (
+            <Link key={d.id} href={`/door/${d.id}`}>{d.name}<em> · {d.gloss}</em></Link>
+          ))}
+        </span>
+        <Link className="obs" href="/observatory">The observatory →</Link>
+      </nav>
+
       <div className="ys-panel">
         {!result && (
           <div className="ys-ask">
@@ -432,13 +443,6 @@ export default function YourSky() {
               </div>
               <button className="reveal" onClick={doReveal}><span className="lbl">Reveal my sky</span><span className="ar">→</span></button>
             </div>
-            <p className="ys-doors" aria-label="The doors">
-              <span className="k">The doors</span>
-              {DOORS.map((d) => (
-                <Link key={d.id} href={`/door/${d.id}`}>{d.name}<em> · {d.gloss}</em></Link>
-              ))}
-            </p>
-            <p className="ys-thread"><Link href="/observatory">or enter the observatory →</Link></p>
           </div>
         )}
         {result && (
@@ -484,7 +488,7 @@ const YS_CSS = `
     font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate-dim);line-height:1.85}
   .ys-now .t{color:var(--slate)}
   .ys-now .s{color:var(--gold-deep)}
-  .ys-panel{position:fixed;left:50%;bottom:8vh;transform:translateX(-50%);z-index:6;width:min(640px,92vw);text-align:center}
+  .ys-panel{position:fixed;left:50%;bottom:12vh;transform:translateX(-50%);z-index:6;width:min(640px,92vw);text-align:center}
   .yoursky .ask-line{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3vw,34px);color:var(--ivory);letter-spacing:.3px;margin-bottom:24px}
   .yoursky .moment{display:flex;align-items:flex-end;justify-content:center;gap:clamp(22px,3vw,40px);flex-wrap:wrap}
   .yoursky .seg-group{display:flex;flex-direction:column;gap:13px}
@@ -510,19 +514,30 @@ const YS_CSS = `
   .yoursky .reveal:hover{color:#f6e8c4;border-color:var(--gold-bright);box-shadow:0 0 30px rgba(194,162,95,.16)}
   .yoursky .reveal:hover::before{opacity:1}
   .yoursky .reveal:hover .ar{transform:translateX(5px)}
-  .ys-thread{margin-top:18px}
-  .ys-thread a{font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--slate-dim);text-decoration:none;transition:color .5s var(--ease)}
-  .ys-thread a:hover{color:var(--gold)}
-  /* the doors — quiet, named, always present */
-  .ys-doors,.ys-result-doors{display:flex;align-items:baseline;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:30px}
-  .ys-result-doors{margin-top:26px}
-  .ys-doors .k,.ys-result-doors .k{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-deep)}
-  .ys-doors a,.ys-result-doors a{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ivory-dim);
+  /* the baseboard — doors left, observatory right, the floor of the room */
+  .ys-base{position:fixed;left:34px;right:34px;bottom:26px;z-index:6;display:flex;justify-content:space-between;align-items:baseline;gap:20px}
+  .ys-base .grp{display:flex;align-items:baseline;gap:22px;flex-wrap:wrap}
+  .ys-base .k{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-deep)}
+  .ys-base a{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ivory-dim);
     text-decoration:none;transition:color .5s var(--ease)}
-  .ys-doors a em,.ys-result-doors a em{font-family:var(--serif);font-style:italic;font-size:12px;letter-spacing:.4px;text-transform:none;color:var(--slate-dim);transition:color .5s var(--ease)}
-  .ys-doors a:hover,.ys-result-doors a:hover{color:var(--gold-bright)}
-  .ys-doors a:hover em,.ys-result-doors a:hover em{color:var(--slate)}
-  @media (max-width:640px){ .ys-doors,.ys-result-doors{gap:14px} .ys-doors a em,.ys-result-doors a em{display:none} }
+  .ys-base a em{font-family:var(--serif);font-style:italic;font-size:12px;letter-spacing:.4px;text-transform:none;color:var(--slate-dim);transition:color .5s var(--ease)}
+  .ys-base a:hover{color:var(--gold-bright)}
+  .ys-base a:hover em{color:var(--slate)}
+  .ys-base .obs{color:var(--slate-dim)}
+  .ys-base .obs:hover{color:var(--gold)}
+  /* the result's door offer stays in flow — the moment's own invitation */
+  .ys-result-doors{display:flex;align-items:baseline;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:26px}
+  .ys-result-doors .k{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-deep)}
+  .ys-result-doors a{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ivory-dim);text-decoration:none;transition:color .5s var(--ease)}
+  .ys-result-doors a em{font-family:var(--serif);font-style:italic;font-size:12px;letter-spacing:.4px;text-transform:none;color:var(--slate-dim);transition:color .5s var(--ease)}
+  .ys-result-doors a:hover{color:var(--gold-bright)}
+  .ys-result-doors a:hover em{color:var(--slate)}
+  @media (max-width:640px){
+    .ys-base{left:18px;right:18px;bottom:18px;flex-direction:column;align-items:center;gap:12px}
+    .ys-base a em,.ys-result-doors a em{display:none}
+    .ys-result-doors{gap:14px}
+    .ys-panel{bottom:16vh}
+  }
   .ys-result{opacity:0;transform:translateY(10px);transition:opacity 1.4s var(--ease),transform 1.4s var(--ease)}
   .ys-result.in{opacity:1;transform:none}
   .ys-result .under{font-family:var(--mono);font-size:10.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:14px}
