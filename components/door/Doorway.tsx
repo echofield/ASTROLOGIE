@@ -32,7 +32,11 @@ export default function Doorway({ cfg }: { cfg: ProductConfig }) {
   const [qi, setQi] = useState(0);
   const [qVal, setQVal] = useState("");
   const answersRef = useRef<Record<string, string>>({});
-  const [vals, setVals] = useState({ d: "", m: "", y: "", h: "", mi: "" });
+  // a moment revealed on the landing travels here — the door arrives pre-filled
+  const [vals, setVals] = useState(() => ({
+    d: search.get("d") ?? "", m: search.get("m") ?? "", y: search.get("y") ?? "",
+    h: search.get("hh") ?? "", mi: search.get("mm") ?? "",
+  }));
   const [signs, setSigns] = useState<Signs | null>(null);
   const birthRef = useRef<{ iso: string; hourKnown: boolean } | null>(null);
   const [previewSpans, setPreviewSpans] = useState<{ html: string; in: boolean }[]>([]);

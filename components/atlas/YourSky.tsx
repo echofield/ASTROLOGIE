@@ -382,9 +382,16 @@ export default function YourSky() {
     setTimeout(() => { setResult(null); resetRef.current(); }, 600);
   }
 
-  const readHref = result
-    ? `/reading?d=${result.d}&m=${result.m}&y=${result.y}${result.hourBlank ? "" : `&hh=${result.hh}&mm=${result.mm}`}`
-    : "/reading";
+  const momentQS = result
+    ? `?d=${result.d}&m=${result.m}&y=${result.y}${result.hourBlank ? "" : `&hh=${result.hh}&mm=${result.mm}`}`
+    : "";
+  const readHref = `/reading${momentQS}`;
+  // the doors, named — the moment carries forward so the door arrives pre-filled
+  const DOORS = [
+    { id: "lucy", name: "Lucy", gloss: "the pattern in love" },
+    { id: "shadow", name: "Shadow", gloss: "what repeats" },
+    { id: "path", name: "Path", gloss: "the work" },
+  ];
 
   return (
     <main className="yoursky">
@@ -425,6 +432,12 @@ export default function YourSky() {
               </div>
               <button className="reveal" onClick={doReveal}><span className="lbl">Reveal my sky</span><span className="ar">→</span></button>
             </div>
+            <p className="ys-doors" aria-label="The doors">
+              <span className="k">The doors</span>
+              {DOORS.map((d) => (
+                <Link key={d.id} href={`/door/${d.id}`}>{d.name}<em> · {d.gloss}</em></Link>
+              ))}
+            </p>
             <p className="ys-thread"><Link href="/observatory">or enter the observatory →</Link></p>
           </div>
         )}
@@ -437,6 +450,13 @@ export default function YourSky() {
             <div className="acts">
               <Link className="read" href={readHref}>Read it <span>→</span></Link>
               <button className="again" onClick={again}>another moment</button>
+            </div>
+            {/* the same sky, read through a door — the moment travels with the link */}
+            <div className="ys-result-doors">
+              <span className="k">or through a door</span>
+              {DOORS.map((d) => (
+                <Link key={d.id} href={`/door/${d.id}${momentQS}`}>{d.name}<em> · {d.gloss}</em></Link>
+              ))}
             </div>
           </div>
         )}
@@ -490,9 +510,19 @@ const YS_CSS = `
   .yoursky .reveal:hover{color:#f6e8c4;border-color:var(--gold-bright);box-shadow:0 0 30px rgba(194,162,95,.16)}
   .yoursky .reveal:hover::before{opacity:1}
   .yoursky .reveal:hover .ar{transform:translateX(5px)}
-  .ys-thread{margin-top:26px}
+  .ys-thread{margin-top:18px}
   .ys-thread a{font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--slate-dim);text-decoration:none;transition:color .5s var(--ease)}
   .ys-thread a:hover{color:var(--gold)}
+  /* the doors — quiet, named, always present */
+  .ys-doors,.ys-result-doors{display:flex;align-items:baseline;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:30px}
+  .ys-result-doors{margin-top:26px}
+  .ys-doors .k,.ys-result-doors .k{font-family:var(--mono);font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-deep)}
+  .ys-doors a,.ys-result-doors a{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ivory-dim);
+    text-decoration:none;transition:color .5s var(--ease)}
+  .ys-doors a em,.ys-result-doors a em{font-family:var(--serif);font-style:italic;font-size:12px;letter-spacing:.4px;text-transform:none;color:var(--slate-dim);transition:color .5s var(--ease)}
+  .ys-doors a:hover,.ys-result-doors a:hover{color:var(--gold-bright)}
+  .ys-doors a:hover em,.ys-result-doors a:hover em{color:var(--slate)}
+  @media (max-width:640px){ .ys-doors,.ys-result-doors{gap:14px} .ys-doors a em,.ys-result-doors a em{display:none} }
   .ys-result{opacity:0;transform:translateY(10px);transition:opacity 1.4s var(--ease),transform 1.4s var(--ease)}
   .ys-result.in{opacity:1;transform:none}
   .ys-result .under{font-family:var(--mono);font-size:10.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:14px}
