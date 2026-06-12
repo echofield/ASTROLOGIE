@@ -40,6 +40,7 @@ export default function Doorway({ cfg }: { cfg: ProductConfig }) {
   const [signs, setSigns] = useState<Signs | null>(null);
   const birthRef = useRef<{ iso: string; hourKnown: boolean } | null>(null);
   const [previewSpans, setPreviewSpans] = useState<{ html: string; in: boolean }[]>([]);
+  const [capped, setCapped] = useState(false);
   const [cutIn, setCutIn] = useState(false);
   const [ctaIn, setCtaIn] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -347,7 +348,10 @@ export default function Doorway({ cfg }: { cfg: ProductConfig }) {
     const live = fetch("/api/door/preview", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ product_type: cfg.productId, answers: answersRef.current, signs: { sunSign: s.sunSign, venusSign: s.venusSign, saturnSign: s.saturnSign } }),
-    }).then((r) => r.json()).then((d) => (typeof d.preview === "string" && d.preview.length > 40 ? d.preview : null)).catch(() => null);
+    }).then((r) => r.json()).then((d) => {
+      if (d.capped) setCapped(true);
+      return typeof d.preview === "string" && d.preview.length > 40 ? d.preview : null;
+    }).catch(() => null);
     const settle = Promise.race([live, new Promise<null>((res) => setTimeout(() => res(null), reduce() ? 0 : 4800))]);
     const minWait = new Promise((res) => setTimeout(res, reduce() ? 0 : 1900));
     Promise.all([settle, minWait]).then(([text]) => { setStep("preview"); renderPreview(s, text as string | null); });
@@ -486,6 +490,7 @@ export default function Doorway({ cfg }: { cfg: ProductConfig }) {
         {/* 4 · THE PREVIEW */}
         <section className={`dw-step${step === "preview" ? " on" : ""}`}>
           <p className="prev-label">{door.prevLabel}</p>
+          {capped && <p className="prev-note">The stars have already been called today — yours are read all the same.</p>}
           <p className="preview">
             {previewSpans.map((sp, i) => (
               <span key={i}><span className={`w${sp.in ? " in" : ""}`} dangerouslySetInnerHTML={{ __html: sp.html }} />{" "}</span>
@@ -590,6 +595,7 @@ const DW_CSS = `
     transition:color .5s var(--ease)}
   .doorway .no-hour:hover{color:var(--slate)}
   .doorway .prev-label{font-family:var(--mono);font-size:10px;letter-spacing:.36em;text-transform:uppercase;color:var(--acc-deep);margin-bottom:26px}
+  .doorway .prev-note{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--slate);margin:-14px 0 22px}
   .doorway .preview{font-family:var(--serif);font-size:clamp(20px,2.4vw,27px);line-height:1.62;color:var(--ivory);
     text-align:left;max-width:560px;margin:0 auto;text-wrap:pretty;min-height:5.2em}
   .doorway .preview .w{opacity:0;transition:opacity .5s var(--ease)}

@@ -23,6 +23,13 @@ export async function POST(req: Request) {
   const rl = await durableLimit(`doorprev:${clientKey(req)}`, 6, 60 * 60 * 1000);
   if (!rl.ok) return NextResponse.json({ preview: null }, { status: 429, headers: { "retry-after": String(rl.retryAfter) } });
 
+  // the day's purse: ~€3 hard ceiling (≈700 Sonnet calls). Past it the template
+  // stands in and the page says so, quietly — the funnel never pays more than
+  // the day allows, and never breaks.
+  const day = new Date().toISOString().slice(0, 10);
+  const budget = await durableLimit(`doorprev:day:${day}`, 700, 24 * 60 * 60 * 1000);
+  if (!budget.ok) return NextResponse.json({ preview: null, capped: true });
+
   const provider = getProvider();
   if (!provider) return NextResponse.json({ preview: null });
 
