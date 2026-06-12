@@ -1,6 +1,7 @@
-import AtlasHome from "@/components/atlas/AtlasHome";
+import YourSky from "@/components/atlas/YourSky";
 
-// The Atlas is the front door. The personal instrument lives at /cabinet.
+// The front door — Your Sky (design canonical set). One question, one gesture,
+// the universe turns yours. The observatory lives one quiet link behind it.
 export default function Home() {
-  return <AtlasHome />;
+  return <YourSky />;
 }

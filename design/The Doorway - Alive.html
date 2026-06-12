@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The AstroLab — The Doorway</title>
+<!-- CLAUDE CODE → replace Google Fonts with self-hosted faces (same three families). -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600&family=EB+Garamond:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================ TOKENS
+     The mask only ever changes the custom properties marked [mask]. */
+  :root{
+    --acc:#c2a25f;          /* [mask] accent */
+    --acc-bright:#e3c884;   /* [mask] accent, lifted */
+    --acc-deep:#8a7140;     /* [mask] accent, sunk */
+    --ivory:#ece4d2;--ivory-dim:#b6b1a3;--slate:#6f7894;--slate-dim:#4a5270;
+    --rule:rgba(194,162,95,.20);      /* [mask] set by JS from --acc */
+    --rule-soft:rgba(194,162,95,.09); /* [mask] */
+    --serif:'Cormorant Garamond',Georgia,serif;--body:'EB Garamond',Georgia,serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;--ease:cubic-bezier(.165,.84,.44,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    /* [mask] ground is set by JS per door */
+    background:radial-gradient(135% 120% at 50% 48%, #0c1733 0%, #081025 36%, #050a18 64%, #03050d 100%);
+    color:var(--ivory);font-family:var(--body);-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;
+    transition:background 1.6s linear;
+  }
+  ::selection{background:rgba(194,162,95,.22);color:var(--ivory)}
+  #sky{position:fixed;inset:0;z-index:0;display:block}
+  .vignette{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(125% 105% at 50% 48%, transparent 44%, rgba(3,5,13,.55) 80%, rgba(1,2,6,.95) 100%)}
+  .grain{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .mark{position:fixed;top:30px;left:34px;z-index:6;display:flex;align-items:center;gap:13px;pointer-events:auto;opacity:.85}
+  .mark .seal{width:6px;height:6px;border-radius:50%;background:var(--ivory-dim)}
+  .mark .wm{font-family:var(--mono);font-size:10px;letter-spacing:.46em;text-transform:uppercase;color:var(--slate-dim)}
+  /* what it does — a description that surfaces on approach, never a call */
+  .mark .sub{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--slate);white-space:nowrap;
+    opacity:0;transform:translateX(-5px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+  .mark:hover .sub{opacity:.9;transform:none}
+  .now{position:fixed;top:28px;right:34px;z-index:6;text-align:right;pointer-events:none;
+    font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate-dim);line-height:1.85}
+  .now .t{color:var(--slate)} .now .sec{opacity:.6} .now .s{color:var(--acc-deep)}
+
+  /* CLAUDE CODE → demo-only mask switcher. Remove; the door is chosen by the
+     product registry (e.g. /door/lucy) and injected as window.DOOR. */
+  .masks{position:fixed;left:34px;bottom:28px;z-index:6;display:flex;gap:18px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;text-transform:uppercase}
+  .masks button{background:none;border:0;cursor:pointer;color:var(--slate-dim);letter-spacing:inherit;font:inherit;padding:4px 0;transition:color .5s var(--ease)}
+  .masks button:hover{color:var(--ivory)}
+  .masks button.on{color:var(--acc)}
+
+  /* ---------------- the heart: one screen at a time ---------------- */
+  .heart{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:24px;pointer-events:none}
+  .step{grid-area:1/1;width:min(660px,93vw);text-align:center;pointer-events:auto;
+    opacity:0;transform:translateY(14px);visibility:hidden;
+    transition:opacity .9s var(--ease),transform .9s var(--ease),visibility 0s linear .9s}
+  .step.on{opacity:1;transform:none;visibility:visible;transition-delay:0s}
+  @media (prefers-reduced-motion:reduce){
+    .step{transition:none}
+    body{transition:none}
+  }
+
+  /* progress: three small stars, no bar */
+  .prog{position:fixed;left:50%;top:34px;transform:translateX(-50%);z-index:6;display:flex;gap:16px;pointer-events:none;
+    opacity:0;transition:opacity .8s var(--ease)}
+  .prog.show{opacity:1}
+  .prog svg{width:11px;height:11px;display:block}
+  .prog .st{fill:none;stroke:var(--slate-dim);stroke-width:1;transition:stroke .8s var(--ease),fill .8s var(--ease)}
+  .prog .lit .st{stroke:var(--acc-bright);fill:rgba(227,200,132,.25)}
+
+  /* emblem — engraved line-work, stroke only */
+  .emblem{display:flex;justify-content:center;margin-bottom:26px}
+  .emblem svg{width:84px;height:60px;overflow:visible}
+  .emblem *{fill:none;stroke:var(--acc);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+
+  .door-name{font-family:var(--mono);font-size:13px;letter-spacing:.6em;text-transform:uppercase;color:var(--acc-bright);margin-bottom:18px;padding-left:.6em}
+  .door-arch{font-family:var(--mono);font-size:9.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--slate-dim);margin-bottom:26px}
+  .door-tag{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3vw,34px);color:var(--ivory);line-height:1.3;text-wrap:balance;margin-bottom:38px}
+
+  .plaque{background:transparent;border:1px solid var(--acc);color:var(--acc-bright);cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+    padding:15px 30px;display:inline-flex;align-items:center;gap:12px;
+    transition:color .6s var(--ease),border-color .6s var(--ease),background .6s var(--ease)}
+  .plaque .ar{transition:transform .6s var(--ease)}
+  .plaque:hover{background:rgba(194,162,95,.07);border-color:var(--acc-bright)}
+  .plaque:hover .ar{transform:translateX(5px)}
+
+  /* question screens */
+  .q-label{font-family:var(--mono);font-size:10px;letter-spacing:.36em;text-transform:uppercase;color:var(--acc-deep);margin-bottom:20px}
+  .q-text{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3vw,34px);color:var(--ivory);line-height:1.3;text-wrap:balance;margin-bottom:40px}
+  .q-row{position:relative;display:flex;align-items:baseline;gap:14px;max-width:520px;margin:0 auto;padding-bottom:14px}
+  .q-row::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--rule)}
+  .q-row::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;z-index:1;
+    background:linear-gradient(90deg,var(--acc),var(--acc-deep) 60%,transparent);
+    transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease)}
+  .q-row:focus-within::before{transform:scaleX(1)}
+  .q-input{flex:1;background:transparent;border:0;outline:none;color:var(--ivory);
+    font-family:var(--serif);font-style:italic;font-size:clamp(18px,2.2vw,24px);letter-spacing:.3px;min-width:0}
+  .q-input::placeholder{color:var(--slate-dim);font-size:.85em}
+  .q-next{background:none;border:0;cursor:pointer;color:var(--acc-deep);font-family:var(--mono);font-size:17px;
+    transition:color .5s var(--ease),transform .5s var(--ease)}
+  .q-next:hover{color:var(--acc-bright);transform:translateX(4px)}
+
+  /* the moment (sphere inputs) */
+  .ask-line{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3vw,34px);color:var(--ivory);margin-bottom:28px}
+  .moment{display:flex;align-items:flex-end;justify-content:center;gap:clamp(20px,3vw,40px);flex-wrap:wrap}
+  .seg-group{display:flex;flex-direction:column;gap:13px}
+  .seg-group>label{font-family:var(--mono);font-size:9.5px;color:var(--acc-deep);letter-spacing:.32em;text-transform:uppercase;text-align:left}
+  .seg-row{position:relative;display:flex;align-items:baseline;gap:7px;padding:2px 2px 12px}
+  .seg-row::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--rule)}
+  .seg-row::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;z-index:1;
+    background:linear-gradient(90deg,var(--acc),var(--acc-deep) 60%,transparent);transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease)}
+  .seg-row:focus-within::before{transform:scaleX(1)}
+  .seg{background:transparent;border:0;outline:none;color:var(--ivory);font-family:var(--serif);font-weight:500;
+    font-size:clamp(26px,3.4vw,36px);line-height:1;text-align:center;letter-spacing:.5px;-webkit-appearance:none}
+  .seg::placeholder{color:var(--acc-deep);opacity:.5;font-style:italic;font-size:.66em;letter-spacing:.14em}
+  .seg.d,.seg.m,.seg.h,.seg.mi{width:1.8em} .seg.y{width:2.8em}
+  .sep{font-family:var(--serif);font-size:clamp(22px,2.9vw,30px);color:var(--acc-deep);opacity:.55}
+  .no-hour{display:block;margin:26px auto 0;background:none;border:0;cursor:pointer;
+    font-family:var(--serif);font-style:italic;font-size:15px;color:var(--slate-dim);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--rule);
+    transition:color .5s var(--ease)}
+  .no-hour:hover{color:var(--slate)}
+
+  /* the preview — the reading writing itself */
+  .prev-label{font-family:var(--mono);font-size:10px;letter-spacing:.36em;text-transform:uppercase;color:var(--acc-deep);margin-bottom:26px}
+  .preview{font-family:var(--serif);font-size:clamp(20px,2.4vw,27px);line-height:1.62;color:var(--ivory);
+    text-align:left;max-width:560px;margin:0 auto;text-wrap:pretty;min-height:5.2em}
+  .preview .w{opacity:0;transition:opacity .5s var(--ease)}
+  .preview .w.in{opacity:1}
+  .preview b{font-weight:500;color:var(--acc-bright)}
+  .cut{max-width:560px;margin:26px auto 0;text-align:left;opacity:0;transition:opacity 1.2s var(--ease)}
+  .cut.in{opacity:1}
+  .cut .rule{width:64px;height:1px;background:linear-gradient(90deg,var(--acc),transparent);margin-bottom:14px;
+    transform:scaleX(0);transform-origin:left;transition:transform 1.2s var(--ease)}
+  .cut.in .rule{transform:scaleX(1)}
+  .cut .hand{font-family:var(--serif);font-style:italic;font-size:clamp(16px,1.8vw,19px);color:var(--ivory-dim)}
+  .cta-row{margin-top:38px;opacity:0;transition:opacity 1.2s var(--ease) .4s}
+  .cta-row.in{opacity:1}
+  @media (prefers-reduced-motion:reduce){
+    .preview .w{transition:none} .cut,.cut .rule,.cta-row{transition:none}
+  }
+
+  /* sealed */
+  .sealed-line{font-family:var(--serif);font-style:italic;font-size:clamp(30px,4vw,46px);color:var(--ivory);margin-bottom:26px}
+  .sealed-sub{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--slate);line-height:2.2}
+  .sealed-sub b{color:var(--acc-bright);font-weight:400;letter-spacing:.12em}
+  .sealed-note{font-family:var(--serif);font-style:italic;font-size:clamp(17px,1.9vw,20px);color:var(--ivory-dim);margin-top:22px}
+  .back-sky{display:inline-block;margin-top:40px;background:none;border:0;cursor:pointer;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--slate-dim);transition:color .5s var(--ease)}
+  .back-sky:hover{color:var(--slate)}
+
+  [hidden]{display:none!important}
+  @media (max-width:640px){
+    .now{display:none}
+    .mark{top:22px;left:22px}
+    .masks{left:22px;bottom:20px}
+    .q-input{font-size:18px}   /* 16px+ keeps iOS from zooming */
+    .seg{font-size:26px}
+  }
+</style>
+</head>
+<body>
+  <canvas id="sky"></canvas>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+
+  <div class="mark"><span class="seal"></span><span class="wm">Astrolab</span><span class="sub">readings drawn from the real sky</span></div>
+  <div class="now">
+    <div class="t" id="nowTime">—</div>
+    <div class="s" id="nowSign">—</div>
+  </div>
+
+  <!-- progress: three stars, lit as the questions pass -->
+  <div class="prog" id="prog" aria-hidden="true">
+    <svg viewBox="0 0 12 12"><path class="st" d="M6 .8 L7.3 4.7 L11.2 6 L7.3 7.3 L6 11.2 L4.7 7.3 L.8 6 L4.7 4.7 Z"/></svg>
+    <svg viewBox="0 0 12 12"><path class="st" d="M6 .8 L7.3 4.7 L11.2 6 L7.3 7.3 L6 11.2 L4.7 7.3 L.8 6 L4.7 4.7 Z"/></svg>
+    <svg viewBox="0 0 12 12"><path class="st" d="M6 .8 L7.3 4.7 L11.2 6 L7.3 7.3 L6 11.2 L4.7 7.3 L.8 6 L4.7 4.7 Z"/></svg>
+  </div>
+
+  <main class="heart">
+
+    <!-- 1 · ARRIVAL -->
+    <section class="step" data-step="arrival" data-screen-label="Arrival">
+      <div class="emblem" id="emblem"></div>
+      <p class="door-name" id="doorName">—</p>
+      <p class="door-arch" id="doorArch">—</p>
+      <p class="door-tag" id="doorTag">—</p>
+      <button class="plaque" id="begin"><span>Begin</span><span class="ar">→</span></button>
+    </section>
+
+    <!-- 2 · THE THREE QUESTIONS (one screen, re-dressed per question) -->
+    <section class="step" data-step="question" data-screen-label="Question">
+      <p class="q-label" id="qLabel">—</p>
+      <p class="q-text" id="qText">—</p>
+      <div class="q-row">
+        <input class="q-input" id="qInput" type="text" autocomplete="off" placeholder="write it as it comes" aria-label="Your answer" />
+        <button class="q-next" id="qNext" aria-label="Next">→</button>
+      </div>
+    </section>
+
+    <!-- 3 · WHEN DID YOU ARRIVE? -->
+    <section class="step" data-step="moment" data-screen-label="When did you arrive">
+      <p class="ask-line">When did you arrive?</p>
+      <div class="moment">
+        <div class="seg-group">
+          <label>The day you arrived</label>
+          <div class="seg-row">
+            <input class="seg d" id="segD" type="text" inputmode="numeric" maxlength="2" placeholder="DD" aria-label="Day" />
+            <span class="sep">/</span>
+            <input class="seg m" id="segM" type="text" inputmode="numeric" maxlength="2" placeholder="MM" aria-label="Month" />
+            <span class="sep">/</span>
+            <input class="seg y" id="segY" type="text" inputmode="numeric" maxlength="4" placeholder="YYYY" aria-label="Year" />
+          </div>
+        </div>
+        <div class="seg-group" id="hourGroup">
+          <label>The hour</label>
+          <div class="seg-row">
+            <input class="seg h" id="segH" type="text" inputmode="numeric" maxlength="2" placeholder="HH" aria-label="Hour" />
+            <span class="sep">:</span>
+            <input class="seg mi" id="segMi" type="text" inputmode="numeric" maxlength="2" placeholder="MM" aria-label="Minute" />
+          </div>
+        </div>
+        <button class="plaque" id="revealBtn"><span>Reveal my sky</span><span class="ar">→</span></button>
+      </div>
+      <button class="no-hour" id="noHour">the hour is unknown</button>
+    </section>
+
+    <!-- 4 · THE PREVIEW -->
+    <section class="step" data-step="preview" data-screen-label="The preview">
+      <p class="prev-label" id="prevLabel">—</p>
+      <p class="preview" id="previewText"></p>
+      <div class="cut" id="cut">
+        <div class="rule"></div>
+        <p class="hand">— the rest is written by hand.</p>
+      </div>
+      <div class="cta-row" id="ctaRow">
+        <button class="plaque" id="ctaBtn"><span>Have it written — €60</span></button>
+      </div>
+    </section>
+
+    <!-- 5 · SEALED -->
+    <section class="step" data-step="sealed" data-screen-label="Sealed">
+      <p class="sealed-line">It is being written.</p>
+      <p class="sealed-sub">It will reach <b id="sealedEmail">the address from your payment</b></p>
+      <p class="sealed-note">Confirm that email, and the Cabinet opens it.</p>
+      <button class="back-sky" id="backSky">return to the sky</button>
+    </section>
+
+  </main>
+
+  <!-- CLAUDE CODE → demo-only. The door is chosen by the registry, not the visitor. -->
+  <nav class="masks" id="masks">
+    <button data-door="lucy">Lucy</button>
+    <button data-door="shadow">Shadow</button>
+    <button data-door="path">Path</button>
+  </nav>
+
+<script>
+/* =========================================================================
+   THE DOORWAY — one shell, three masks.
+   The living sphere stays behind everything; the funnel is a sequence of
+   single-question screens at its heart. The mask changes tokens only.
+
+   CLAUDE CODE → wire points, in order of appearance:
+   1. DOORS registry: replace with the live product registry; in production
+      inject ONE door as window.DOOR (this file falls back to ?door= or lucy).
+   2. STATE.answers: the quiz capture — POST alongside checkout.
+   3. signsFor(): real Sun/Venus/Saturn signs from the validated engine.
+   4. renderPreview(): the {sunSign}/{venusSign}/{saturnSign} slots.
+   5. ctaBtn handler: POST /checkout (Stripe) with {door, answers, birth, signs}.
+   6. sealed: arrive here on payment return (?sealed=1&email=…); the email
+      slot fills from the checkout session.
+   ========================================================================= */
+'use strict';
+
+/* ---------------- engine: Sun, Venus, Saturn (validated) ---------------- */
+const D2R=Math.PI/180,R2D=180/Math.PI,mod360=x=>((x%360)+360)%360;
+function julianDay(y,m,d,hUT){ if(m<=2){y-=1;m+=12;} const A=Math.floor(y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5+hUT/24; }
+const EL={
+  earth:[[1.00000261,0.01671123,-0.00001531,100.46457166,102.93768193,0.0],[0.00000562,-0.00004392,-0.01294668,35999.37244981,0.32327364,0.0]],
+  venus:[[0.72333566,0.00677672,3.39467605,181.97909950,131.60246718,76.67984255],[0.00000390,-0.00004107,-0.00078890,58517.81538729,0.00268329,-0.27769418]],
+  saturn:[[9.53667594,0.05386179,2.48599187,49.95424423,92.59887831,113.66242448],[-0.00125060,-0.00050991,0.00193609,1222.49362201,-0.41897216,-0.28867794]]
+};
+function helioXYZ(name,T){ const [e0,r]=EL[name];
+  const a=e0[0]+r[0]*T, ec=e0[1]+r[1]*T, I=(e0[2]+r[2]*T)*D2R;
+  const L=e0[3]+r[3]*T, vp=e0[4]+r[4]*T, Om=e0[5]+r[5]*T;
+  const w=(vp-Om)*D2R, OmR=Om*D2R; let M=mod360(L-vp); if(M>180)M-=360; M*=D2R;
+  let E=M+ec*Math.sin(M); for(let i=0;i<8;i++){const dE=(E-ec*Math.sin(E)-M)/(1-ec*Math.cos(E));E-=dE;if(Math.abs(dE)<1e-9)break;}
+  const xp=a*(Math.cos(E)-ec), yp=a*Math.sqrt(1-ec*ec)*Math.sin(E);
+  const cw=Math.cos(w),sw=Math.sin(w),cO=Math.cos(OmR),sO=Math.sin(OmR),ci=Math.cos(I),si=Math.sin(I);
+  return [(cw*cO-sw*sO*ci)*xp+(-sw*cO-cw*sO*ci)*yp,(cw*sO+sw*cO*ci)*xp+(-sw*sO+cw*cO*ci)*yp,(sw*si)*xp+(cw*si)*yp]; }
+function geoLon(name,T){ const e=helioXYZ('earth',T);
+  if(name==='sun') return mod360(Math.atan2(-e[1],-e[0])*R2D);
+  const p=helioXYZ(name,T); return mod360(Math.atan2(p[1]-e[1],p[0]-e[0])*R2D); }
+const SIGNS=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+const signOf=lon=>SIGNS[Math.floor(mod360(lon)/30)];
+/* CLAUDE CODE → signsFor(): the personalization source. ±0.3° engine. */
+function signsFor(JD){ const T=(JD-2451545.0)/36525;
+  const sunLon=geoLon('sun',T);
+  return { sunLon, sunSign:signOf(sunLon), venusSign:signOf(geoLon('venus',T)), saturnSign:signOf(geoLon('saturn',T)) }; }
+
+/* ---------------- DOORS registry ----------------
+   CLAUDE CODE → replace with the live registry. One entry per door.
+   theme: tokens only — the shell never changes per door. */
+const EMBLEMS={
+  moon:'<svg viewBox="0 0 84 60"><circle cx="42" cy="30" r="17"/><path id="embAnim" data-kind="moon" d="M42 13 c10 4.5 10 29.5 0 34"/></svg>',
+  eclipse:'<svg viewBox="0 0 84 60"><circle cx="40" cy="30" r="16"/><circle id="embAnim" data-kind="eclipse" cx="46" cy="30" r="16"/></svg>',
+  mountain:'<svg viewBox="0 0 84 60"><path d="M14 46 L32 18 L42 32 L52 12 L70 46"/><path d="M8 46 L76 46"/><circle id="embAnim" data-kind="mountain" cx="63" cy="24" r="3.5"/></svg>'
+};
+const DOORS={
+  lucy:{
+    name:'Lucy', archetype:'The Moon', emblem:'moon',
+    tag:'The pattern did not begin with this person.',
+    theme:{ acc:'#e7e2d8', accBright:'#f2eee4', accDeep:'#a8a294', accRGB:'231,226,216', brightRGB:'242,238,228',
+      star:'226,230,242', ground:['#0b1733','#081027','#04091a','#02050e'], cy:0.5, dawn:false },
+    questions:[
+      {label:'The first question', q:'When did you last feel sure of them?'},
+      {label:'The second', q:'What do you keep not saying?'},
+      {label:'The third', q:'If they left tomorrow, what would remain of you?'}
+    ],
+    prevLabel:'Lucy · The Moon · the first lines',
+    preview:'You arrived with the Sun in {sunSign}, and Venus — the planet that holds this question — in {venusSign}. What you describe did not begin with this person; it has the shape of something older, kept the way {venusSign} keeps what it loves. And the thing you are not saying has a date on which it will ask to be said, because—'
+  },
+  shadow:{
+    name:'Shadow', archetype:'The Eclipse', emblem:'eclipse',
+    tag:'What repeats is asking to be read.',
+    theme:{ acc:'#b96a44', accBright:'#dd9468', accDeep:'#7e4a30', accRGB:'185,106,68', brightRGB:'221,148,104',
+      star:'228,196,176', ground:['#141114','#0d0b0e','#080709','#030203'], cy:0.5, dawn:false },
+    questions:[
+      {label:'The first question', q:'What do you do again, although you swore you would stop?'},
+      {label:'The second', q:'Whose voice does it speak in, when it speaks?'},
+      {label:'The third', q:'What would it cost you to be seen entirely?'}
+    ],
+    prevLabel:'Shadow · The Eclipse · the first lines',
+    preview:'Your Sun stands in {sunSign}, but this letter is not about your light. Saturn, in {saturnSign}, keeps a ledger you never agreed to sign — and the thing you swore to stop is written in it twice. It is not a flaw in the pattern. It is the pattern, and it began the year—'
+  },
+  path:{
+    name:'Path', archetype:'The Mountain', emblem:'mountain',
+    tag:'The work was waiting before the name for it.',
+    theme:{ acc:'#b6a47a', accBright:'#cfc09a', accDeep:'#857757', accRGB:'182,164,122', brightRGB:'207,192,154',
+      star:'236,233,224', ground:['#1a2230','#121925','#0a0f18','#04060b'], cy:0.57, dawn:true },
+    questions:[
+      {label:'The first question', q:'What work leaves you less tired than rest does?'},
+      {label:'The second', q:'What did you want before anyone asked you to want?'},
+      {label:'The third', q:'What are you building that no one has named yet?'}
+    ],
+    prevLabel:'Path · The Mountain · the first lines',
+    preview:'The Sun that rose with you stands in {sunSign}; Saturn — the slow architect of every vocation — in {saturnSign}. The tiredness you describe is not weakness. It is the specific fatigue of carrying a calling inside a container built for a job, and the container has begun to—'
+  }
+};
+
+/* ---------------- state ---------------- */
+/* CLAUDE CODE → STATE is the full funnel capture. POST it with checkout. */
+const STATE={ door:null, answers:[], birth:null, signs:null };
+
+/* ---------------- the sphere (behind everything) ---------------- */
+const SPHERE=(function(){
+  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const cv=document.getElementById('sky'), g=cv.getContext('2d');
+  const dpr=Math.min(devicePixelRatio||1,2);
+  let W=0,H=0,CX=0,CY=0,R=0;
+  const smoother=p=>p<=0?0:p>=1?1:p*p*p*(p*(6*p-15)+10);
+  const t23=23.4*Math.PI/180, ECL_U=[1,0,0], ECL_V=[0,Math.sin(t23),Math.cos(t23)];
+  const THEME={ star:'226,230,242', acc:'194,162,95', bright:'227,200,132', cy:0.5, dawn:false };
+
+  const LAYERS=[{dir:[1,.1],spd:.10,n:.4},{dir:[-.85,.22],spd:.16,n:.34},{dir:[.15,-1],spd:.12,n:.26}];
+  let bg=[],dots=[];
+  function buildBg(){ bg=[]; const total=Math.min(520,Math.max(280,Math.round(W*H/3600)));
+    LAYERS.forEach(L=>{ const c=Math.round(total*L.n); for(let i=0;i<c;i++){ const z=.3+Math.random()*.7;
+      bg.push({x:Math.random()*W,y:Math.random()*H,z,r:.3+z*1.2,base:.08+z*.32,
+        vx:L.dir[0]*L.spd*z,vy:L.dir[1]*L.spd*z,ph:Math.random()*6.283,tw:.5+Math.random()*1.7,acc:Math.random()<.07}); } }); }
+  function buildSphere(){ dots=[]; const N=Math.min(600,Math.max(360,Math.round(W/2.7)));
+    const golden=Math.PI*(3-Math.sqrt(5));
+    for(let i=0;i<N;i++){ const y=1-(i/(N-1))*2, rr=Math.sqrt(Math.max(0,1-y*y)), th=i*golden;
+      dots.push({x:Math.cos(th)*rr,y,z:Math.sin(th)*rr,s:Math.random()<.06?1.5:.6+Math.random()*.8,their:false,prox:0}); } }
+  const RINGS=[{u:[1,0,0],v:[0,0,1],a:.10},{u:[0,1,0],v:[1,0,0],a:.08},{u:[0,1,0],v:[Math.cos(52*D2R*30),0,Math.sin(52*Math.PI/180)],a:.07}];
+  RINGS[2].u=[0,1,0]; RINGS[2].v=[Math.cos(52*Math.PI/180),0,Math.sin(52*Math.PI/180)];
+  const SEG=96, CAM=3.0;
+  let yaw=.6,pitch=-.32, revealed=false,resolving=false,resolve=0,rT0=0,yaw0=0,pitch0=0,tYaw=0,tPitch=0,eclLit=0;
+  const AUTO=reduce?0:0.00006;
+  const ptr={tx:0,ty:0,x:0,y:0};
+  addEventListener('pointermove',e=>{ ptr.tx=e.clientX/innerWidth-.5; ptr.ty=e.clientY/innerHeight-.5; },{passive:true});
+  function rot(p){ const cx=Math.cos(yaw),sx=Math.sin(yaw); let x=p.x*cx-p.z*sx,z=p.x*sx+p.z*cx,y=p.y;
+    const cy=Math.cos(pitch),sy=Math.sin(pitch); return [x,y*cy-z*sy,y*sy+z*cy]; }
+  function project(v){ const pe=CAM/(CAM-v[2]); return [CX+v[0]*R*pe,CY+v[1]*R*pe,v[2],pe]; }
+  function vec(u,v,a){ const c=Math.cos(a),s=Math.sin(a); return {x:u[0]*c+v[0]*s,y:u[1]*c+v[1]*s,z:u[2]*c+v[2]*s}; }
+
+  function reveal(lon){ const b=vec(ECL_U,ECL_V,lon*D2R); window.__sun=b;
+    for(const d of dots){ const dp=d.x*b.x+d.y*b.y+d.z*b.z; d.their=dp>Math.cos(34*D2R);
+      d.prox=Math.max(0,(dp-Math.cos(42*D2R))/(1-Math.cos(42*D2R))); }
+    yaw0=yaw;pitch0=pitch; tYaw=Math.atan2(b.x,b.z); tPitch=Math.atan2(b.y,Math.hypot(b.x,b.z));
+    revealed=true;resolving=true;rT0=performance.now(); }
+  function reset(){ window.__sun=null; revealed=false;resolving=false;resolve=0;eclLit=0;
+    for(const d of dots){d.their=false;d.prox=0;} }
+
+  function step(now,dt){ const f=Math.min(2.4,dt/16.67);
+    for(const p of bg){ if(!reduce){p.x+=p.vx*f;p.y+=p.vy*f;} if(p.x<0)p.x+=W;else if(p.x>W)p.x-=W; if(p.y<0)p.y+=H;else if(p.y>H)p.y-=H; }
+    ptr.x+=(ptr.tx-ptr.x)*.05; ptr.y+=(ptr.ty-ptr.y)*.05;
+    if(resolving){ const p=Math.min(1,(now-rT0)/3500),e=smoother(p);
+      let d=((tYaw-yaw0+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
+      yaw=yaw0+d*e; pitch=pitch0+(tPitch-pitch0)*e; resolve=e; eclLit=e; if(p>=1)resolving=false; }
+    else if(!revealed){ yaw+=AUTO*dt; pitch+=(-0.18-pitch)*0.004*f; } }
+
+  function draw(now){
+    g.clearRect(0,0,W,H);
+    const bgFade=1-resolve*0.4;
+    for(const p of bg){ const tw=.62+.38*Math.sin(now/1000*p.tw+p.ph), a=p.base*tw*bgFade;
+      const ox=p.x-ptr.x*26*p.z, oy=p.y-ptr.y*26*p.z;
+      g.beginPath(); g.arc(ox,oy,p.r,0,6.283);
+      g.fillStyle='rgba('+(p.acc?THEME.bright:THEME.star)+','+a.toFixed(3)+')'; g.fill(); }
+    if(THEME.dawn){ const dg=g.createLinearGradient(0,H*.62,0,H);
+      dg.addColorStop(0,'rgba('+THEME.acc+',0)'); dg.addColorStop(1,'rgba('+THEME.acc+',0.07)');
+      g.fillStyle=dg; g.fillRect(0,H*.62,W,H*.38); }
+    const rr=R*1.18, sg=g.createRadialGradient(CX,CY,rr*.2,CX,CY,rr);
+    sg.addColorStop(0,'rgba(2,4,9,.42)'); sg.addColorStop(.7,'rgba(2,4,9,.18)'); sg.addColorStop(1,'rgba(2,4,9,0)');
+    g.fillStyle=sg; g.beginPath(); g.arc(CX,CY,rr,0,6.283); g.fill();
+    g.lineCap='round';
+    for(const rg of RINGS){ let prev=null,pz=0;
+      for(let i=0;i<=SEG;i++){ const pr=project(rot(vec(rg.u,rg.v,i/SEG*6.283)));
+        if(prev){ const front=((pr[2]+pz)/2+1)/2; g.lineWidth=.5+front*.7;
+          g.strokeStyle='rgba('+THEME.star+','+(rg.a*(.22+.78*front)).toFixed(3)+')';
+          g.beginPath(); g.moveTo(prev[0],prev[1]); g.lineTo(pr[0],pr[1]); g.stroke(); } prev=pr; pz=pr[2]; } }
+    { let prev=null,pz=0; const lit=.12+eclLit*.62;
+      for(let i=0;i<=SEG;i++){ const pr=project(rot(vec(ECL_U,ECL_V,i/SEG*6.283)));
+        if(prev){ const front=((pr[2]+pz)/2+1)/2; g.lineWidth=(.6+front)*(1+eclLit*.5);
+          g.strokeStyle='rgba('+THEME.acc+','+(lit*(.25+.75*front)).toFixed(3)+')';
+          g.beginPath(); g.moveTo(prev[0],prev[1]); g.lineTo(pr[0],pr[1]); g.stroke(); } prev=pr; pz=pr[2]; } }
+    if(resolve>0.02){ const their=dots.filter(d=>d.their).map(d=>({d,pr:project(rot(d))}));
+      g.lineWidth=1;
+      for(let i=0;i<their.length;i++)for(let j=i+1;j<their.length;j++){
+        const A=their[i],B=their[j],dx=A.d.x-B.d.x,dy=A.d.y-B.d.y,dz=A.d.z-B.d.z,d3=Math.sqrt(dx*dx+dy*dy+dz*dz);
+        if(d3<.5){ const front=((A.pr[2]+B.pr[2])/2+1)/2, a=resolve*(1-d3/.5)*.28*(.3+.7*front);
+          if(a<.01)continue; g.strokeStyle='rgba('+THEME.bright+','+a.toFixed(3)+')';
+          g.beginPath(); g.moveTo(A.pr[0],A.pr[1]); g.lineTo(B.pr[0],B.pr[1]); g.stroke(); } } }
+    const proj=dots.map(d=>[project(rot(d)),d]); proj.sort((a,b)=>a[0][2]-b[0][2]);
+    for(const [pr,d] of proj){ const front=(pr[2]+1)/2; let a=.12+.88*front, size=d.s*pr[3]*(.55+.45*front);
+      a*= d.their?1:(1-resolve*.82);
+      const warm=d.their?resolve*Math.max(d.prox,.4):0;
+      if(d.their&&resolve>0){ const halo=size*(2.6+resolve*3.4*Math.max(d.prox,.4));
+        g.globalCompositeOperation='lighter';
+        const hg=g.createRadialGradient(pr[0],pr[1],0,pr[0],pr[1],halo);
+        hg.addColorStop(0,'rgba('+THEME.bright+','+(0.16*resolve*Math.max(d.prox,.4)).toFixed(3)+')'); hg.addColorStop(1,'rgba('+THEME.bright+',0)');
+        g.fillStyle=hg; g.beginPath(); g.arc(pr[0],pr[1],halo,0,6.283); g.fill(); g.globalCompositeOperation='source-over';
+        size*=(1+resolve*.5*Math.max(d.prox,.4)); }
+      g.beginPath(); g.arc(pr[0],pr[1],Math.max(.4,size),0,6.283);
+      g.fillStyle=warm>0?'rgba('+THEME.bright+','+Math.min(1,a+warm*.4).toFixed(3)+')':'rgba('+THEME.star+','+a.toFixed(3)+')';
+      g.fill(); }
+    if(window.__sun){ const pr=project(rot(window.__sun)), front=(pr[2]+1)/2, a=eclLit*(.35+.65*front);
+      g.globalCompositeOperation='lighter';
+      const gr=g.createRadialGradient(pr[0],pr[1],0,pr[0],pr[1],28*pr[3]);
+      gr.addColorStop(0,'rgba(255,250,238,'+a.toFixed(3)+')'); gr.addColorStop(.4,'rgba('+THEME.bright+','+(a*.5).toFixed(3)+')'); gr.addColorStop(1,'rgba('+THEME.bright+',0)');
+      g.fillStyle=gr; g.beginPath(); g.arc(pr[0],pr[1],28*pr[3],0,6.283); g.fill();
+      g.globalCompositeOperation='source-over';
+      g.beginPath(); g.arc(pr[0],pr[1],Math.max(1.6,3.2*pr[3]),0,6.283); g.fillStyle='rgba(255,250,238,'+Math.min(1,a+.2).toFixed(3)+')'; g.fill(); }
+  }
+
+  let last=performance.now();
+  function loop(now){ const dt=Math.min(64,now-last); last=now; step(now,dt); draw(now); requestAnimationFrame(loop); }
+  function size(){ W=innerWidth;H=innerHeight;CX=W/2;CY=H*THEME.cy;R=Math.min(W,H)*0.30;
+    cv.width=Math.floor(W*dpr);cv.height=Math.floor(H*dpr);cv.style.width=W+'px';cv.style.height=H+'px';
+    g.setTransform(dpr,0,0,dpr,0,0); buildBg(); buildSphere(); }
+  size(); addEventListener('resize',size);
+  step(performance.now(),16); draw(performance.now());
+  requestAnimationFrame(loop);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) last=performance.now(); });
+
+  function setTheme(t){ Object.assign(THEME,{star:t.star,acc:t.accRGB,bright:t.brightRGB,cy:t.cy,dawn:t.dawn}); CY=H*THEME.cy; }
+  return {reveal,reset,setTheme};
+})();
+
+/* ---------------- the shell ---------------- */
+(function(){
+  const $=id=>document.getElementById(id);
+  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  /* live clock — same truth as the landing */
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const pad=n=>String(n).padStart(2,'0');
+  function tickNow(){ const n=new Date();
+    $('nowTime').innerHTML=pad(n.getDate())+' '+MONTHS[n.getMonth()]+' '+n.getFullYear()+' · '+pad(n.getHours())+':'+pad(n.getMinutes())+'<span class="sec">:'+pad(n.getSeconds())+'</span>';
+    const JD=julianDay(n.getUTCFullYear(),n.getUTCMonth()+1,n.getUTCDate(),n.getUTCHours()+n.getUTCMinutes()/60);
+    $('nowSign').textContent='Sun in '+signOf(geoLon('sun',(JD-2451545.0)/36525)); }
+  tickNow(); setInterval(tickNow,1000);
+
+  /* ---- mask application: tokens only ---- */
+  function applyDoor(id){
+    const D=DOORS[id]; if(!D) return;
+    STATE.door=id;
+    const t=D.theme, root=document.documentElement.style;
+    root.setProperty('--acc',t.acc); root.setProperty('--acc-bright',t.accBright); root.setProperty('--acc-deep',t.accDeep);
+    root.setProperty('--rule','rgba('+t.accRGB+',.20)'); root.setProperty('--rule-soft','rgba('+t.accRGB+',.09)');
+    document.body.style.background='radial-gradient(135% 120% at 50% 48%, '+t.ground[0]+' 0%, '+t.ground[1]+' 36%, '+t.ground[2]+' 64%, '+t.ground[3]+' 100%)';
+    SPHERE.setTheme(t);
+    $('emblem').innerHTML=EMBLEMS[D.emblem];
+    $('doorName').textContent=D.name;
+    $('doorArch').textContent=D.archetype;
+    $('doorTag').textContent=D.tag;
+    $('prevLabel').textContent=D.prevLabel;
+    document.querySelectorAll('.masks button').forEach(b=>b.classList.toggle('on',b.dataset.door===id));
+  }
+
+  /* ---- steps ---- */
+  const steps=[...document.querySelectorAll('.step')];
+  function show(name){ steps.forEach(s=>s.classList.toggle('on',s.dataset.step===name));
+    $('prog').classList.toggle('show',name==='question'); }
+
+  /* ---- quiz ---- */
+  let qi=0;
+  function askQuestion(){
+    const D=DOORS[STATE.door], Q=D.questions[qi];
+    $('qLabel').textContent=Q.label;
+    $('qText').textContent=Q.q;
+    $('qInput').value=''; 
+    [...$('prog').children].forEach((s,i)=>s.classList.toggle('lit',i<qi));
+    show('question');
+    setTimeout(()=>$('qInput').focus(),reduce?0:950);
+  }
+  function nextQuestion(){
+    const v=$('qInput').value.trim(); if(!v){ $('qInput').focus(); return; }
+    STATE.answers[qi]={ q:DOORS[STATE.door].questions[qi].q, a:v };  /* CLAUDE CODE → quiz capture */
+    qi++;
+    [...$('prog').children].forEach((s,i)=>s.classList.toggle('lit',i<qi));
+    if(qi<3){ setTimeout(askQuestion, reduce?0:350); }
+    else { setTimeout(()=>{ $('prog').classList.remove('show'); show('moment');
+      setTimeout(()=>$('segD').focus(),reduce?0:950); }, reduce?0:600); }
+  }
+  $('qNext').addEventListener('click',nextQuestion);
+  $('qInput').addEventListener('keydown',e=>{ if(e.key==='Enter') nextQuestion(); });
+
+  $('begin').addEventListener('click',()=>{ qi=0; STATE.answers=[]; askQuestion(); });
+
+  /* ---- the moment ---- */
+  const SEGF=['segD','segM','segY','segH','segMi'].map($);
+  SEGF.forEach((el,i)=>{
+    el.addEventListener('input',()=>{ el.value=el.value.replace(/\D/g,''); if(el.value.length>=el.maxLength&&i<SEGF.length-1)SEGF[i+1].focus(); });
+    el.addEventListener('keydown',e=>{ if(e.key==='Enter')submitMoment(false);
+      else if(e.key==='Backspace'&&el.value===''&&i>0){SEGF[i-1].focus();e.preventDefault();} });
+  });
+  function submitMoment(hourUnknown){
+    const d=+$('segD').value,m=+$('segM').value,y=+$('segY').value;
+    if(!(y>=1&&m>=1&&m<=12&&d>=1&&d<=31)){ $(!$('segD').value?'segD':!$('segM').value?'segM':'segY').focus(); return; }
+    /* CLAUDE CODE → hour unknown: solar noon stands in; the written reading
+       notes the rising sign cannot be fixed. */
+    const hh=hourUnknown?12:($('segH').value===''?12:+$('segH').value);
+    const mm=hourUnknown?0:($('segMi').value===''?0:+$('segMi').value);
+    STATE.birth={d,m,y,hh,mm,hourKnown:!hourUnknown};
+    STATE.signs=signsFor(julianDay(y,m,d,hh+mm/60));
+    SPHERE.reveal(STATE.signs.sunLon);
+    setTimeout(()=>{ show('preview'); renderPreview(); }, reduce?0:1900);
+  }
+  $('revealBtn').addEventListener('click',()=>submitMoment(false));
+  $('noHour').addEventListener('click',()=>submitMoment(true));
+
+  /* ---- the preview writes itself ---- */
+  /* CLAUDE CODE → renderPreview(): slots {sunSign} {venusSign} {saturnSign}
+     are filled from STATE.signs. In production the door's template comes from
+     the registry; the writing-on effect is presentation only. */
+  function renderPreview(){
+    const D=DOORS[STATE.door];
+    const text=D.preview
+      .replaceAll('{sunSign}','<b>'+STATE.signs.sunSign+'</b>')
+      .replaceAll('{venusSign}','<b>'+STATE.signs.venusSign+'</b>')
+      .replaceAll('{saturnSign}','<b>'+STATE.signs.saturnSign+'</b>');
+    const holder=$('previewText'); holder.innerHTML='';
+    $('cut').classList.remove('in'); $('ctaRow').classList.remove('in');
+    // split into word spans, keeping the <b> slots whole
+    const parts=text.split(/(<b>.*?<\/b>|\s+)/g).filter(s=>s!=='');
+    const spans=[];
+    for(const p of parts){ if(/^\s+$/.test(p)){ holder.appendChild(document.createTextNode(' ')); continue; }
+      const sp=document.createElement('span'); sp.className='w'; sp.innerHTML=p; holder.appendChild(sp); spans.push(sp); }
+    if(reduce){ spans.forEach(s=>s.classList.add('in')); $('cut').classList.add('in'); $('ctaRow').classList.add('in'); return; }
+    let i=0; (function inkOn(){ if(i<spans.length){ spans[i++].classList.add('in'); setTimeout(inkOn, 90); }
+      else { setTimeout(()=>{ $('cut').classList.add('in');
+        setTimeout(()=>$('ctaRow').classList.add('in'), 700); }, 600); } })();
+  }
+
+  /* ---- checkout ---- */
+  /* CLAUDE CODE → the wire point. POST {door:STATE.door, answers:STATE.answers,
+     birth:STATE.birth, signs:STATE.signs} to /checkout, redirect to Stripe.
+     On return (?sealed=1) land on the sealed step; fill #sealedEmail from the
+     checkout session. The demo advances directly. */
+  $('ctaBtn').addEventListener('click',()=>{ show('sealed'); });
+
+  $('backSky').addEventListener('click',()=>{ SPHERE.reset(); qi=0; STATE.answers=[];
+    SEGF.forEach(el=>el.value=''); show('arrival'); });
+
+  /* ---- boot ---- */
+  /* CLAUDE CODE → door injection: window.DOOR (registry) > ?door= > lucy. */
+  const param=new URLSearchParams(location.search).get('door');
+  applyDoor(window.DOOR && DOORS[window.DOOR] ? window.DOOR : (DOORS[param]?param:'lucy'));
+  document.querySelectorAll('.masks button').forEach(b=>b.addEventListener('click',()=>{
+    applyDoor(b.dataset.door); SPHERE.reset(); qi=0; STATE.answers=[]; SEGF.forEach(el=>el.value=''); show('arrival'); }));
+  show('arrival');
+
+  /* the emblem lives — the moon's terminator slowly waxes and wanes,
+     the eclipse drifts toward totality and back, a small sun climbs the ridge */
+  (function emb(){
+    if(!reduce){ const el=document.getElementById('embAnim');
+      if(el){ const t=performance.now(), kind=el.dataset.kind;
+        if(kind==='moon'){ const k=10*Math.sin(t/9000); el.setAttribute('d','M42 13 c'+k.toFixed(2)+' 4.5 '+k.toFixed(2)+' 29.5 0 34'); }
+        else if(kind==='eclipse'){ el.setAttribute('cx',(46+2.6*Math.sin(t/11000)).toFixed(2)); }
+        else if(kind==='mountain'){ el.setAttribute('cy',(23+4*Math.sin(t/10000)).toFixed(2)); } } }
+    requestAnimationFrame(emb);
+  })();
+})();
+</script>
+</body>
+</html>

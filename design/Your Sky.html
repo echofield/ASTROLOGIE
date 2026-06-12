@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The AstroLab — Your Sky</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600&family=EB+Garamond:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --gold:#c2a25f;--gold-bright:#e3c884;--gold-deep:#8a7140;
+    --ivory:#ece4d2;--ivory-dim:#b6b1a3;--slate:#6f7894;--slate-dim:#4a5270;
+    --rule:rgba(194,162,95,.18);--rule-soft:rgba(194,162,95,.09);
+    --serif:'Cormorant Garamond',Georgia,serif;--body:'EB Garamond',Georgia,serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;--ease:cubic-bezier(.165,.84,.44,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(135% 120% at 50% 48%, #0c1733 0%, #081025 36%, #050a18 64%, #03050d 100%);
+    color:var(--ivory);font-family:var(--body);-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;
+  }
+  ::selection{background:rgba(194,162,95,.22);color:var(--ivory)}
+  #sky{position:fixed;inset:0;z-index:0;display:block;cursor:grab;touch-action:none}
+  #sky.drag{cursor:grabbing}
+  .vignette{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(125% 105% at 50% 48%, transparent 44%, rgba(3,5,13,.55) 80%, rgba(1,2,6,.95) 100%)}
+  .grain{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .mark{position:fixed;top:30px;left:34px;z-index:6;display:flex;align-items:center;gap:13px;pointer-events:none}
+  .mark .seal{width:7px;height:7px;border-radius:50%;background:var(--gold-bright);position:relative}
+  .mark .seal::after{content:"";position:absolute;inset:-6px;border:1px solid var(--gold);border-radius:50%;opacity:.4}
+  .mark .wm{font-family:var(--mono);font-size:10px;letter-spacing:.46em;text-transform:uppercase;color:var(--gold-deep)}
+
+  /* live readout — the sphere is the real sky, right now */
+  .now{position:fixed;top:28px;right:34px;z-index:6;text-align:right;pointer-events:none;
+    font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate-dim);line-height:1.85}
+  .now .k{color:var(--slate-dim)}
+  .now .t{color:var(--slate)}
+  .now .s{color:var(--gold-deep)}
+  .now .sec{color:var(--slate-dim);opacity:.7}
+
+  .panel{position:fixed;left:50%;bottom:8vh;transform:translateX(-50%);z-index:6;width:min(640px,92vw);text-align:center}
+  .ask-line{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3vw,34px);color:var(--ivory);letter-spacing:.3px;margin-bottom:24px}
+  .moment{display:flex;align-items:flex-end;justify-content:center;gap:clamp(22px,3vw,40px);flex-wrap:wrap}
+  .seg-group{display:flex;flex-direction:column;gap:13px}
+  .seg-group>label{font-family:var(--mono);font-size:9.5px;color:var(--gold-deep);letter-spacing:.32em;text-transform:uppercase;text-align:left}
+  .seg-row{position:relative;display:flex;align-items:baseline;gap:7px;padding:2px 2px 12px}
+  .seg-row::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--rule)}
+  .seg-row::before{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;z-index:1;
+    background:linear-gradient(90deg,var(--gold),var(--gold-deep) 60%,transparent);transform:scaleX(0);transform-origin:left;transition:transform .6s var(--ease)}
+  .seg-row:focus-within::before{transform:scaleX(1)}
+  .seg{background:transparent;border:0;outline:none;color:var(--ivory);font-family:var(--serif);font-weight:500;
+    font-size:clamp(28px,3.4vw,36px);line-height:1;text-align:center;letter-spacing:.5px;padding:0;-webkit-appearance:none}
+  .seg::placeholder{color:var(--gold-deep);opacity:.5;font-style:italic;font-size:.66em;letter-spacing:.14em}
+  .seg.d,.seg.m,.seg.h,.seg.mi{width:1.8em}
+  .seg.y{width:2.8em}
+  .sep{font-family:var(--serif);font-size:clamp(23px,2.9vw,30px);color:var(--gold-deep);opacity:.55;transform:translateY(-2px)}
+  .reveal{position:relative;align-self:flex-end;margin-bottom:5px;overflow:hidden;background:transparent;border:1px solid var(--gold);
+    color:var(--gold-bright);font-family:var(--mono);font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;cursor:pointer;
+    padding:16px 30px;display:inline-flex;align-items:center;gap:13px;
+    transition:color .6s var(--ease),border-color .6s var(--ease),box-shadow .6s var(--ease)}
+  .reveal::before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(194,162,95,.18),rgba(194,162,95,.03));opacity:0;transition:opacity .6s var(--ease)}
+  .reveal .lbl,.reveal .ar{position:relative}
+  .reveal .ar{transition:transform .6s var(--ease)}
+  .reveal:hover{color:#f6e8c4;border-color:var(--gold-bright);box-shadow:0 0 30px rgba(194,162,95,.16)}
+  .reveal:hover::before{opacity:1}
+  .reveal:hover .ar{transform:translateX(5px)}
+
+  .result{opacity:0;transform:translateY(10px);transition:opacity 1.4s var(--ease),transform 1.4s var(--ease)}
+  .result.in{opacity:1;transform:none}
+  .result .under{font-family:var(--mono);font-size:10.5px;letter-spacing:.34em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:14px}
+  .result .sign{font-family:var(--serif);font-weight:500;font-size:clamp(46px,7vw,80px);line-height:1;color:var(--ivory);
+    display:flex;align-items:center;justify-content:center;gap:.32em}
+  .result .sign .gl{font-family:var(--mono);font-size:.42em;color:var(--gold)}
+  .result .line{font-family:var(--serif);font-style:italic;font-size:clamp(19px,2.1vw,24px);color:var(--ivory-dim);margin-top:20px;text-wrap:pretty}
+  .result .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;color:var(--slate);margin-top:14px}
+  .result .sub b{color:var(--gold-bright);font-weight:400}
+  .result .acts{display:flex;align-items:center;justify-content:center;gap:28px;margin-top:32px}
+  .result .read{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold-bright);
+    text-decoration:none;border:1px solid var(--gold);padding:13px 28px;display:inline-flex;align-items:center;gap:11px;
+    transition:background .6s var(--ease),color .6s var(--ease),border-color .6s var(--ease)}
+  .result .read span{transition:transform .6s var(--ease)}
+  .result .read:hover{background:rgba(194,162,95,.08);color:#f3e3bd;border-color:var(--gold-bright)}
+  .result .read:hover span{transform:translateX(5px)}
+  .result .again{background:none;border:0;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--slate-dim);transition:color .5s var(--ease)}
+  .result .again:hover{color:var(--gold)}
+  [hidden]{display:none!important}
+  @media (max-width:640px){ .now{display:none} .panel{bottom:5vh} }
+</style>
+</head>
+<body>
+  <canvas id="sky"></canvas>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+
+  <div class="mark"><span class="seal"></span><span class="wm">Astrolab</span></div>
+  <div class="now" id="nowPlate">
+    <div class="k">The sky, right now</div>
+    <div class="t" id="nowTime">—</div>
+    <div class="s" id="nowSign">—</div>
+  </div>
+
+  <div class="panel" id="panel">
+    <div class="ask" id="ask">
+      <p class="ask-line">When did you arrive?</p>
+      <div class="moment">
+        <div class="seg-group">
+          <label>The day you arrived</label>
+          <div class="seg-row">
+            <input class="seg d" id="segD" type="text" inputmode="numeric" maxlength="2" placeholder="DD" aria-label="Day" />
+            <span class="sep">/</span>
+            <input class="seg m" id="segM" type="text" inputmode="numeric" maxlength="2" placeholder="MM" aria-label="Month" />
+            <span class="sep">/</span>
+            <input class="seg y" id="segY" type="text" inputmode="numeric" maxlength="4" placeholder="YYYY" aria-label="Year" />
+          </div>
+        </div>
+        <div class="seg-group">
+          <label>The hour</label>
+          <div class="seg-row">
+            <input class="seg h" id="segH" type="text" inputmode="numeric" maxlength="2" placeholder="HH" aria-label="Hour" />
+            <span class="sep">:</span>
+            <input class="seg mi" id="segMi" type="text" inputmode="numeric" maxlength="2" placeholder="MM" aria-label="Minute" />
+          </div>
+        </div>
+        <button class="reveal" id="reveal"><span class="lbl">Reveal my sky</span><span class="ar">→</span></button>
+      </div>
+    </div>
+    <div class="result" id="result" hidden>
+      <p class="under">You arrived under</p>
+      <h2 class="sign"><span id="signName">—</span><span class="gl" id="signGlyph"></span></h2>
+      <p class="line">This is the sky that stood when you arrived.</p>
+      <p class="sub" id="signSun">—</p>
+      <div class="acts">
+        <a class="read" href="The%20AstroLab.html#reading">Read it <span>→</span></a>
+        <button class="again" id="again">another moment</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================================================================
+   YOUR SKY — the star-sphere, resolved to a real datum about you.
+   The Sun's true ecliptic longitude is computed by the validated engine;
+   one gesture turns the universe yours. The re-form is slow and quiet:
+   over ~3.5s the sphere drifts to face your Sun, your stars brighten and the
+   rest recede, the ecliptic warms to gold. No swirl, no cutscene.
+   ========================================================================= */
+
+/* ---------------- the truth: Sun's ecliptic longitude --------------------- */
+const D2R=Math.PI/180, R2D=180/Math.PI, mod360=x=>((x%360)+360)%360;
+function julianDay(y,m,d,hUT){ if(m<=2){y-=1;m+=12;} const A=Math.floor(y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5+hUT/24; }
+const EARTH=[[1.00000261,0.01671123,-0.00001531,100.46457166,102.93768193,0.0],
+             [0.00000562,-0.00004392,-0.01294668,35999.37244981,0.32327364,0.0]];
+function sunLongitude(JD){
+  const T=(JD-2451545.0)/36525, e0=EARTH[0], r=EARTH[1];
+  const a=e0[0]+r[0]*T, ec=e0[1]+r[1]*T, I=(e0[2]+r[2]*T)*D2R;
+  const L=e0[3]+r[3]*T, vp=e0[4]+r[4]*T, Om=e0[5]+r[5]*T;
+  const w=(vp-Om)*D2R, OmR=Om*D2R; let M=mod360(L-vp); if(M>180)M-=360; M*=D2R;
+  let E=M+ec*Math.sin(M); for(let i=0;i<8;i++){const dE=(E-ec*Math.sin(E)-M)/(1-ec*Math.cos(E));E-=dE;if(Math.abs(dE)<1e-9)break;}
+  const xp=a*(Math.cos(E)-ec), yp=a*Math.sqrt(1-ec*ec)*Math.sin(E);
+  const cw=Math.cos(w),sw=Math.sin(w),cO=Math.cos(OmR),sO=Math.sin(OmR),ci=Math.cos(I),si=Math.sin(I);
+  const ex=(cw*cO-sw*sO*ci)*xp+(-sw*cO-cw*sO*ci)*yp, ey=(cw*sO+sw*cO*ci)*xp+(-sw*sO+cw*cO*ci)*yp;
+  return mod360(Math.atan2(-ey,-ex)*R2D);
+}
+const SIGNS=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+const GLYPH=['\u2648\uFE0E','\u2649\uFE0E','\u264A\uFE0E','\u264B\uFE0E','\u264C\uFE0E','\u264D\uFE0E','\u264E\uFE0E','\u264F\uFE0E','\u2650\uFE0E','\u2651\uFE0E','\u2652\uFE0E','\u2653\uFE0E'];
+const STAR_NAMES=['Sirius','Canopus','Arcturus','Vega','Capella','Rigel','Procyon','Betelgeuse','Altair','Aldebaran','Antares','Spica','Pollux','Fomalhaut','Deneb','Regulus','Castor','Bellatrix','Mizar','Alphard','Polaris','Algol','Markab','Alnilam','Hadar','Mirfak','Dubhe','Alkaid'];
+
+/* ---------------- the sphere ---------------------------------------------- */
+(function(){
+  'use strict';
+  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const cv=document.getElementById('sky'), g=cv.getContext('2d');
+  const dpr=Math.min(devicePixelRatio||1,2);
+  let W=0,H=0,CX=0,CY=0,R=0;
+  const smoother=p=>p<=0?0:p>=1?1:p*p*p*(p*(6*p-15)+10);
+
+  const t23=23.4*Math.PI/180;
+  const ECL_U=[1,0,0], ECL_V=[0,Math.sin(t23),Math.cos(t23)];
+
+  const LAYERS=[{dir:[1,.1],spd:.10,n:.4,gold:.05},{dir:[-.85,.22],spd:.16,n:.34,gold:.06},{dir:[.15,-1],spd:.12,n:.26,gold:.10}];
+  let bg=[];
+  function buildBg(){ bg=[]; const total=Math.min(560,Math.max(300,Math.round(W*H/3400)));
+    LAYERS.forEach(L=>{ const c=Math.round(total*L.n); for(let i=0;i<c;i++){ const z=.3+Math.random()*.7;
+      bg.push({x:Math.random()*W,y:Math.random()*H,z,r:.3+z*1.2,base:.08+z*.34,
+        vx:L.dir[0]*L.spd*z,vy:L.dir[1]*L.spd*z,ph:Math.random()*6.283,tw:.5+Math.random()*1.7,gold:Math.random()<L.gold}); } }); }
+
+  let dots=[];
+  function buildSphere(){ dots=[]; const N=Math.min(620,Math.max(380,Math.round(W/2.6)));
+    const golden=Math.PI*(3-Math.sqrt(5)); let ni=0;
+    for(let i=0;i<N;i++){ const y=1-(i/(N-1))*2, rr=Math.sqrt(Math.max(0,1-y*y)), th=i*golden, gold=Math.random()<.06;
+      const named = gold && Math.random()<.5 && ni<STAR_NAMES.length;
+      dots.push({x:Math.cos(th)*rr,y,z:Math.sin(th)*rr,s:gold?1.5:.6+Math.random()*.8,gold,
+        name: named?STAR_NAMES[ni++]:null, their:false, prox:0}); } }
+
+  const RINGS=[
+    {u:[1,0,0],v:[0,0,1],a:0.10},
+    {u:[0,1,0],v:[1,0,0],a:0.08},
+    {u:[0,1,0],v:[Math.cos(52*Math.PI/180),0,Math.sin(52*Math.PI/180)],a:0.07}
+  ];
+  const SEG=96;
+
+  /* rotation + reveal state */
+  let yaw=.6,pitch=-.32,vYaw=0,vPitch=0;
+  let revealed=false, resolving=false, resolve=0, resolveT0=0, yaw0=0,pitch0=0,tYaw=0,tPitch=0;
+  let eclLit=0;
+  const AUTO=reduce?0:0.00006;
+  function rot(p){ const cx=Math.cos(yaw),sx=Math.sin(yaw); let x=p.x*cx-p.z*sx, z=p.x*sx+p.z*cx, y=p.y;
+    const cy=Math.cos(pitch),sy=Math.sin(pitch); return [x, y*cy-z*sy, y*sy+z*cy]; }
+  const CAM=3.0;
+  function project(v){ const persp=CAM/(CAM-v[2]); return [CX+v[0]*R*persp, CY+v[1]*R*persp, v[2], persp]; }
+  function vec(u,v,ang){ const c=Math.cos(ang),s=Math.sin(ang); return {x:u[0]*c+v[0]*s,y:u[1]*c+v[1]*s,z:u[2]*c+v[2]*s}; }
+
+  /* the current Sun (truth: this is the sky now) and, on reveal, the birth Sun */
+  let sunNow=null, sun=null;
+  function sunVecForLon(lon){ return vec(ECL_U,ECL_V,lon*D2R); }
+  (function initNow(){ const n=new Date();
+    const lon=sunLongitude(julianDay(n.getUTCFullYear(),n.getUTCMonth()+1,n.getUTCDate(),n.getUTCHours()+n.getUTCMinutes()/60));
+    sunNow={...sunVecForLon(lon)}; })();
+
+  function reveal(lon){
+    const b=sunVecForLon(lon); sun={x:b.x,y:b.y,z:b.z};
+    for(const d of dots){ const dp=d.x*b.x+d.y*b.y+d.z*b.z;
+      d.their = dp>Math.cos(34*D2R);
+      d.prox = Math.max(0,(dp-Math.cos(42*D2R))/(1-Math.cos(42*D2R))); }
+    yaw0=yaw; pitch0=pitch;
+    const px=b.x,py=b.y,pz=b.z, r=Math.hypot(px,pz);
+    tYaw=Math.atan2(px,pz); tPitch=Math.atan2(py,r);
+    revealed=true; resolving=true; resolveT0=performance.now();
+  }
+
+  /* pointer: drag to spin + hover a named star */
+  let dragging=false,lx=0,ly=0,mx=-1,my=-1,hoverDot=null;
+  const ptr={tx:0,ty:0,x:0,y:0};
+  cv.addEventListener('pointerdown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;cv.classList.add('drag');cv.setPointerCapture(e.pointerId);resolving=false;});
+  cv.addEventListener('pointermove',e=>{
+    mx=e.clientX; my=e.clientY;
+    if(dragging){ const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;
+      yaw+=dx*.006; pitch=Math.max(-1.3,Math.min(1.3,pitch+dy*.006)); vYaw=dx*.00035; vPitch=dy*.00035; hoverDot=null; return; }
+    ptr.tx=e.clientX/innerWidth-.5; ptr.ty=e.clientY/innerHeight-.5;
+    // nearest named star, front-facing
+    let best=null,bd=15;
+    for(const d of dots){ if(!d.name) continue; const pr=project(rot(d)); if(pr[2]<0.08) continue;
+      const dist=Math.hypot(pr[0]-mx,pr[1]-my); if(dist<bd){bd=dist;best=d;} }
+    hoverDot=best;
+  });
+  cv.addEventListener('pointerleave',()=>{hoverDot=null;mx=-1;my=-1;});
+  const rel=()=>{dragging=false;cv.classList.remove('drag');};
+  cv.addEventListener('pointerup',rel); cv.addEventListener('pointercancel',rel);
+
+  function step(now,dt){
+    const f=Math.min(2.4,dt/16.67);
+    for(const p of bg){ if(!reduce){p.x+=p.vx*f;p.y+=p.vy*f;} if(p.x<0)p.x+=W;else if(p.x>W)p.x-=W; if(p.y<0)p.y+=H;else if(p.y>H)p.y-=H; }
+    ptr.x+=(ptr.tx-ptr.x)*.05; ptr.y+=(ptr.ty-ptr.y)*.05;
+    if(resolving){
+      const p=Math.min(1,(now-resolveT0)/3500), e=smoother(p);   // the quiet settle
+      let d=((tYaw-yaw0+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
+      yaw=yaw0+d*e; pitch=pitch0+(tPitch-pitch0)*e; resolve=e; eclLit=e;
+      if(p>=1) resolving=false;
+    } else if(revealed){
+      if(!dragging){ vYaw*=Math.pow(.92,f); vPitch*=Math.pow(.9,f); yaw+=vYaw*dt; pitch+=vPitch*dt; }
+    } else if(!dragging){
+      yaw+=(AUTO+vYaw)*dt; pitch+=vPitch*dt; pitch+=(-0.18-pitch)*0.004*f; vYaw*=Math.pow(.94,f); vPitch*=Math.pow(.9,f);
+    }
+  }
+
+  function draw(now){
+    g.clearRect(0,0,W,H);
+    // background dust (recedes a touch as the sky becomes yours)
+    const bgFade=1-resolve*0.4;
+    for(const p of bg){ const tw=.62+.38*Math.sin(now/1000*p.tw+p.ph), a=p.base*tw*bgFade;
+      const ox=p.x-ptr.x*26*p.z, oy=p.y-ptr.y*26*p.z;
+      g.beginPath(); g.arc(ox,oy,p.r,0,6.283);
+      g.fillStyle=p.gold?'rgba(226,200,132,'+a.toFixed(3)+')':'rgba(206,216,238,'+a.toFixed(3)+')'; g.fill(); }
+    // seat shadow
+    const rr=R*1.18, sg=g.createRadialGradient(CX,CY,rr*.2,CX,CY,rr);
+    sg.addColorStop(0,'rgba(4,7,16,.42)'); sg.addColorStop(.7,'rgba(4,7,16,.18)'); sg.addColorStop(1,'rgba(4,7,16,0)');
+    g.fillStyle=sg; g.beginPath(); g.arc(CX,CY,rr,0,6.283); g.fill();
+    // faint instrument rings
+    g.lineCap='round';
+    for(const rg of RINGS){ let prev=null,pz=0;
+      for(let i=0;i<=SEG;i++){ const a=i/SEG*6.283, pr=project(rot(vec(rg.u,rg.v,a)));
+        if(prev){ const front=((pr[2]+pz)/2+1)/2; g.lineWidth=(.5+front*.7);
+          g.strokeStyle='rgba(150,165,205,'+(rg.a*(.22+.78*front)).toFixed(3)+')';
+          g.beginPath(); g.moveTo(prev[0],prev[1]); g.lineTo(pr[0],pr[1]); g.stroke(); } prev=pr; pz=pr[2]; } }
+    // the ecliptic — the gold datum, brightens on reveal
+    { let prev=null,pz=0; const lit=0.12+eclLit*0.62;
+      for(let i=0;i<=SEG;i++){ const pr=project(rot(vec(ECL_U,ECL_V,i/SEG*6.283)));
+        if(prev){ const front=((pr[2]+pz)/2+1)/2; g.lineWidth=(.6+front*1.0)*(1+eclLit*0.5);
+          g.strokeStyle='rgba(194,162,95,'+(lit*(.25+.75*front)).toFixed(3)+')';
+          g.beginPath(); g.moveTo(prev[0],prev[1]); g.lineTo(pr[0],pr[1]); g.stroke(); } prev=pr; pz=pr[2]; } }
+    // links among your stars (form quietly as you resolve)
+    if(resolve>0.02){
+      const their=dots.filter(d=>d.their).map(d=>({d,pr:project(rot(d))}));
+      g.lineWidth=1;
+      for(let i=0;i<their.length;i++) for(let j=i+1;j<their.length;j++){
+        const A=their[i],B=their[j], dx=A.d.x-B.d.x,dy=A.d.y-B.d.y,dz=A.d.z-B.d.z, d3=Math.sqrt(dx*dx+dy*dy+dz*dz);
+        if(d3<0.5){ const front=((A.pr[2]+B.pr[2])/2+1)/2; const a=resolve*(1-d3/0.5)*0.28*(0.3+0.7*front);
+          if(a<0.01) continue; g.strokeStyle='rgba(226,200,132,'+a.toFixed(3)+')';
+          g.beginPath(); g.moveTo(A.pr[0],A.pr[1]); g.lineTo(B.pr[0],B.pr[1]); g.stroke(); } }
+    }
+    // dots, back to front, with gather / recede
+    const proj=dots.map(d=>[project(rot(d)),d]); proj.sort((a,b)=>a[0][2]-b[0][2]);
+    for(const [pr,d] of proj){ const front=(pr[2]+1)/2; let a=.12+.88*front; let size=d.s*pr[3]*(.55+.45*front);
+      const theirA = d.their ? 1 : (1-resolve*0.82);                 // the rest recede
+      a*=theirA;
+      const warm = d.their ? resolve*Math.max(d.prox,0.4) : 0;        // your stars warm to gold
+      if(d.their && resolve>0){ const halo=size*(2.6+resolve*3.4*Math.max(d.prox,.4));
+        g.globalCompositeOperation='lighter';
+        const hg=g.createRadialGradient(pr[0],pr[1],0,pr[0],pr[1],halo);
+        hg.addColorStop(0,'rgba(226,200,132,'+(0.16*resolve*Math.max(d.prox,.4)).toFixed(3)+')'); hg.addColorStop(1,'rgba(226,200,132,0)');
+        g.fillStyle=hg; g.beginPath(); g.arc(pr[0],pr[1],halo,0,6.283); g.fill(); g.globalCompositeOperation='source-over';
+        size*=(1+resolve*0.5*Math.max(d.prox,.4));
+      } else if(d.gold && d.name){ // base glow on named stars
+        g.globalCompositeOperation='lighter'; g.beginPath(); g.arc(pr[0],pr[1],size*3,0,6.283);
+        g.fillStyle='rgba(226,200,132,'+(a*.10).toFixed(3)+')'; g.fill(); g.globalCompositeOperation='source-over';
+      }
+      g.beginPath(); g.arc(pr[0],pr[1],Math.max(.4,size),0,6.283);
+      if(d.gold||warm>0){ const r=Math.round(226+ (29)*0), gg=200, b=132;
+        g.fillStyle='rgba(231,206,150,'+Math.min(1,a+warm*0.4).toFixed(3)+')'; }
+      else g.fillStyle='rgba(220,228,245,'+a.toFixed(3)+')';
+      g.fill(); }
+    // rim
+    const rim=g.createRadialGradient(CX,CY,R*.78,CX,CY,R*1.06);
+    rim.addColorStop(0,'rgba(120,150,220,0)'); rim.addColorStop(.82,'rgba(120,150,220,.05)');
+    rim.addColorStop(.94,'rgba(180,200,240,.10)'); rim.addColorStop(1,'rgba(120,150,220,0)');
+    g.fillStyle=rim; g.beginPath(); g.arc(CX,CY,R*1.06,0,6.283); g.fill();
+    // current Sun (faint), recedes as the birth Sun takes over
+    if(sunNow){ const pr=project(rot(sunNow)), front=(pr[2]+1)/2, a=(1-resolve)*0.32*(0.4+0.6*front);
+      if(a>0.01){ g.beginPath(); g.arc(pr[0],pr[1],Math.max(1,2.2*pr[3]),0,6.283); g.fillStyle='rgba(226,200,132,'+a.toFixed(3)+')'; g.fill(); } }
+    // your Sun
+    if(sun){ const pr=project(rot(sun)), front=(pr[2]+1)/2, a=eclLit*(.35+.65*front);
+      g.globalCompositeOperation='lighter';
+      const gr=g.createRadialGradient(pr[0],pr[1],0,pr[0],pr[1],28*pr[3]);
+      gr.addColorStop(0,'rgba(255,247,228,'+a.toFixed(3)+')'); gr.addColorStop(.4,'rgba(243,227,189,'+(a*.5).toFixed(3)+')'); gr.addColorStop(1,'rgba(226,200,132,0)');
+      g.fillStyle=gr; g.beginPath(); g.arc(pr[0],pr[1],28*pr[3],0,6.283); g.fill();
+      g.globalCompositeOperation='source-over';
+      g.beginPath(); g.arc(pr[0],pr[1],Math.max(1.6,3.2*pr[3]),0,6.283); g.fillStyle='rgba(255,250,235,'+Math.min(1,a+.2).toFixed(3)+')'; g.fill();
+      if(front>0.5 && resolve>0.4){ g.font='10px IBM Plex Mono, monospace'; g.textAlign='center';
+        g.fillStyle='rgba(226,200,132,'+(eclLit*.85).toFixed(3)+')'; g.fillText('\u2609\uFE0E', pr[0], pr[1]-15*pr[3]); }
+    }
+    // hovered star name
+    if(hoverDot){ const pr=project(rot(hoverDot));
+      if(pr[2]>0.08){ const x=pr[0],y=pr[1];
+        g.strokeStyle='rgba(226,200,132,.55)'; g.lineWidth=1; g.beginPath(); g.arc(x,y,7,0,6.283); g.stroke();
+        g.beginPath(); g.moveTo(x+8,y); g.lineTo(x+22,y); g.stroke();
+        g.font='11px IBM Plex Mono, monospace'; g.textAlign='left'; g.textBaseline='middle';
+        g.fillStyle='rgba(236,228,210,.92)'; g.fillText(hoverDot.name, x+28, y);
+        g.textBaseline='alphabetic';
+      }
+    }
+  }
+
+  let last=performance.now();
+  function loop(now){ const dt=Math.min(64,now-last); last=now; step(now,dt); draw(now); requestAnimationFrame(loop); }
+  function size(){ W=innerWidth;H=innerHeight;CX=W/2;CY=H/2;R=Math.min(W,H)*0.30;
+    cv.width=Math.floor(W*dpr);cv.height=Math.floor(H*dpr);cv.style.width=W+'px';cv.style.height=H+'px';
+    g.setTransform(dpr,0,0,dpr,0,0); buildBg(); buildSphere(); }
+  size(); addEventListener('resize',size);
+  step(performance.now(),16); draw(performance.now());
+  requestAnimationFrame(loop);
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden) last=performance.now(); });
+
+  /* ---------------- the gesture + resolution ---------------- */
+  const $=id=>document.getElementById(id);
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function pad(n){return String(n).padStart(2,'0');}
+  /* CLAUDE CODE → live clock source: client Date, ticking each second.
+     The sign readout comes from the validated engine (sunLongitude ±0.3°).
+     Swap Date for server time only if the deployment needs one truth. */
+  function tickNow(){ const n=new Date();
+    $('nowTime').innerHTML=pad(n.getDate())+' '+MONTHS[n.getMonth()]+' '+n.getFullYear()+' · '+pad(n.getHours())+':'+pad(n.getMinutes())+'<span class="sec">:'+pad(n.getSeconds())+'</span>';
+    const lon=sunLongitude(julianDay(n.getUTCFullYear(),n.getUTCMonth()+1,n.getUTCDate(),n.getUTCHours()+n.getUTCMinutes()/60));
+    $('nowSign').textContent='Sun in '+SIGNS[Math.floor(mod360(lon)/30)]; }
+  tickNow(); setInterval(tickNow,1000);   // a quiet second, felt
+
+  // segmented moment entry — auto-advancing, inscribed not filled
+  const SEGF=['segD','segM','segY','segH','segMi'].map($);
+  SEGF.forEach((el,i)=>{
+    el.addEventListener('input',()=>{ el.value=el.value.replace(/\D/g,''); if(el.value.length>=el.maxLength && i<SEGF.length-1) SEGF[i+1].focus(); });
+    el.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){ doReveal(); }
+      else if(e.key==='Backspace' && el.value==='' && i>0){ SEGF[i-1].focus(); e.preventDefault(); }
+      else if(e.key==='ArrowLeft' && el.selectionStart===0 && i>0){ SEGF[i-1].focus(); }
+      else if(e.key==='ArrowRight' && el.selectionStart===el.value.length && i<SEGF.length-1){ SEGF[i+1].focus(); }
+    });
+  });
+  /* CLAUDE CODE → REVEAL MY SKY submits {d,m,y,hh,mm} (hour defaults to 12:00
+     solar noon when blank). The sign is computed CLIENT-SIDE by the validated
+     engine above — no round-trip needed for the reveal itself.
+     "Read it →" is the funnel handoff: carry the moment forward, e.g.
+     /reading?d=9&m=6&y=1990&hh=14&mm=30 — wire href in #result .read. */
+  function doReveal(){
+    const d=+$('segD').value, m=+$('segM').value, y=+$('segY').value;
+    const hh=$('segH').value===''?12:+$('segH').value, mm=$('segMi').value===''?0:+$('segMi').value;
+    if(!(y>=1 && m>=1 && m<=12 && d>=1 && d<=31)){
+      const bad = !$('segD').value?'segD' : !$('segM').value?'segM' : 'segY';
+      $(bad).focus(); return;
+    }
+    const lon=sunLongitude(julianDay(y,m,d,(hh||12)+(mm||0)/60));
+    const si=Math.floor(mod360(lon)/30), deg=mod360(lon)-si*30;
+    reveal(lon);
+    $('signName').textContent=SIGNS[si]; $('signGlyph').textContent=GLYPH[si];
+    $('signSun').innerHTML='Sun at <b>'+Math.floor(deg)+'° '+SIGNS[si]+'</b> on the ecliptic';
+    $('ask').setAttribute('hidden','');
+    const res=$('result'); res.removeAttribute('hidden');
+    setTimeout(()=>res.classList.add('in'), 1400);   // words after the recognition
+  }
+  $('reveal').addEventListener('click',doReveal);
+  $('again').addEventListener('click',()=>{
+    const res=$('result'); res.classList.remove('in');
+    setTimeout(()=>{ res.setAttribute('hidden',''); $('ask').removeAttribute('hidden'); },600);
+    sun=null; resolving=false; revealed=false; resolve=0; eclLit=0;
+    for(const d of dots){ d.their=false; d.prox=0; }
+  });
+})();
+</script>
+</body>
+</html>
