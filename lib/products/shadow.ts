@@ -1,11 +1,11 @@
 import type { ProductConfig } from "./types";
 
 // SHADOW — the unconscious-patterns doorway. The lens leans on the Moon, Saturn,
-// Pluto and the 8th/12th houses, and reads for projection and defense.
-// DRAFT — dark until its copy is blessed and Phase C wires the door.
+// Pluto and the 8th/12th houses. Questions, tag and preview are the design
+// canonical set — the sentence library.
 export const shadow: ProductConfig = {
   productId: "shadow",
-  live: false,
+  live: true,
   displayName: "Shadow",
   doorway: "shadow",
   funnelVersion: "shadow_v1",
@@ -18,12 +18,12 @@ export const shadow: ProductConfig = {
     themes: ["self-sabotage", "projections", "defense mechanisms", "what is disowned"],
   },
   funnelQuestions: [
-    { key: "undoes", label: "What do you do that undoes you?" },
-    { key: "accused", label: "What do people keep accusing you of that feels unfair?" },
-    { key: "night", label: "What thought returns at night?" },
+    { key: "again", label: "The first question", q: "What do you do again, although you swore you would stop?" },
+    { key: "voice", label: "The second", q: "Whose voice does it speak in, when it speaks?" },
+    { key: "cost", label: "The third", q: "What would it cost you to be seen entirely?" },
   ],
   previewTemplate:
-    "The habit you fight in daylight is fed at night. Saturn in {saturnSign} keeps the ledger of every time softness cost you — and the defense it built has outlived its war: ",
+    "Your Sun stands in {sunSign}, but this letter is not about your light. Saturn, in {saturnSign}, keeps a ledger you never agreed to sign — and the thing you swore to stop is written in it twice. It is not a flaw in the pattern. It is the pattern, and it began the year—",
   sections: [
     { key: "mechanism", label: "The Mechanism" },
     { key: "origin", label: "The Origin" },
@@ -33,5 +33,15 @@ export const shadow: ProductConfig = {
     { key: "closing", label: "The Closing Message" },
   ],
   visualTheme: { archetype: "The Eclipse", palette: "black, iron, ember, dim gold", pdfTemplate: "gold_register" },
-  successRedirect: "/door/shadow/sealed",
+  successRedirect: "/door/shadow?sealed=1",
+  door: {
+    tag: "What repeats is asking to be read.",
+    emblem: "eclipse",
+    prevLabel: "Shadow · The Eclipse · the first lines",
+    theme: {
+      acc: "#b96a44", accBright: "#dd9468", accDeep: "#7e4a30",
+      accRGB: "185,106,68", brightRGB: "221,148,104", star: "228,196,176",
+      ground: ["#141114", "#0d0b0e", "#080709", "#030203"], cy: 0.5, dawn: false,
+    },
+  },
 };

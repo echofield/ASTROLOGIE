@@ -9,9 +9,32 @@ export type ProductId = "core" | "lucy" | "shadow" | "path";
 
 export interface FunnelQuestion {
   key: string;
-  /** The question as the visitor reads it. */
+  /** The small-caps label above the question ("The first question"). */
   label: string;
+  /** The question as the visitor reads it. */
+  q: string;
   placeholder?: string;
+}
+
+/** The door's visual mask — tokens only; the shell never changes per door. */
+export interface DoorTheme {
+  acc: string;
+  accBright: string;
+  accDeep: string;
+  accRGB: string;
+  brightRGB: string;
+  star: string;
+  ground: [string, string, string, string];
+  cy: number;
+  dawn: boolean;
+}
+
+export interface DoorFace {
+  /** One line under the name — the door's whole claim. */
+  tag: string;
+  emblem: "moon" | "eclipse" | "mountain";
+  prevLabel: string;
+  theme: DoorTheme;
 }
 
 export interface ProductLens {
@@ -47,4 +70,6 @@ export interface ProductConfig {
     pdfTemplate: "gold_register";
   };
   successRedirect: string;
+  /** The doorway surface's mask (absent for core — core keeps its cabinet flow). */
+  door?: DoorFace;
 }

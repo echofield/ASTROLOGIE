@@ -1,11 +1,11 @@
 import type { ProductConfig } from "./types";
 
 // PATH — the vocation doorway. The lens leans on the Sun, the Midheaven, Saturn,
-// Jupiter and the 2nd/6th/10th houses, and reads for direction and the rhythm of work.
-// DRAFT — dark until its copy is blessed and Phase C wires the door.
+// Jupiter and the 2nd/6th/10th houses. Questions, tag and preview are the
+// design canonical set — the sentence library.
 export const path: ProductConfig = {
   productId: "path",
-  live: false,
+  live: true,
   displayName: "Path",
   doorway: "vocation",
   funnelVersion: "path_v1",
@@ -18,12 +18,12 @@ export const path: ProductConfig = {
     themes: ["vocation", "direction", "the rhythm of work", "what is owed to the build"],
   },
   funnelQuestions: [
-    { key: "work", label: "What does your work take from you that it shouldn't?" },
-    { key: "unbuilt", label: "What have you not built yet that you keep describing?" },
-    { key: "measure", label: "Whose measure are you still using?" },
+    { key: "work", label: "The first question", q: "What work leaves you less tired than rest does?" },
+    { key: "want", label: "The second", q: "What did you want before anyone asked you to want?" },
+    { key: "building", label: "The third", q: "What are you building that no one has named yet?" },
   ],
   previewTemplate:
-    "The direction was never missing — it was unread. The Sun in {sunSign} takes its tenth-house orders from a measure you did not choose, and the work that would hold you is ",
+    "The Sun that rose with you stands in {sunSign}; Saturn — the slow architect of every vocation — in {saturnSign}. The tiredness you describe is not weakness. It is the specific fatigue of carrying a calling inside a container built for a job, and the container has begun to—",
   sections: [
     { key: "ground", label: "The Ground" },
     { key: "measure", label: "The Measure" },
@@ -33,5 +33,15 @@ export const path: ProductConfig = {
     { key: "closing", label: "The Closing Message" },
   ],
   visualTheme: { archetype: "The Mountain", palette: "slate, granite, dawn gold, ivory", pdfTemplate: "gold_register" },
-  successRedirect: "/door/path/sealed",
+  successRedirect: "/door/path?sealed=1",
+  door: {
+    tag: "The work was waiting before the name for it.",
+    emblem: "mountain",
+    prevLabel: "Path · The Mountain · the first lines",
+    theme: {
+      acc: "#b6a47a", accBright: "#cfc09a", accDeep: "#857757",
+      accRGB: "182,164,122", brightRGB: "207,192,154", star: "236,233,224",
+      ground: ["#1a2230", "#121925", "#0a0f18", "#04060b"], cy: 0.57, dawn: true,
+    },
+  },
 };

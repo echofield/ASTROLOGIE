@@ -18,9 +18,9 @@ export const core: ProductConfig = {
     themes: ["the sealed question", "the standing pattern", "the year ahead"],
   },
   funnelQuestions: [
-    { key: "season", label: "What season are you in?" },
-    { key: "repeating", label: "What keeps repeating?" },
-    { key: "afraid", label: "What are you afraid of?" },
+    { key: "season", label: "The first question", q: "What season are you in?" },
+    { key: "repeating", label: "The second", q: "What keeps repeating?" },
+    { key: "afraid", label: "The third", q: "What are you afraid of?" },
   ],
   previewTemplate: "",
   sections: [
