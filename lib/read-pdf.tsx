@@ -46,7 +46,17 @@ const s = StyleSheet.create({
 });
 
 export interface PdfRead { signature: string; chart: string; pattern: string; star: string; yearAhead: string; counsel: string }
-const ORDER: [string, keyof PdfRead][] = [["Signature", "signature"], ["Chart", "chart"], ["Pattern", "pattern"], ["Your star", "star"], ["Year ahead", "yearAhead"], ["Counsel", "counsel"]];
+type ReadKey = keyof PdfRead;
+const KEY_ORDER: ReadKey[] = ["signature", "chart", "pattern", "star", "yearAhead", "counsel"];
+// section labels per language; the paid flow passes no lang → English, unchanged
+const LABELS: Record<"en" | "fr", Record<ReadKey, string>> = {
+  en: { signature: "Signature", chart: "Chart", pattern: "Pattern", star: "Your star", yearAhead: "Year ahead", counsel: "Counsel" },
+  fr: { signature: "Signature", chart: "Thème", pattern: "Motif", star: "Votre étoile", yearAhead: "L'année à venir", counsel: "Conseil" },
+};
+const COPY: Record<"en" | "fr", { eyebrow: string; title: string; asked: string; sealed: string }> = {
+  en: { eyebrow: "The Reading", title: "Drawn for the question you carried", asked: "You asked", sealed: "Sealed by The AstroLab — read once" },
+  fr: { eyebrow: "La Lecture", title: "Tirée pour la question que vous portiez", asked: "Vous avez demandé", sealed: "Scellé par The AstroLab — à lire une fois" },
+};
 
 function Paras({ text }: { text: string }) {
   const ps = noLig(text || "").split(/\n{2,}|\n/).map((p) => p.trim()).filter(Boolean);
@@ -69,17 +79,20 @@ function GeometryPlate({ plate }: { plate: PlateData }) {
   );
 }
 
-export function ReadingPDF({ read, question, plate }: { read: PdfRead; question: string; plate?: PlateData | null }) {
+export function ReadingPDF({ read, question, plate, lang = "en" }: { read: PdfRead; question: string; plate?: PlateData | null; lang?: "en" | "fr" }) {
+  const L = lang === "fr" ? "fr" : "en";
+  const labels = LABELS[L];
+  const copy = COPY[L];
   return (
     <Document title="The Reading — The AstroLab" author="The AstroLab">
       <Page size="A4" style={s.page}>
-        <Text style={s.eyebrow}>The Reading</Text>
-        <Text style={s.title}>Drawn for the question you carried</Text>
-        <Text style={s.asked}>You asked — <Text style={s.askedQ}>{`“${noLig(question)}”`}</Text></Text>
+        <Text style={s.eyebrow}>{copy.eyebrow}</Text>
+        <Text style={s.title}>{copy.title}</Text>
+        <Text style={s.asked}>{copy.asked} — <Text style={s.askedQ}>{`“${noLig(question)}”`}</Text></Text>
         <View style={s.rule} />
-        {ORDER.map(([label, key]) => (
+        {KEY_ORDER.map((key) => (
           <View key={key}>
-            <Text style={s.label}>{label}</Text>
+            <Text style={s.label}>{labels[key]}</Text>
             <Paras text={read[key]} />
             {/* the plate sits between SIGNATURE and CHART — the wheel the chart section reads aloud */}
             {key === "signature" && plate ? <GeometryPlate plate={plate} /> : null}
@@ -93,7 +106,7 @@ export function ReadingPDF({ read, question, plate }: { read: PdfRead; question:
             <Path d="M25 7v6 M25 43v-6 M7 25h6 M43 25h-6" stroke={C.gold} strokeWidth={1} />
             <Circle cx={25} cy={25} r={1.7} fill={C.goldBright} />
           </Svg>
-          <Text style={s.coloText}>Sealed by The AstroLab — read once</Text>
+          <Text style={s.coloText}>{copy.sealed}</Text>
           <Text style={s.coloMark}>The AstroLab</Text>
         </View>
       </Page>

@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const read = body.read as PdfRead;
     const question = typeof body.question === "string" ? body.question : "";
+    const lang: "en" | "fr" = body.language === "fr" ? "fr" : "en"; // section labels; defaults to en for the paid flow
     if (!read || typeof read.signature !== "string" || typeof read.counsel !== "string") {
       return NextResponse.json({ error: "bad_request" }, { status: 400 });
     }
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
     // loose shape check — a malformed plate degrades to a text-only artifact
     const plate = body.plate && typeof body.plate === "object" && body.plate.input?.planets ? body.plate : null;
     // ReadingPDF resolves to a <Document>; the wrapper's props aren't DocumentProps, so bridge the type.
-    const element = createElement(ReadingPDF, { read, question, plate }) as unknown as ReactElement<DocumentProps>;
+    const element = createElement(ReadingPDF, { read, question, plate, lang }) as unknown as ReactElement<DocumentProps>;
     const buffer = await renderToBuffer(element);
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

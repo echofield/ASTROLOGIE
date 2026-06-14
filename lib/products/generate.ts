@@ -13,7 +13,7 @@ import { splitSentences } from "@/lib/read-lint";
 import { productMethod } from "./method";
 import type { ProductConfig } from "./types";
 
-const L1_MODEL = "claude-fable-5";
+const L1_MODEL = "claude-opus-4-8";
 
 export interface DoorBirth {
   birthISO: string;
@@ -90,7 +90,11 @@ export async function generateProduct(cfg: ProductConfig, input: DoorInput): Pro
   try {
     raw = await provider.complete({
       model: L1_MODEL,
-      maxTokens: language === "fr" ? 20000 : 12000,
+      // high effort + adaptive thinking; budget holds reasoning AND the JSON
+      // (max effort overthinks and truncates the JSON inside a tight cap)
+      maxTokens: language === "fr" ? 24000 : 16000,
+      thinking: true, // Opus omits thinking by default; the masked method needs the reasoning
+      effort: "high",
       system: productMethod(cfg, language),
       messages: [{ role: "user", content: JSON.stringify(payload) }],
     });

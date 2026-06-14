@@ -258,14 +258,19 @@ export async function POST(req: Request) {
     // anywhere inside still queues the read for hand-fulfilment before the 500.
     try {
 
-    // READ_OPEN-gated diagnostic: L1 model override (A/B voice tests). Default Fable 5 — a
-    // 3-chart bake-off (3/3 complete, judge-passed first try, lint-clean) put it ahead of Opus 4.8
-    // on structural sharpness. Fable reasons ~3k tokens before writing, hence the 12k cap below.
-    const L1_MODEL = readOpen() && typeof body.model === "string" && body.model ? body.model : "claude-fable-5";
+    // READ_OPEN-gated diagnostic: L1 model override (A/B voice tests). Default Opus 4.8 at
+    // max effort with adaptive thinking — Fable is no longer the L1 voice. Opus omits thinking
+    // by default (unlike Fable's always-on), so it's set explicitly; the budgets below keep
+    // the reasoning + JSON from truncating.
+    const L1_MODEL = readOpen() && typeof body.model === "string" && body.model ? body.model : "claude-opus-4-8";
     const raw = await provider.complete({
       model: L1_MODEL, // sharpest raw voice + lint-clean; thinking model, ~€5/read, negligible at €60
-      maxTokens: language === "fr" ? 20000 : 12000, // Fable's FR reasoning runs ~10-11k tokens (vs ~3k EN) — generous headroom so the JSON never truncates
-      // no temperature — Opus 4.8 deprecates the param; the judge+regen loop is the quality lever
+      // high effort + adaptive thinking. Budget holds reasoning AND the JSON: max effort
+      // overthinks and can truncate the JSON inside a tight cap, so high is the sweet spot.
+      maxTokens: language === "fr" ? 24000 : 16000,
+      thinking: true,
+      effort: "high",
+      // no temperature — Opus 4.8 rejects the param; the judge+regen loop is the quality lever
       system: language === "fr" ? READ_METHOD_FR : READ_METHOD,
       messages: [{ role: "user", content: JSON.stringify(payload) }],
     });

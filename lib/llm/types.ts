@@ -14,6 +14,10 @@ export interface CompleteOptions {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  /** Adaptive thinking (Opus 4.6+/Fable). Off unless set — Opus runs without it by default. */
+  thinking?: boolean;
+  /** Reasoning depth for thinking models. Not supported on Haiku — leave unset there. */
+  effort?: "low" | "medium" | "high" | "xhigh" | "max";
 }
 
 export interface LLMProvider {

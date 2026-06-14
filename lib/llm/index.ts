@@ -20,6 +20,10 @@ class AnthropicProvider implements LLMProvider {
       max_tokens: opts.maxTokens ?? 300,
       // temperature only when set — some models (Opus 4.8) reject the param entirely
       ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
+      // adaptive thinking — opt-in: Opus omits it by default, unlike Fable's always-on
+      ...(opts.thinking ? { thinking: { type: "adaptive" as const } } : {}),
+      // effort depth — Opus/Sonnet 4.6+ only; never set on the Haiku default (it 400s)
+      ...(opts.effort ? { output_config: { effort: opts.effort } } : {}),
       // cache the standing persona across calls (prompt caching) — impl detail
       system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
       messages: opts.messages.map((m) => ({ role: m.role, content: m.content })),
