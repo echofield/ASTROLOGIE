@@ -409,6 +409,11 @@ export default function YourSky() {
         <div className="s">{now?.s ?? "—"}</div>
       </div>
 
+      {/* the instrument flanks the sphere — left now, a second may join on the right */}
+      <Link className="ys-instrument" href="/chart" aria-label="Cast your natal chart">
+        <span className="gl">✶</span><span className="t">The Natal Wheel</span><span className="ar">→</span>
+      </Link>
+
       {/* the baseboard — the room's furniture, never part of the question */}
       <nav className="ys-base" aria-label="The readings">
         <span className="grp">
@@ -518,6 +523,16 @@ const YS_CSS = `
   .yoursky .reveal:hover{color:#f6e8c4;border-color:var(--gold-bright);box-shadow:0 0 30px rgba(194,162,95,.16)}
   .yoursky .reveal:hover::before{opacity:1}
   .yoursky .reveal:hover .ar{transform:translateX(5px)}
+  /* the instrument — a glass chip flanking the sphere, left of centre */
+  .ys-instrument{position:fixed;left:30px;top:50%;transform:translateY(-50%);z-index:6;
+    display:inline-flex;align-items:center;gap:10px;padding:11px 17px;border:1px solid var(--rule);border-radius:999px;
+    background:rgba(20,33,66,.30);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ivory-dim);
+    text-decoration:none;transition:border-color .5s var(--ease),color .5s var(--ease),background .5s var(--ease)}
+  .ys-instrument:hover{border-color:var(--gold);color:var(--gold-bright);background:rgba(194,162,95,.08)}
+  .ys-instrument .gl{color:var(--gold);font-size:13px}
+  .ys-instrument .ar{color:var(--gold-deep)}
+  @media(max-width:880px){.ys-instrument{top:72px;left:50%;transform:translateX(-50%);padding:8px 14px;font-size:9px}}
   /* the baseboard — doors left, observatory right, the floor of the room */
   .ys-base{position:fixed;left:34px;right:34px;bottom:26px;z-index:6;display:flex;justify-content:space-between;align-items:baseline;gap:20px}
   .ys-base .grp{display:flex;align-items:baseline;gap:22px;flex-wrap:wrap}
