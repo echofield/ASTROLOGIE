@@ -44,7 +44,7 @@ export default function ReadReveal({ read, question, lang = "en", plate = null, 
     if (pdfBusy) return;
     setPdfBusy(true);
     try {
-      const res = await fetch("/api/read/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ read, question, ...(plate ? { plate } : {}) }) });
+      const res = await fetch("/api/read/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ read, question, language: lang, ...(plate ? { plate } : {}) }) });
       if (!res.ok) throw new Error("pdf");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
